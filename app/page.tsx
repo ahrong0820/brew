@@ -1,8 +1,11 @@
 "use client";
 
 import {
+  Bell,
+  ChevronLeft,
   Coffee,
   Droplets,
+  Heart,
   Pause,
   Play,
   RotateCcw,
@@ -35,6 +38,8 @@ type Recipe = {
   temp: string;
   grind: string;
   totalTime: number;
+  source?: string;
+  sourceUrl?: string;
   notes: string[];
   steps: BrewStep[];
 };
@@ -265,9 +270,482 @@ const recipes: Recipe[] = [
       },
     ],
   },
+  {
+    id: "coffimer-tetsu-46",
+    name: "테츠 카츠야 4:6",
+    origin: "Coffimer 공개 레시피",
+    method: "V60",
+    profile: "균형감, 클린컵, 조절 가능한 단맛과 산미",
+    tags: ["Coffimer", "V60", "클래식", "라이트"],
+    dose: 20,
+    water: 300,
+    ratio: "1:15",
+    temp: "92C",
+    grind: "중간 분쇄",
+    totalTime: 210,
+    source: "Coffimer",
+    sourceUrl: "https://www.coffimer.com/",
+    notes: ["전반 40%로 맛의 방향을 잡고 후반 60%로 농도를 맞춤", "물량 변경 시 각 푸어량도 함께 스케일"],
+    steps: [
+      {
+        label: "블루밍",
+        start: 0,
+        end: 45,
+        targetWater: 70,
+        cue: "가루를 충분히 적시고 45초까지 기다리기",
+      },
+      {
+        label: "1차 추출",
+        start: 45,
+        end: 90,
+        targetWater: 120,
+        cue: "천천히 원을 그리며 120g까지 붓기",
+      },
+      {
+        label: "2차 추출",
+        start: 90,
+        end: 135,
+        targetWater: 180,
+        cue: "중앙에서 바깥쪽으로 물줄기를 넓히기",
+      },
+      {
+        label: "3차 추출",
+        start: 135,
+        end: 180,
+        targetWater: 240,
+        cue: "수위를 안정적으로 유지하며 240g까지 붓기",
+      },
+      {
+        label: "완료",
+        start: 180,
+        end: 210,
+        targetWater: 300,
+        cue: "마지막 60g을 채우고 드로다운 확인",
+      },
+    ],
+  },
+  {
+    id: "coffimer-anstar-6888",
+    name: "안스타 6888",
+    origin: "Coffimer 공개 레시피",
+    method: "V60",
+    profile: "굵은 분쇄, 향미 표현, 반복하기 쉬운 펄스",
+    tags: ["Coffimer", "V60", "국내", "향미"],
+    dose: 20,
+    water: 300,
+    ratio: "1:15",
+    temp: "94C",
+    grind: "굵은 분쇄",
+    totalTime: 150,
+    source: "Coffimer",
+    sourceUrl: "https://www.coffimer.com/",
+    notes: ["60g 블룸 뒤 80g씩 세 번 나누는 단순한 리듬", "각 푸어 후 물이 빠지는 양상을 확인"],
+    steps: [
+      {
+        label: "블루밍",
+        start: 0,
+        end: 30,
+        targetWater: 60,
+        cue: "커피 가루를 충분히 적시기",
+      },
+      {
+        label: "1차 추출",
+        start: 30,
+        end: 60,
+        targetWater: 140,
+        cue: "굵은 물줄기로 140g까지 붓고 빠짐 확인",
+      },
+      {
+        label: "2차 추출",
+        start: 60,
+        end: 90,
+        targetWater: 220,
+        cue: "동일한 속도로 220g까지 붓기",
+      },
+      {
+        label: "3차 추출",
+        start: 90,
+        end: 120,
+        targetWater: 300,
+        cue: "마지막 80g을 채워 총 300g 맞추기",
+      },
+      {
+        label: "완료",
+        start: 120,
+        end: 150,
+        targetWater: 300,
+        cue: "모든 물이 빠질 때까지 기다리기",
+      },
+    ],
+  },
+  {
+    id: "coffimer-jis-4666",
+    name: "정인성 4666 오리지널",
+    origin: "Coffimer 공개 레시피",
+    method: "V60",
+    profile: "약배전 스페셜티, 선명한 향, 안정적인 분할",
+    tags: ["Coffimer", "V60", "국내", "라이트"],
+    dose: 20,
+    water: 320,
+    ratio: "1:16",
+    temp: "92C",
+    grind: "중간보다 굵은 분쇄",
+    totalTime: 160,
+    source: "Coffimer",
+    sourceUrl: "https://www.coffimer.com/",
+    notes: ["40g 뜸 이후 60g씩 세 번 추출하는 4666 구조", "약배전 원두의 맛과 향 표현에 초점"],
+    steps: [
+      {
+        label: "뜸들이기",
+        start: 0,
+        end: 40,
+        targetWater: 40,
+        cue: "가루 전체를 부드럽게 적시기",
+      },
+      {
+        label: "1차 추출",
+        start: 40,
+        end: 70,
+        targetWater: 100,
+        cue: "중앙부터 바깥쪽으로 원을 그리며 붓기",
+      },
+      {
+        label: "2차 추출",
+        start: 70,
+        end: 100,
+        targetWater: 160,
+        cue: "1차와 같은 흐름으로 160g까지 붓기",
+      },
+      {
+        label: "3차 추출",
+        start: 100,
+        end: 130,
+        targetWater: 220,
+        cue: "마지막 추출수를 붓고 흐름을 안정화",
+      },
+      {
+        label: "완료",
+        start: 130,
+        end: 160,
+        targetWater: 320,
+        cue: "필요한 경우 추출 후 가수까지 포함해 농도 조절",
+      },
+    ],
+  },
+  {
+    id: "coffimer-jis-ver2-hot",
+    name: "정인성 국룰 Ver 2.0 HOT",
+    origin: "Coffimer 공개 레시피",
+    method: "V60",
+    profile: "긴 뜸, 안정적인 단맛, 후가수 밸런스",
+    tags: ["Coffimer", "V60", "국내", "단맛"],
+    dose: 18,
+    water: 300,
+    ratio: "1:16",
+    temp: "90C",
+    grind: "중간 분쇄",
+    totalTime: 170,
+    source: "Coffimer",
+    sourceUrl: "https://www.coffimer.com/",
+    notes: ["4666 구조를 바탕으로 뜸 시간을 늘린 버전", "마지막 80g은 추출 후 뜨거운 물로 농도 조절"],
+    steps: [
+      {
+        label: "뜸들이기",
+        start: 0,
+        end: 40,
+        targetWater: 40,
+        cue: "40초간 충분히 뜸을 들여 가스 배출",
+      },
+      {
+        label: "1차 추출",
+        start: 40,
+        end: 70,
+        targetWater: 100,
+        cue: "30초 동안 100g까지 붓기",
+      },
+      {
+        label: "2차 추출",
+        start: 70,
+        end: 100,
+        targetWater: 160,
+        cue: "동일한 속도로 160g까지 붓기",
+      },
+      {
+        label: "3차 추출",
+        start: 100,
+        end: 150,
+        targetWater: 220,
+        cue: "마지막 추출수를 채우고 드로다운",
+      },
+      {
+        label: "희석",
+        start: 150,
+        end: 170,
+        targetWater: 300,
+        cue: "추출 원액에 뜨거운 물을 더해 농도 조절",
+      },
+    ],
+  },
+  {
+    id: "coffimer-yong-light",
+    name: "용챔 라이트로스트 15g",
+    origin: "Coffimer 공개 레시피",
+    method: "Hario Alpha",
+    profile: "꽃향, 과일감, 빠른 굵은 물줄기",
+    tags: ["Coffimer", "국내", "라이트", "향미"],
+    dose: 15,
+    water: 230,
+    ratio: "1:15.3",
+    temp: "95C",
+    grind: "라이트로스트용 중간 분쇄",
+    totalTime: 150,
+    source: "Coffimer",
+    sourceUrl: "https://www.coffimer.com/",
+    notes: ["40초 뜸 뒤 굵은 물줄기로 빠르게 추출", "꽃향이나 과일감이 강한 라이트로스트에 적합"],
+    steps: [
+      {
+        label: "뜸들이기",
+        start: 0,
+        end: 40,
+        targetWater: 40,
+        cue: "커피의 약 2.5배 물로 충분히 불리기",
+      },
+      {
+        label: "1차 푸어링",
+        start: 40,
+        end: 75,
+        targetWater: 110,
+        cue: "굵은 물줄기로 빠르게 110g까지 붓기",
+      },
+      {
+        label: "2차 푸어링",
+        start: 75,
+        end: 105,
+        targetWater: 190,
+        cue: "가장 굵은 물줄기로 190g까지 템포 유지",
+      },
+      {
+        label: "3차 푸어링",
+        start: 105,
+        end: 150,
+        targetWater: 230,
+        cue: "가느다란 물줄기로 한 바퀴 후 센터 푸어",
+      },
+    ],
+  },
+  {
+    id: "coffimer-switch-devil",
+    name: "테츠 카스야 악마의 레시피",
+    origin: "Coffimer 공개 레시피",
+    method: "Hario Switch",
+    profile: "여과와 침출, 온도 전환, 높은 단맛",
+    tags: ["Coffimer", "스위치", "침출", "단맛"],
+    dose: 20,
+    water: 280,
+    ratio: "1:14",
+    temp: "92C -> 70C",
+    grind: "중간 분쇄",
+    totalTime: 150,
+    source: "Coffimer",
+    sourceUrl: "https://www.coffimer.com/",
+    notes: ["초반은 92C 여과식, 후반은 70C 침출식으로 전환", "스위치 오픈/클로즈 타이밍을 단계에 표시"],
+    steps: [
+      {
+        label: "뜸들이기",
+        start: 0,
+        end: 30,
+        targetWater: 60,
+        cue: "스위치를 열고 92C 물 60g으로 뜸들이기",
+      },
+      {
+        label: "1차 여과",
+        start: 30,
+        end: 60,
+        targetWater: 120,
+        cue: "열린 상태로 120g까지 붓고 온도 낮추기",
+      },
+      {
+        label: "저온 침출",
+        start: 60,
+        end: 75,
+        targetWater: 280,
+        cue: "스위치를 닫고 70C 물로 280g까지 채우기",
+      },
+      {
+        label: "추출 오픈",
+        start: 75,
+        end: 105,
+        targetWater: 280,
+        cue: "1분 45초 지점에 스위치를 열어 여과",
+      },
+      {
+        label: "완료",
+        start: 105,
+        end: 150,
+        targetWater: 280,
+        cue: "2분 30초에 드리퍼 제거",
+      },
+    ],
+  },
+  {
+    id: "coffimer-signature-cone",
+    name: "시그니쳐 로스터스 콘 필터",
+    origin: "Coffimer 공개 레시피",
+    method: "V60",
+    profile: "콘 필터, 3회 스파이럴 푸어, 깔끔한 핫 브루",
+    tags: ["Coffimer", "V60", "핫", "클린컵"],
+    dose: 14,
+    water: 210,
+    ratio: "1:15",
+    temp: "93C",
+    grind: "1000-1100um",
+    totalTime: 150,
+    source: "Coffimer",
+    sourceUrl: "https://www.coffimer.com/",
+    notes: ["30초 뜸 뒤 70g, 50g, 50g 스파이럴 푸어", "2분에서 2분 30초 사이 드리퍼 제거"],
+    steps: [
+      {
+        label: "뜸들이기",
+        start: 0,
+        end: 30,
+        targetWater: 40,
+        cue: "스파이럴 푸어로 전체를 적시기",
+      },
+      {
+        label: "1차 추출",
+        start: 30,
+        end: 60,
+        targetWater: 110,
+        cue: "첫 푸어 70g을 스파이럴로 붓기",
+      },
+      {
+        label: "2차 추출",
+        start: 60,
+        end: 90,
+        targetWater: 160,
+        cue: "두 번째 푸어 50g 추가",
+      },
+      {
+        label: "3차 추출",
+        start: 90,
+        end: 120,
+        targetWater: 210,
+        cue: "마지막 50g을 스파이럴로 마무리",
+      },
+      {
+        label: "완료",
+        start: 120,
+        end: 150,
+        targetWater: 210,
+        cue: "2분~2분 30초 사이 드리퍼 제거",
+      },
+    ],
+  },
+  {
+    id: "coffimer-deepblue-v60",
+    name: "딥블루레이크 V60 HOT",
+    origin: "Coffimer 공개 레시피",
+    method: "Hario V60",
+    profile: "1:16, 4-5회 분할, 안정적인 홈 브루",
+    tags: ["Coffimer", "V60", "핫", "국내"],
+    dose: 15,
+    water: 240,
+    ratio: "1:16",
+    temp: "93C",
+    grind: "850-900um",
+    totalTime: 170,
+    source: "Coffimer",
+    sourceUrl: "https://www.coffimer.com/",
+    notes: ["50g 단위로 나누어 붓고 마지막은 40g으로 마감", "총 추출 시간은 2분 40초 전후를 목표"],
+    steps: [
+      {
+        label: "뜸들이기",
+        start: 0,
+        end: 30,
+        targetWater: 50,
+        cue: "50g의 물을 골고루 붓고 30초 대기",
+      },
+      {
+        label: "1차 추출",
+        start: 30,
+        end: 60,
+        targetWater: 100,
+        cue: "50g 추가",
+      },
+      {
+        label: "2차 추출",
+        start: 60,
+        end: 90,
+        targetWater: 150,
+        cue: "다시 50g 추가",
+      },
+      {
+        label: "3차 추출",
+        start: 90,
+        end: 120,
+        targetWater: 200,
+        cue: "수위를 보며 200g까지 붓기",
+      },
+      {
+        label: "마무리",
+        start: 120,
+        end: 170,
+        targetWater: 240,
+        cue: "마지막 40g을 붓고 물이 모두 빠질 때까지 기다리기",
+      },
+    ],
+  },
 ];
 
-const filterOptions = ["전체", "데일리", "라이트", "산미", "단맛", "아이스"];
+const filterOptions = [
+  "전체",
+  "즐겨찾기",
+  "Coffimer",
+  "V60",
+  "스위치",
+  "라이트",
+  "단맛",
+  "아이스",
+];
+
+const coffimerFeatureIdeas = [
+  {
+    title: "나만의 레시피",
+    description: "추출 단계를 직접 만들고 관리하는 편집 흐름",
+  },
+  {
+    title: "AI 원두 분석",
+    description: "원두 봉투 사진으로 로스터, 산지, 가공 정보를 입력",
+  },
+  {
+    title: "내 원두 관리",
+    description: "재고와 디개싱 상태를 한눈에 보는 원두 보관함",
+  },
+  {
+    title: "즐겨찾기",
+    description: "자주 쓰는 레시피만 모아 빠르게 시작",
+  },
+  {
+    title: "스마트 알림",
+    description: "추출 단계가 바뀔 때 소리나 진동으로 안내",
+  },
+];
+
+function getStoredFavorites() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem("coffee-recipe-favorites");
+    const parsedValue = storedValue ? JSON.parse(storedValue) : [];
+    return Array.isArray(parsedValue)
+      ? parsedValue.filter((value): value is string => typeof value === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 function formatTime(seconds: number) {
   const safeSeconds = Math.max(0, Math.round(seconds));
@@ -280,6 +758,32 @@ function scaleValue(value: number, factor: number) {
   return Math.round(value * factor);
 }
 
+function playStepTone() {
+  const audioWindow = window as typeof window & {
+    webkitAudioContext?: typeof AudioContext;
+  };
+  const AudioContextClass = window.AudioContext ?? audioWindow.webkitAudioContext;
+
+  if (!AudioContextClass) {
+    return;
+  }
+
+  const audioContext = new AudioContextClass();
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.value = 880;
+  gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.12, audioContext.currentTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.18);
+
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + 0.2);
+}
+
 export default function Home() {
   const [selectedId, setSelectedId] = useState(recipes[0].id);
   const [query, setQuery] = useState("");
@@ -287,8 +791,11 @@ export default function Home() {
   const [dose, setDose] = useState(recipes[0].dose);
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(getStoredFavorites);
+  const [alertsEnabled, setAlertsEnabled] = useState(true);
   const elapsedRef = useRef(0);
   const lastTickRef = useRef<number | null>(null);
+  const previousStepIndexRef = useRef(0);
 
   const selectedRecipe =
     recipes.find((recipe) => recipe.id === selectedId) ?? recipes[0];
@@ -303,12 +810,14 @@ export default function Home() {
     return recipes.filter((recipe) => {
       const matchesFilter =
         filter === "전체" ||
+        (filter === "즐겨찾기" && favoriteIds.includes(recipe.id)) ||
         recipe.tags.some((tag) => tag.toLowerCase() === filter.toLowerCase());
       const searchable = [
         recipe.name,
         recipe.origin,
         recipe.method,
         recipe.profile,
+        recipe.source ?? "",
         ...recipe.tags,
       ]
         .join(" ")
@@ -316,7 +825,7 @@ export default function Home() {
 
       return matchesFilter && searchable.includes(normalizedQuery);
     });
-  }, [filter, query]);
+  }, [favoriteIds, filter, query]);
 
   const currentStepIndex = useMemo(() => {
     const index = selectedRecipe.steps.findIndex((step) => elapsed < step.end);
@@ -339,6 +848,7 @@ export default function Home() {
   const stepWater = scaleValue(currentStep.targetWater - previousTarget, scaleFactor);
   const progress = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
   const remaining = Math.max(0, totalTime - elapsed);
+  const selectedIsFavorite = favoriteIds.includes(selectedRecipe.id);
 
   useEffect(() => {
     if (!running) {
@@ -365,6 +875,30 @@ export default function Home() {
     return () => window.clearInterval(intervalId);
   }, [running, totalTime]);
 
+  useEffect(() => {
+    window.localStorage.setItem(
+      "coffee-recipe-favorites",
+      JSON.stringify(favoriteIds),
+    );
+  }, [favoriteIds]);
+
+  useEffect(() => {
+    if (!running) {
+      previousStepIndexRef.current = currentStepIndex;
+      return;
+    }
+
+    if (
+      alertsEnabled &&
+      currentStepIndex !== previousStepIndexRef.current &&
+      currentStepIndex > 0
+    ) {
+      playStepTone();
+    }
+
+    previousStepIndexRef.current = currentStepIndex;
+  }, [alertsEnabled, currentStepIndex, running]);
+
   function updateElapsed(nextElapsed: number) {
     elapsedRef.current = nextElapsed;
     setElapsed(nextElapsed);
@@ -377,9 +911,28 @@ export default function Home() {
     setRunning(false);
   }
 
+  function toggleFavorite(recipeId: string) {
+    setFavoriteIds((currentIds) =>
+      currentIds.includes(recipeId)
+        ? currentIds.filter((id) => id !== recipeId)
+        : [...currentIds, recipeId],
+    );
+  }
+
   function resetTimer() {
     updateElapsed(0);
     setRunning(false);
+  }
+
+  function jumpToPreviousStep() {
+    const previousStep = selectedRecipe.steps[currentStepIndex - 1];
+
+    if (previousStep) {
+      updateElapsed(previousStep.start);
+      return;
+    }
+
+    updateElapsed(0);
   }
 
   function jumpToNextStep() {
@@ -479,8 +1032,8 @@ export default function Home() {
       </header>
 
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_410px] lg:px-8">
-        <section className="order-2 space-y-5 lg:order-1">
-          <div className="flex flex-col gap-3 rounded-lg border border-[#d7ded4] bg-white p-3 shadow-sm shadow-black/5 md:flex-row md:items-center md:justify-between">
+        <section className="order-2 min-w-0 space-y-5 lg:order-1">
+          <div className="flex flex-col gap-3 rounded-lg border border-[#d7ded4] bg-white p-3 shadow-sm shadow-black/5">
             <label className="relative flex min-w-0 flex-1 items-center">
               <Search className="absolute left-3 h-4 w-4 text-[#607064]" aria-hidden="true" />
               <input
@@ -491,7 +1044,7 @@ export default function Home() {
               />
             </label>
 
-            <div className="flex gap-1 overflow-x-auto rounded-md bg-[#edf1ea] p-1">
+            <div className="flex min-w-0 gap-1 overflow-x-auto rounded-md bg-[#edf1ea] p-1">
               {filterOptions.map((option) => (
                 <button
                   key={option}
@@ -512,13 +1065,14 @@ export default function Home() {
           <div className="grid gap-4 md:grid-cols-2">
             {filteredRecipes.map((recipe) => {
               const selected = recipe.id === selectedRecipe.id;
+              const favorite = favoriteIds.includes(recipe.id);
 
               return (
                 <button
                   key={recipe.id}
                   type="button"
                   onClick={() => selectRecipe(recipe)}
-                  className={`rounded-lg border bg-white p-5 text-left shadow-sm shadow-black/5 transition hover:-translate-y-0.5 hover:border-[#2f6f5f] hover:shadow-md ${
+                  className={`min-w-0 rounded-lg border bg-white p-5 text-left shadow-sm shadow-black/5 transition hover:-translate-y-0.5 hover:border-[#2f6f5f] hover:shadow-md ${
                     selected
                       ? "border-[#2f6f5f] ring-2 ring-[#2f6f5f]/18"
                       : "border-[#d7ded4]"
@@ -531,14 +1085,28 @@ export default function Home() {
                       </p>
                       <h3 className="mt-2 text-xl font-semibold">{recipe.name}</h3>
                     </div>
-                    <span className="rounded-md bg-[#eef3ec] px-2.5 py-1 font-mono text-sm text-[#2f6f5f]">
-                      {formatTime(recipe.totalTime)}
-                    </span>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {favorite ? (
+                        <Heart
+                          className="h-4 w-4 fill-[#c95b3d] text-[#c95b3d]"
+                          aria-label="즐겨찾기"
+                        />
+                      ) : null}
+                      <span className="rounded-md bg-[#eef3ec] px-2.5 py-1 font-mono text-sm text-[#2f6f5f]">
+                        {formatTime(recipe.totalTime)}
+                      </span>
+                    </div>
                   </div>
 
                   <p className="mt-3 text-sm leading-6 text-[#526055]">
                     {recipe.profile}
                   </p>
+
+                  {recipe.source ? (
+                    <p className="mt-2 text-xs font-medium text-[#8c5b3e]">
+                      {recipe.source} 공개 레시피 참고
+                    </p>
+                  ) : null}
 
                   <div className="mt-5 grid grid-cols-3 gap-2 text-sm">
                     <div className="rounded-md bg-[#f4f6f1] p-3">
@@ -572,9 +1140,37 @@ export default function Home() {
               );
             })}
           </div>
+
+          <section className="rounded-lg border border-[#d7ded4] bg-white p-5 shadow-sm shadow-black/5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase text-[#607064]">
+                  Coffimer Reference
+                </p>
+                <h2 className="mt-2 text-xl font-semibold">다음에 붙이면 좋은 기능</h2>
+              </div>
+              <span className="text-sm text-[#607064]">
+                공개 기능 안내를 바탕으로 정리
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              {coffimerFeatureIdeas.map((feature) => (
+                <div
+                  key={feature.title}
+                  className="rounded-lg border border-[#d7ded4] bg-[#f8faf6] p-3"
+                >
+                  <strong className="text-sm">{feature.title}</strong>
+                  <p className="mt-2 text-xs leading-5 text-[#607064]">
+                    {feature.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
         </section>
 
-        <aside className="order-1 space-y-4 lg:sticky lg:top-6 lg:order-2 lg:self-start">
+        <aside className="order-1 min-w-0 space-y-4 lg:sticky lg:top-6 lg:order-2 lg:self-start">
           <section className="rounded-lg border border-[#d7ded4] bg-white p-5 shadow-sm shadow-black/5">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -624,6 +1220,14 @@ export default function Home() {
                 </button>
                 <button
                   type="button"
+                  onClick={jumpToPreviousStep}
+                  aria-label="이전 단계"
+                  className="flex h-11 w-11 items-center justify-center rounded-md border border-white/18 text-white transition hover:bg-white/10"
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
                   onClick={jumpToNextStep}
                   aria-label="다음 단계"
                   className="flex h-11 w-11 items-center justify-center rounded-md border border-white/18 text-white transition hover:bg-white/10"
@@ -639,6 +1243,36 @@ export default function Home() {
                   <RotateCcw className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setAlertsEnabled((current) => !current)}
+                className={`flex h-10 items-center justify-center gap-2 rounded-md border text-sm font-medium transition ${
+                  alertsEnabled
+                    ? "border-[#2f6f5f] bg-[#eef5ef] text-[#2f6f5f]"
+                    : "border-[#d7ded4] bg-white text-[#607064]"
+                }`}
+              >
+                <Bell className="h-4 w-4" aria-hidden="true" />
+                단계 알림 {alertsEnabled ? "켜짐" : "꺼짐"}
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleFavorite(selectedRecipe.id)}
+                className={`flex h-10 items-center justify-center gap-2 rounded-md border text-sm font-medium transition ${
+                  selectedIsFavorite
+                    ? "border-[#c95b3d] bg-[#fff0eb] text-[#c95b3d]"
+                    : "border-[#d7ded4] bg-white text-[#607064]"
+                }`}
+              >
+                <Heart
+                  className={`h-4 w-4 ${selectedIsFavorite ? "fill-[#c95b3d]" : ""}`}
+                  aria-hidden="true"
+                />
+                즐겨찾기
+              </button>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
@@ -709,6 +1343,17 @@ export default function Home() {
                 <dd className="mt-1 font-semibold">{selectedRecipe.grind}</dd>
               </div>
             </dl>
+
+            {selectedRecipe.source ? (
+              <a
+                href={selectedRecipe.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 block rounded-md border border-[#d7ded4] bg-[#fffaf5] px-3 py-2 text-sm font-medium text-[#8c5b3e] transition hover:border-[#c95b3d]"
+              >
+                {selectedRecipe.source} 공개 레시피 참고
+              </a>
+            ) : null}
 
             <div className="mt-5 space-y-2">
               {selectedRecipe.steps.map((step, index) => {
