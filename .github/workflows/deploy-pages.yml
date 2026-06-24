@@ -40,7 +40,7 @@ jobs:
         run: pnpm build:github
         env:
           GITHUB_PAGES: "true"
-          NEXT_PUBLIC_BASE_PATH: /coffee-brew-timer
+          NEXT_PUBLIC_BASE_PATH: /brew
 
       - name: Disable Jekyll
         run: touch out/.nojekyll
