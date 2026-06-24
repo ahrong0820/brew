@@ -1278,7 +1278,7 @@ export default function Home() {
                   Recipe
                 </p>
                 <h2 className="mt-2 text-xl font-semibold">
-                  {selectedRecipe.origin}
+                  {selectedRecipe.name}
                 </h2>
               </div>
               <span className="rounded-md bg-[#eef3ec] px-3 py-1 font-mono text-sm text-[#2f6f5f]">
