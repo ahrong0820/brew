@@ -3,17 +3,20 @@
 import {
   Bell,
   ChevronLeft,
+  Check,
   Coffee,
   Droplets,
   Heart,
   Pause,
   Play,
+  Plus,
   RotateCcw,
   Scale,
   Search,
   SkipForward,
   Thermometer,
   Timer,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -29,6 +32,13 @@ type BrewStep = {
   targetWater: number;
   displayTargetWater?: WaterAmount;
   displayStepWater?: WaterAmount;
+  cue: string;
+};
+
+type DraftStep = {
+  label: string;
+  duration: number;
+  targetWater: number;
   cue: string;
 };
 
@@ -51,6 +61,35 @@ type Recipe = {
   notes: string[];
   steps: BrewStep[];
 };
+
+const customRecipesStorageKey = "coffee-custom-recipes";
+
+const defaultDraftSteps: DraftStep[] = [
+  {
+    label: "블루밍",
+    duration: 40,
+    targetWater: 40,
+    cue: "가루 전체를 적시고 향을 열기",
+  },
+  {
+    label: "1차 추출",
+    duration: 35,
+    targetWater: 120,
+    cue: "중앙부터 바깥쪽으로 천천히 붓기",
+  },
+  {
+    label: "2차 추출",
+    duration: 35,
+    targetWater: 200,
+    cue: "수위를 안정적으로 유지하며 붓기",
+  },
+  {
+    label: "마무리",
+    duration: 50,
+    targetWater: 300,
+    cue: "목표 물량까지 채우고 드리퍼 제거 준비",
+  },
+];
 
 const recipes: Recipe[] = [
   {
@@ -591,34 +630,12 @@ const recipes: Recipe[] = [
 const filterOptions = [
   "전체",
   "즐겨찾기",
+  "나만의 레시피",
   "V60",
   "클레버",
   "스위치",
   "라이트",
   "단맛",
-];
-
-const futureFeatureIdeas = [
-  {
-    title: "나만의 레시피",
-    description: "추출 단계를 직접 만들고 관리하는 편집 흐름",
-  },
-  {
-    title: "AI 원두 분석",
-    description: "원두 봉투 사진으로 로스터, 산지, 가공 정보를 입력",
-  },
-  {
-    title: "내 원두 관리",
-    description: "재고와 디개싱 상태를 한눈에 보는 원두 보관함",
-  },
-  {
-    title: "즐겨찾기",
-    description: "자주 쓰는 레시피만 모아 빠르게 시작",
-  },
-  {
-    title: "스마트 알림",
-    description: "추출 단계가 바뀔 때 소리나 진동으로 안내",
-  },
 ];
 
 function getStoredFavorites() {
@@ -632,6 +649,87 @@ function getStoredFavorites() {
     return Array.isArray(parsedValue)
       ? parsedValue.filter((value): value is string => typeof value === "string")
       : [];
+  } catch {
+    return [];
+  }
+}
+
+function createDefaultDraftSteps() {
+  return defaultDraftSteps.map((step) => ({ ...step }));
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
+function formatRatio(dose: number, water: number) {
+  const ratio = water / dose;
+  return `1:${ratio.toFixed(1).replace(".0", "")}`;
+}
+
+function buildBrewSteps(draftSteps: DraftStep[]) {
+  let cursor = 0;
+  let previousTargetWater = 0;
+
+  return draftSteps.map((step, index) => {
+    const duration = clampNumber(step.duration, 5, 360);
+    const start = cursor;
+    const end = cursor + duration;
+    const targetWater = Math.max(
+      previousTargetWater,
+      clampNumber(step.targetWater, 0, 1200),
+    );
+    const brewStep = {
+      label: step.label.trim() || `${index + 1}단계`,
+      start,
+      end,
+      targetWater,
+      cue: step.cue.trim() || "다음 단계로 넘어가기 전 흐름을 확인",
+    };
+
+    cursor = end;
+    previousTargetWater = targetWater;
+    return brewStep;
+  });
+}
+
+function getStoredCustomRecipes() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(customRecipesStorageKey);
+    const parsedValue: unknown = storedValue ? JSON.parse(storedValue) : [];
+
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    return parsedValue.filter((value): value is Recipe => {
+      if (typeof value !== "object" || value === null) {
+        return false;
+      }
+
+      const candidate = value as Partial<Recipe>;
+
+      return (
+        typeof candidate.id === "string" &&
+        candidate.id.startsWith("custom-") &&
+        typeof candidate.name === "string" &&
+        typeof candidate.dose === "number" &&
+        typeof candidate.water === "number" &&
+        typeof candidate.totalTime === "number" &&
+        Array.isArray(candidate.tags) &&
+        Array.isArray(candidate.notes) &&
+        Array.isArray(candidate.steps) &&
+        candidate.steps.length > 0
+      );
+    });
   } catch {
     return [];
   }
@@ -685,22 +783,53 @@ function playStepTone() {
   oscillator.stop(audioContext.currentTime + 0.2);
 }
 
+function vibrateStepCue() {
+  if (typeof navigator === "undefined") {
+    return;
+  }
+
+  const vibrationNavigator = navigator as Navigator & {
+    vibrate?: (pattern: number | number[]) => boolean;
+  };
+
+  vibrationNavigator.vibrate?.([80, 40, 80]);
+}
+
+function runSmartAlert() {
+  playStepTone();
+  vibrateStepCue();
+}
+
 export default function Home() {
+  const [customRecipes, setCustomRecipes] = useState<Recipe[]>([]);
   const [selectedId, setSelectedId] = useState(recipes[0].id);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("전체");
   const [dose, setDose] = useState(recipes[0].dose);
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(getStoredFavorites);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [draftName, setDraftName] = useState("오전용 V60 레시피");
+  const [draftMethod, setDraftMethod] = useState("V60");
+  const [draftProfile, setDraftProfile] = useState("직접 만든 추출 흐름");
+  const [draftDose, setDraftDose] = useState(20);
+  const [draftTemp, setDraftTemp] = useState("92C");
+  const [draftGrind, setDraftGrind] = useState("중간 분쇄");
+  const [draftSteps, setDraftSteps] =
+    useState<DraftStep[]>(createDefaultDraftSteps);
+  const [storageLoaded, setStorageLoaded] = useState(false);
   const elapsedRef = useRef(0);
   const lastTickRef = useRef<number | null>(null);
   const previousStepIndexRef = useRef(0);
   const completionPlayedRef = useRef(false);
+  const allRecipes = useMemo(
+    () => [...customRecipes, ...recipes],
+    [customRecipes],
+  );
 
   const selectedRecipe =
-    recipes.find((recipe) => recipe.id === selectedId) ?? recipes[0];
+    allRecipes.find((recipe) => recipe.id === selectedId) ?? allRecipes[0];
 
   const scaleFactor = dose / selectedRecipe.dose;
   const scaledWater = scaleValue(selectedRecipe.water, scaleFactor);
@@ -713,7 +842,7 @@ export default function Home() {
   const filteredRecipes = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return recipes.filter((recipe) => {
+    return allRecipes.filter((recipe) => {
       const matchesFilter =
         filter === "전체" ||
         (filter === "즐겨찾기" && favoriteIds.includes(recipe.id)) ||
@@ -730,7 +859,7 @@ export default function Home() {
 
       return matchesFilter && searchable.includes(normalizedQuery);
     });
-  }, [favoriteIds, filter, query]);
+  }, [allRecipes, favoriteIds, filter, query]);
 
   const currentStepIndex = useMemo(() => {
     const index = selectedRecipe.steps.findIndex((step) => elapsed < step.end);
@@ -760,6 +889,12 @@ export default function Home() {
   const progress = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
   const remaining = Math.max(0, totalTime - elapsed);
   const selectedIsFavorite = favoriteIds.includes(selectedRecipe.id);
+  const lastDraftStep = draftSteps[draftSteps.length - 1];
+  const draftTotalWater = lastDraftStep?.targetWater ?? 0;
+  const draftTotalTime = draftSteps.reduce(
+    (total, step) => total + clampNumber(step.duration, 5, 360),
+    0,
+  );
 
   useEffect(() => {
     if (!running) {
@@ -784,7 +919,7 @@ export default function Home() {
         completionPlayedRef.current = true;
 
         if (alertsEnabled) {
-          playStepTone();
+          runSmartAlert();
         }
       }
 
@@ -800,11 +935,36 @@ export default function Home() {
   }, [alertsEnabled, running, totalTime]);
 
   useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setFavoriteIds(getStoredFavorites());
+      setCustomRecipes(getStoredCustomRecipes());
+      setStorageLoaded(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    if (!storageLoaded) {
+      return;
+    }
+
     window.localStorage.setItem(
       "coffee-recipe-favorites",
       JSON.stringify(favoriteIds),
     );
-  }, [favoriteIds]);
+  }, [favoriteIds, storageLoaded]);
+
+  useEffect(() => {
+    if (!storageLoaded) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      customRecipesStorageKey,
+      JSON.stringify(customRecipes),
+    );
+  }, [customRecipes, storageLoaded]);
 
   useEffect(() => {
     if (!running) {
@@ -817,7 +977,7 @@ export default function Home() {
       currentStepIndex !== previousStepIndexRef.current &&
       currentStepIndex > 0
     ) {
-      playStepTone();
+      runSmartAlert();
     }
 
     previousStepIndexRef.current = currentStepIndex;
@@ -845,6 +1005,100 @@ export default function Home() {
         ? currentIds.filter((id) => id !== recipeId)
         : [...currentIds, recipeId],
     );
+  }
+
+  function updateDraftStep(index: number, patch: Partial<DraftStep>) {
+    setDraftSteps((currentSteps) =>
+      currentSteps.map((step, stepIndex) =>
+        stepIndex === index ? { ...step, ...patch } : step,
+      ),
+    );
+  }
+
+  function addDraftStep() {
+    const lastStep = draftSteps[draftSteps.length - 1];
+    const nextIndex = draftSteps.length + 1;
+
+    setDraftSteps((currentSteps) => [
+      ...currentSteps,
+      {
+        label: `${nextIndex}차 추출`,
+        duration: 30,
+        targetWater: (lastStep?.targetWater ?? 0) + 60,
+        cue: "목표 물량까지 일정하게 붓기",
+      },
+    ]);
+  }
+
+  function removeDraftStep(index: number) {
+    setDraftSteps((currentSteps) =>
+      currentSteps.length === 1
+        ? currentSteps
+        : currentSteps.filter((_, stepIndex) => stepIndex !== index),
+    );
+  }
+
+  function resetDraft() {
+    setDraftName("오전용 V60 레시피");
+    setDraftMethod("V60");
+    setDraftProfile("직접 만든 추출 흐름");
+    setDraftDose(20);
+    setDraftTemp("92C");
+    setDraftGrind("중간 분쇄");
+    setDraftSteps(createDefaultDraftSteps());
+  }
+
+  function saveCustomRecipe() {
+    const safeDose = clampNumber(draftDose, 8, 60);
+    const steps = buildBrewSteps(draftSteps);
+    const lastStep = steps[steps.length - 1];
+    const water = lastStep?.targetWater ?? 0;
+    const totalTime = lastStep?.end ?? 0;
+    const method = draftMethod.trim() || "핸드드립";
+    const nextCustomRecipeIndex =
+      customRecipes.reduce((highestIndex, recipe) => {
+        const recipeIndex = Number(recipe.id.replace("custom-", ""));
+        return Number.isFinite(recipeIndex)
+          ? Math.max(highestIndex, recipeIndex)
+          : highestIndex;
+      }, 0) + 1;
+    const customRecipe: Recipe = {
+      id: `custom-${nextCustomRecipeIndex}`,
+      name: draftName.trim() || "나만의 레시피",
+      origin: "나만의 레시피",
+      method,
+      profile: draftProfile.trim() || "직접 만든 추출 흐름",
+      tags: ["나만의 레시피", method],
+      dose: safeDose,
+      water,
+      ratio: formatRatio(safeDose, water),
+      temp: draftTemp.trim() || "92C",
+      grind: draftGrind.trim() || "중간 분쇄",
+      totalTime,
+      notes: [
+        "브라우저에 저장되는 나만의 레시피",
+        "단계별 시간과 목표 물량을 타이머에서 바로 따라갈 수 있습니다.",
+      ],
+      steps,
+    };
+
+    setCustomRecipes((currentRecipes) => [customRecipe, ...currentRecipes]);
+    setSelectedId(customRecipe.id);
+    setDose(customRecipe.dose);
+    setFilter("나만의 레시피");
+    updateElapsed(0);
+    setRunning(false);
+  }
+
+  function deleteCustomRecipe(recipeId: string) {
+    setCustomRecipes((currentRecipes) =>
+      currentRecipes.filter((recipe) => recipe.id !== recipeId),
+    );
+    setFavoriteIds((currentIds) => currentIds.filter((id) => id !== recipeId));
+
+    if (selectedId === recipeId) {
+      selectRecipe(recipes[0]);
+    }
   }
 
   function resetTimer() {
@@ -900,7 +1154,7 @@ export default function Home() {
               <div className="mt-7 grid max-w-2xl grid-cols-3 gap-3 text-sm text-white/82">
                 <div className="border-l border-white/35 pl-3">
                   <span className="block text-2xl font-semibold text-white">
-                    {recipes.length}
+                    {allRecipes.length}
                   </span>
                   레시피
                 </div>
@@ -1071,28 +1325,212 @@ export default function Home() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase text-[#607064]">
-                  Feature Ideas
+                  Custom Recipe
                 </p>
-                <h2 className="mt-2 text-xl font-semibold">다음에 붙이면 좋은 기능</h2>
+                <h2 className="mt-2 text-xl font-semibold">나만의 레시피</h2>
               </div>
-              <span className="text-sm text-[#607064]">
-                공개 기능 안내를 바탕으로 정리
+              <span className="rounded-md bg-[#eef3ec] px-3 py-1 text-sm font-semibold text-[#2f6f5f]">
+                {customRecipes.length}개 저장됨
               </span>
             </div>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              {futureFeatureIdeas.map((feature) => (
-                <div
-                  key={feature.title}
-                  className="rounded-lg border border-[#d7ded4] bg-[#f8faf6] p-3"
-                >
-                  <strong className="text-sm">{feature.title}</strong>
-                  <p className="mt-2 text-xs leading-5 text-[#607064]">
-                    {feature.description}
-                  </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <label className="block">
+                <span className="text-sm font-medium text-[#607064]">레시피 이름</span>
+                <input
+                  value={draftName}
+                  onChange={(event) => setDraftName(event.target.value)}
+                  className="mt-2 h-11 w-full rounded-md border border-[#d7ded4] bg-[#f8faf6] px-3 text-sm outline-none transition focus:border-[#2f6f5f] focus:bg-white focus:ring-2 focus:ring-[#2f6f5f]/20"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-[#607064]">드리퍼</span>
+                <input
+                  value={draftMethod}
+                  onChange={(event) => setDraftMethod(event.target.value)}
+                  className="mt-2 h-11 w-full rounded-md border border-[#d7ded4] bg-[#f8faf6] px-3 text-sm outline-none transition focus:border-[#2f6f5f] focus:bg-white focus:ring-2 focus:ring-[#2f6f5f]/20"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-[#607064]">원두량</span>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="8"
+                    max="60"
+                    value={draftDose}
+                    onChange={(event) => setDraftDose(Number(event.target.value))}
+                    className="h-11 w-full rounded-md border border-[#d7ded4] bg-[#f8faf6] px-3 text-sm outline-none transition focus:border-[#2f6f5f] focus:bg-white focus:ring-2 focus:ring-[#2f6f5f]/20"
+                  />
+                  <span className="text-sm font-semibold text-[#607064]">g</span>
                 </div>
-              ))}
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-[#607064]">물 온도</span>
+                <input
+                  value={draftTemp}
+                  onChange={(event) => setDraftTemp(event.target.value)}
+                  className="mt-2 h-11 w-full rounded-md border border-[#d7ded4] bg-[#f8faf6] px-3 text-sm outline-none transition focus:border-[#2f6f5f] focus:bg-white focus:ring-2 focus:ring-[#2f6f5f]/20"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-[#607064]">분쇄도</span>
+                <input
+                  value={draftGrind}
+                  onChange={(event) => setDraftGrind(event.target.value)}
+                  className="mt-2 h-11 w-full rounded-md border border-[#d7ded4] bg-[#f8faf6] px-3 text-sm outline-none transition focus:border-[#2f6f5f] focus:bg-white focus:ring-2 focus:ring-[#2f6f5f]/20"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-medium text-[#607064]">맛 프로필</span>
+                <input
+                  value={draftProfile}
+                  onChange={(event) => setDraftProfile(event.target.value)}
+                  className="mt-2 h-11 w-full rounded-md border border-[#d7ded4] bg-[#f8faf6] px-3 text-sm outline-none transition focus:border-[#2f6f5f] focus:bg-white focus:ring-2 focus:ring-[#2f6f5f]/20"
+                />
+              </label>
             </div>
+
+            <div className="mt-5">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-sm font-semibold text-[#1d211c]">추출 단계</h3>
+                <span className="font-mono text-sm text-[#607064]">
+                  {formatTime(draftTotalTime)} · {draftTotalWater}g ·{" "}
+                  {formatRatio(clampNumber(draftDose, 8, 60), draftTotalWater)}
+                </span>
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {draftSteps.map((step, index) => (
+                  <div
+                    key={`draft-step-${index}`}
+                    className="grid gap-2 rounded-md border border-[#d7ded4] bg-[#f8faf6] p-3 lg:grid-cols-[minmax(110px,1fr)_92px_100px_minmax(150px,1.35fr)_40px]"
+                  >
+                    <label className="block">
+                      <span className="text-xs font-medium text-[#607064]">단계</span>
+                      <input
+                        value={step.label}
+                        onChange={(event) =>
+                          updateDraftStep(index, { label: event.target.value })
+                        }
+                        className="mt-1 h-10 w-full rounded-md border border-[#d7ded4] bg-white px-3 text-sm outline-none transition focus:border-[#2f6f5f] focus:ring-2 focus:ring-[#2f6f5f]/20"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-[#607064]">시간</span>
+                      <input
+                        type="number"
+                        min="5"
+                        max="360"
+                        value={step.duration}
+                        onChange={(event) =>
+                          updateDraftStep(index, {
+                            duration: Number(event.target.value),
+                          })
+                        }
+                        className="mt-1 h-10 w-full rounded-md border border-[#d7ded4] bg-white px-3 text-sm outline-none transition focus:border-[#2f6f5f] focus:ring-2 focus:ring-[#2f6f5f]/20"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-[#607064]">목표 물</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="1200"
+                        value={step.targetWater}
+                        onChange={(event) =>
+                          updateDraftStep(index, {
+                            targetWater: Number(event.target.value),
+                          })
+                        }
+                        className="mt-1 h-10 w-full rounded-md border border-[#d7ded4] bg-white px-3 text-sm outline-none transition focus:border-[#2f6f5f] focus:ring-2 focus:ring-[#2f6f5f]/20"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-[#607064]">큐</span>
+                      <input
+                        value={step.cue}
+                        onChange={(event) =>
+                          updateDraftStep(index, { cue: event.target.value })
+                        }
+                        className="mt-1 h-10 w-full rounded-md border border-[#d7ded4] bg-white px-3 text-sm outline-none transition focus:border-[#2f6f5f] focus:ring-2 focus:ring-[#2f6f5f]/20"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeDraftStep(index)}
+                      disabled={draftSteps.length === 1}
+                      aria-label={`${step.label} 삭제`}
+                      className="flex h-10 w-10 items-center justify-center self-end rounded-md border border-[#d7ded4] text-[#607064] transition hover:border-[#c95b3d] hover:text-[#c95b3d] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={addDraftStep}
+                  className="flex h-10 items-center justify-center gap-2 rounded-md border border-[#d7ded4] bg-white px-4 text-sm font-semibold text-[#2f6f5f] transition hover:bg-[#eef5ef]"
+                >
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                  단계 추가
+                </button>
+                <button
+                  type="button"
+                  onClick={saveCustomRecipe}
+                  className="flex h-10 items-center justify-center gap-2 rounded-md bg-[#2f6f5f] px-4 text-sm font-semibold text-white transition hover:bg-[#255c4f]"
+                >
+                  <Check className="h-4 w-4" aria-hidden="true" />
+                  레시피 저장
+                </button>
+                <button
+                  type="button"
+                  onClick={resetDraft}
+                  className="flex h-10 items-center justify-center rounded-md border border-[#d7ded4] bg-white px-4 text-sm font-semibold text-[#607064] transition hover:bg-[#f4f6f1]"
+                >
+                  초기화
+                </button>
+              </div>
+            </div>
+
+            {customRecipes.length > 0 ? (
+              <div className="mt-5 border-t border-[#d7ded4] pt-4">
+                <h3 className="text-sm font-semibold text-[#1d211c]">
+                  저장된 레시피
+                </h3>
+                <div className="mt-3 space-y-2">
+                  {customRecipes.map((recipe) => (
+                    <div
+                      key={recipe.id}
+                      className="flex items-center gap-2 rounded-md bg-[#f8faf6] p-2"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => selectRecipe(recipe)}
+                        className="min-w-0 flex-1 rounded-md px-2 py-1.5 text-left transition hover:bg-white"
+                      >
+                        <strong className="block truncate text-sm">{recipe.name}</strong>
+                        <span className="text-xs text-[#607064]">
+                          {recipe.method} · {formatTime(recipe.totalTime)} ·{" "}
+                          {recipe.water}g
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteCustomRecipe(recipe.id)}
+                        aria-label={`${recipe.name} 삭제`}
+                        className="flex h-9 w-9 items-center justify-center rounded-md border border-[#d7ded4] text-[#607064] transition hover:border-[#c95b3d] hover:text-[#c95b3d]"
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </section>
         </section>
 
@@ -1182,7 +1620,7 @@ export default function Home() {
                 }`}
               >
                 <Bell className="h-4 w-4" aria-hidden="true" />
-                단계 알림 {alertsEnabled ? "켜짐" : "꺼짐"}
+                스마트 알림 {alertsEnabled ? "켜짐" : "꺼짐"}
               </button>
               <button
                 type="button"
@@ -1200,6 +1638,10 @@ export default function Home() {
                 즐겨찾기
               </button>
             </div>
+            <p className="mt-2 text-xs leading-5 text-[#607064]">
+              스마트 알림은 단계 전환과 완료 시 소리를 재생하고, 지원 기기에서는
+              진동으로도 안내합니다.
+            </p>
 
             <div
               className={`mt-5 grid gap-3 ${
