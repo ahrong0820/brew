@@ -20,11 +20,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const heroImageSrc = `${basePath}/brewing-hero.png`;
 
+type WaterAmount = number | { min: number; max: number };
+
 type BrewStep = {
   label: string;
   start: number;
   end: number;
   targetWater: number;
+  displayTargetWater?: WaterAmount;
+  displayStepWater?: WaterAmount;
   cue: string;
 };
 
@@ -38,8 +42,8 @@ type Recipe = {
   dose: number;
   water: number;
   brewWater?: number;
-  bypassWater?: number | { min: number; max: number };
-  finalWater?: number | { min: number; max: number };
+  bypassWater?: WaterAmount;
+  finalWater?: WaterAmount;
   ratio: string;
   temp: string;
   grind: string;
@@ -88,23 +92,16 @@ const recipes: Recipe[] = [
       {
         label: "3차 추출",
         start: 135,
-        end: 165,
+        end: 180,
         targetWater: 240,
         cue: "수위를 안정적으로 유지하며 240g까지 붓기",
       },
       {
         label: "4차 추출",
-        start: 165,
+        start: 180,
         end: 210,
         targetWater: 300,
-        cue: "마지막 60g을 채우고 3분 30초까지 드로다운",
-      },
-      {
-        label: "추출 종료",
-        start: 210,
-        end: 210,
-        targetWater: 300,
-        cue: "드리퍼를 제거하고 추출 종료",
+        cue: "마지막 60g을 채우고 3분 30초에 드리퍼 제거",
       },
     ],
   },
@@ -214,6 +211,8 @@ const recipes: Recipe[] = [
         start: 130,
         end: 160,
         targetWater: 220,
+        displayTargetWater: 320,
+        displayStepWater: 100,
         cue: "추출 후 뜨거운 물 100g을 별도로 더해 농도 조절",
       },
     ],
@@ -269,7 +268,9 @@ const recipes: Recipe[] = [
         start: 160,
         end: 180,
         targetWater: 220,
-        cue: "추출 원액에 뜨거운 물을 더해 농도 조절",
+        displayTargetWater: 300,
+        displayStepWater: 80,
+        cue: "추출 원액에 뜨거운 물 80g을 더해 농도 조절",
       },
     ],
   },
@@ -317,14 +318,7 @@ const recipes: Recipe[] = [
         start: 105,
         end: 180,
         targetWater: 230,
-        cue: "가느다란 물줄기로 한 바퀴 후 센터 푸어",
-      },
-      {
-        label: "추출 종료",
-        start: 180,
-        end: 180,
-        targetWater: 230,
-        cue: "3분 이내에 추출 종료",
+        cue: "가느다란 물줄기로 한 바퀴 후 센터 푸어, 2분 30초~3분 사이 추출 종료",
       },
     ],
   },
@@ -369,14 +363,7 @@ const recipes: Recipe[] = [
         start: 105,
         end: 180,
         targetWater: 280,
-        cue: "1분 45초 지점에 스위치를 열어 여과",
-      },
-      {
-        label: "완료",
-        start: 180,
-        end: 180,
-        targetWater: 280,
-        cue: "3분에 추출 종료",
+        cue: "1분 45초 지점에 스위치를 열어 여과하고 3분에 추출 종료",
       },
     ],
   },
@@ -593,6 +580,8 @@ const recipes: Recipe[] = [
         start: 210,
         end: 210,
         targetWater: 240,
+        displayTargetWater: { min: 300, max: 320 },
+        displayStepWater: { min: 60, max: 80 },
         cue: "뜨거운 물 60-80g을 더해 마시기 좋은 농도로 맞추기",
       },
     ],
@@ -660,7 +649,7 @@ function scaleValue(value: number, factor: number) {
 }
 
 function formatWaterAmount(
-  amount: number | { min: number; max: number },
+  amount: WaterAmount,
   factor = 1,
 ) {
   if (typeof amount === "number") {
@@ -708,6 +697,7 @@ export default function Home() {
   const elapsedRef = useRef(0);
   const lastTickRef = useRef<number | null>(null);
   const previousStepIndexRef = useRef(0);
+  const completionPlayedRef = useRef(false);
 
   const selectedRecipe =
     recipes.find((recipe) => recipe.id === selectedId) ?? recipes[0];
@@ -759,8 +749,14 @@ export default function Home() {
           1,
           Math.max(0, (elapsed - currentStep.start) / (currentStep.end - currentStep.start)),
         );
-  const targetWater = scaleValue(currentStep.targetWater, scaleFactor);
-  const stepWater = scaleValue(currentStep.targetWater - previousTarget, scaleFactor);
+  const targetWater = formatWaterAmount(
+    currentStep.displayTargetWater ?? currentStep.targetWater,
+    scaleFactor,
+  );
+  const stepWater = formatWaterAmount(
+    currentStep.displayStepWater ?? currentStep.targetWater - previousTarget,
+    scaleFactor,
+  );
   const progress = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
   const remaining = Math.max(0, totalTime - elapsed);
   const selectedIsFavorite = favoriteIds.includes(selectedRecipe.id);
@@ -779,6 +775,19 @@ export default function Home() {
       lastTickRef.current = now;
 
       const nextElapsed = Math.min(totalTime, elapsedRef.current + delta);
+
+      if (
+        elapsedRef.current < totalTime &&
+        nextElapsed >= totalTime &&
+        !completionPlayedRef.current
+      ) {
+        completionPlayedRef.current = true;
+
+        if (alertsEnabled) {
+          playStepTone();
+        }
+      }
+
       elapsedRef.current = nextElapsed;
       setElapsed(nextElapsed);
 
@@ -788,7 +797,7 @@ export default function Home() {
     }, 200);
 
     return () => window.clearInterval(intervalId);
-  }, [running, totalTime]);
+  }, [alertsEnabled, running, totalTime]);
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -815,6 +824,10 @@ export default function Home() {
   }, [alertsEnabled, currentStepIndex, running]);
 
   function updateElapsed(nextElapsed: number) {
+    if (nextElapsed < totalTime) {
+      completionPlayedRef.current = false;
+    }
+
     elapsedRef.current = nextElapsed;
     setElapsed(nextElapsed);
   }
@@ -1241,11 +1254,11 @@ export default function Home() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <span className="text-sm text-[#607064]">현재 물량</span>
-                  <strong className="block text-3xl">{targetWater}g</strong>
+                  <strong className="block text-3xl">{targetWater}</strong>
                 </div>
                 <div className="text-right">
                   <span className="text-sm text-[#607064]">이번 단계</span>
-                  <strong className="block text-2xl">+{stepWater}g</strong>
+                  <strong className="block text-2xl">+{stepWater}</strong>
                 </div>
               </div>
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#d9ded6]">
@@ -1285,7 +1298,9 @@ export default function Home() {
             </dl>
 
             <div className="mt-5 space-y-2">
-              {selectedRecipe.steps.map((step, index) => {
+              {selectedRecipe.steps.map((step, index) => ({ step, index })).filter(
+                ({ step }) => step.end > step.start,
+              ).map(({ step, index }) => {
                 const active = index === currentStepIndex;
                 const completed = elapsed >= step.end;
 
@@ -1312,7 +1327,10 @@ export default function Home() {
                       </span>
                     </span>
                     <span className="text-right font-semibold">
-                      {scaleValue(step.targetWater, scaleFactor)}g
+                      {formatWaterAmount(
+                        step.displayTargetWater ?? step.targetWater,
+                        scaleFactor,
+                      )}
                     </span>
                   </button>
                 );
