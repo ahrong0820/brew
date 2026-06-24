@@ -17,6 +17,9 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const heroImageSrc = `${basePath}/brewing-hero.png`;
+
 type BrewStep = {
   label: string;
   start: number;
@@ -952,7 +955,7 @@ export default function Home() {
       <header className="relative isolate overflow-hidden border-b border-black/10 bg-[#20251f] text-white">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/brewing-hero.png"
+          src={heroImageSrc}
           alt="핸드드립 커피 도구가 놓인 작업대"
           className="absolute inset-0 -z-20 h-full w-full object-cover"
         />
