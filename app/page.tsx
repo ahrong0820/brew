@@ -20,11 +20,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const heroImageSrc = `${basePath}/brewing-hero.png`;
 
+type WaterAmount = number | { min: number; max: number };
+
 type BrewStep = {
   label: string;
   start: number;
   end: number;
   targetWater: number;
+  displayTargetWater?: WaterAmount;
+  displayStepWater?: WaterAmount;
   cue: string;
 };
 
@@ -37,6 +41,9 @@ type Recipe = {
   tags: string[];
   dose: number;
   water: number;
+  brewWater?: number;
+  bypassWater?: WaterAmount;
+  finalWater?: WaterAmount;
   ratio: string;
   temp: string;
   grind: string;
@@ -48,7 +55,7 @@ type Recipe = {
 const recipes: Recipe[] = [
   {
     id: "tetsu-46",
-    name: "테츠 카츠야 4:6",
+    name: "테츠 카스야 4:6 기본형",
     origin: "바리스타 공개 레시피",
     method: "V60",
     profile: "균형감, 클린컵, 조절 가능한 단맛과 산미",
@@ -57,7 +64,7 @@ const recipes: Recipe[] = [
     water: 300,
     ratio: "1:15",
     temp: "92C",
-    grind: "중간 분쇄",
+    grind: "중굵은 분쇄",
     totalTime: 210,
     notes: ["전반 40%로 맛의 방향을 잡고 후반 60%로 농도를 맞춤", "물량 변경 시 각 푸어량도 함께 스케일"],
     steps: [
@@ -65,7 +72,7 @@ const recipes: Recipe[] = [
         label: "블루밍",
         start: 0,
         end: 45,
-        targetWater: 70,
+        targetWater: 60,
         cue: "가루를 충분히 적시고 45초까지 기다리기",
       },
       {
@@ -90,11 +97,11 @@ const recipes: Recipe[] = [
         cue: "수위를 안정적으로 유지하며 240g까지 붓기",
       },
       {
-        label: "완료",
+        label: "4차 추출",
         start: 180,
         end: 210,
         targetWater: 300,
-        cue: "마지막 60g을 채우고 드로다운 확인",
+        cue: "마지막 60g을 채우고 3분 30초에 드리퍼 제거",
       },
     ],
   },
@@ -111,7 +118,10 @@ const recipes: Recipe[] = [
     temp: "94C",
     grind: "굵은 분쇄",
     totalTime: 150,
-    notes: ["60g 블룸 뒤 80g씩 세 번 나누는 단순한 리듬", "각 푸어 후 물이 빠지는 양상을 확인"],
+    notes: [
+      "60g 블룸 뒤 80g씩 세 번 나누는 단순한 리듬",
+      "표시 시간은 기준이며, 이전 물이 대부분 빠진 뒤 다음 푸어를 시작합니다.",
+    ],
     steps: [
       {
         label: "블루밍",
@@ -159,6 +169,9 @@ const recipes: Recipe[] = [
     tags: ["V60", "국내", "라이트"],
     dose: 20,
     water: 320,
+    brewWater: 220,
+    bypassWater: 100,
+    finalWater: 320,
     ratio: "1:16",
     temp: "92C",
     grind: "중간보다 굵은 분쇄",
@@ -194,11 +207,13 @@ const recipes: Recipe[] = [
         cue: "마지막 추출수를 붓고 흐름을 안정화",
       },
       {
-        label: "완료",
+        label: "후가수",
         start: 130,
         end: 160,
-        targetWater: 320,
-        cue: "필요한 경우 추출 후 가수까지 포함해 농도 조절",
+        targetWater: 220,
+        displayTargetWater: 320,
+        displayStepWater: 100,
+        cue: "추출 후 뜨거운 물 100g을 별도로 더해 농도 조절",
       },
     ],
   },
@@ -211,10 +226,13 @@ const recipes: Recipe[] = [
     tags: ["V60", "국내", "단맛"],
     dose: 18,
     water: 300,
+    brewWater: 220,
+    bypassWater: 80,
+    finalWater: 300,
     ratio: "1:16",
-    temp: "90C",
+    temp: "90℃ 이상",
     grind: "중간 분쇄",
-    totalTime: 170,
+    totalTime: 180,
     notes: ["4666 구조를 바탕으로 뜸 시간을 늘린 버전", "마지막 80g은 추출 후 뜨거운 물로 농도 조절"],
     steps: [
       {
@@ -241,16 +259,18 @@ const recipes: Recipe[] = [
       {
         label: "3차 추출",
         start: 100,
-        end: 150,
+        end: 160,
         targetWater: 220,
         cue: "마지막 추출수를 채우고 드로다운",
       },
       {
         label: "희석",
-        start: 150,
-        end: 170,
-        targetWater: 300,
-        cue: "추출 원액에 뜨거운 물을 더해 농도 조절",
+        start: 160,
+        end: 180,
+        targetWater: 220,
+        displayTargetWater: 300,
+        displayStepWater: 80,
+        cue: "추출 원액에 뜨거운 물 80g을 더해 농도 조절",
       },
     ],
   },
@@ -264,10 +284,13 @@ const recipes: Recipe[] = [
     dose: 15,
     water: 230,
     ratio: "1:15.3",
-    temp: "95C",
+    temp: "92~93℃",
     grind: "라이트로스트용 중간 분쇄",
-    totalTime: 150,
-    notes: ["40초 뜸 뒤 굵은 물줄기로 빠르게 추출", "꽃향이나 과일감이 강한 라이트로스트에 적합"],
+    totalTime: 180,
+    notes: [
+      "40초 뜸 뒤 굵은 물줄기로 빠르게 추출",
+      "목표 추출 시간은 2:30-3:00이며, 2:30부터 완료할 수 있습니다.",
+    ],
     steps: [
       {
         label: "뜸들이기",
@@ -293,9 +316,9 @@ const recipes: Recipe[] = [
       {
         label: "3차 푸어링",
         start: 105,
-        end: 150,
+        end: 180,
         targetWater: 230,
-        cue: "가느다란 물줄기로 한 바퀴 후 센터 푸어",
+        cue: "가느다란 물줄기로 한 바퀴 후 센터 푸어, 2분 30초~3분 사이 추출 종료",
       },
     ],
   },
@@ -309,52 +332,45 @@ const recipes: Recipe[] = [
     dose: 20,
     water: 280,
     ratio: "1:14",
-    temp: "92C -> 70C",
-    grind: "중간 분쇄",
-    totalTime: 150,
-    notes: ["초반은 92C 여과식, 후반은 70C 침출식으로 전환", "스위치 오픈/클로즈 타이밍을 단계에 표시"],
+    temp: "약 90℃ -> 약 70℃",
+    grind: "중간보다 약간 고운 분쇄",
+    totalTime: 180,
+    notes: ["초반은 약 90℃ 여과식, 후반은 약 70℃ 침출식으로 전환", "스위치 오픈/클로즈 타이밍을 단계에 표시"],
     steps: [
       {
         label: "뜸들이기",
         start: 0,
         end: 30,
         targetWater: 60,
-        cue: "스위치를 열고 92C 물 60g으로 뜸들이기",
+        cue: "스위치를 연 상태에서 약 90℃ 물로 60g 붓기",
       },
       {
         label: "1차 여과",
         start: 30,
-        end: 60,
-        targetWater: 120,
-        cue: "열린 상태로 120g까지 붓고 온도 낮추기",
-      },
-      {
-        label: "저온 침출",
-        start: 60,
         end: 75,
-        targetWater: 280,
-        cue: "스위치를 닫고 70C 물로 280g까지 채우기",
+        targetWater: 120,
+        cue: "같은 온도의 물로 누적 120g까지 붓기",
       },
       {
-        label: "추출 오픈",
+        label: "스위치 닫기",
         start: 75,
         end: 105,
         targetWater: 280,
-        cue: "1분 45초 지점에 스위치를 열어 여과",
+        cue: "스위치를 닫고 약 70℃ 물로 누적 280g까지 붓기",
       },
       {
-        label: "완료",
+        label: "추출 오픈",
         start: 105,
-        end: 150,
+        end: 180,
         targetWater: 280,
-        cue: "2분 30초에 드리퍼 제거",
+        cue: "1분 45초 지점에 스위치를 열어 여과하고 3분에 추출 종료",
       },
     ],
   },
   {
     id: "signature-cone",
-    name: "시그니쳐 로스터스 콘 필터",
-    origin: "바리스타 공개 레시피",
+    name: "시그니쳐 로스터스 콘 필터 – 공개본",
+    origin: "공개 레시피 기준",
     method: "V60",
     profile: "콘 필터, 3회 스파이럴 푸어, 깔끔한 핫 브루",
     tags: ["V60", "핫", "클린컵"],
@@ -405,7 +421,7 @@ const recipes: Recipe[] = [
   },
   {
     id: "deepblue-v60",
-    name: "딥블루레이크 V60 HOT",
+    name: "딥블루레이크 V60 HOT – 15g/240g 버전",
     origin: "바리스타 공개 레시피",
     method: "Hario V60",
     profile: "1:16, 4-5회 분할, 안정적인 홈 브루",
@@ -465,8 +481,8 @@ const recipes: Recipe[] = [
     dose: 15,
     water: 250,
     ratio: "1:16.7",
-    temp: "90-96C",
-    grind: "V60보다 살짝 고운 중간 분쇄",
+    temp: "끓인 직후의 물",
+    grind: "중간보다 약간 고운 분쇄",
     totalTime: 240,
     notes: [
       "물을 먼저 넣고 커피를 나중에 넣어 막힘을 줄이는 방식",
@@ -526,10 +542,13 @@ const recipes: Recipe[] = [
     tags: ["클레버", "침출", "국내", "단맛"],
     dose: 20,
     water: 300,
-    ratio: "1:12 + 후가수",
-    temp: "96C",
+    brewWater: 240,
+    bypassWater: { min: 60, max: 80 },
+    finalWater: { min: 300, max: 320 },
+    ratio: "1:12 / 약 1:15~1:16",
+    temp: "96℃",
     grind: "중간보다 살짝 굵은 분쇄",
-    totalTime: 230,
+    totalTime: 210,
     notes: [
       "클레버 안에서는 240g으로 진하게 추출한 뒤 뜨거운 물로 농도 조절",
       "후가수는 60-80g 범위에서 취향에 맞게 조절",
@@ -545,16 +564,9 @@ const recipes: Recipe[] = [
       {
         label: "본 물 붓기",
         start: 30,
-        end: 50,
-        targetWater: 240,
-        cue: "물 200g을 추가하고 잘 저은 뒤 뚜껑 닫기",
-      },
-      {
-        label: "침출",
-        start: 50,
         end: 150,
         targetWater: 240,
-        cue: "2분 30초 지점까지 그대로 우려내기",
+        cue: "물 200g을 추가하고 잘 저은 뒤 뚜껑 닫기",
       },
       {
         label: "드로다운",
@@ -566,8 +578,10 @@ const recipes: Recipe[] = [
       {
         label: "농도 조절",
         start: 210,
-        end: 230,
-        targetWater: 300,
+        end: 210,
+        targetWater: 240,
+        displayTargetWater: { min: 300, max: 320 },
+        displayStepWater: { min: 60, max: 80 },
         cue: "뜨거운 물 60-80g을 더해 마시기 좋은 농도로 맞추기",
       },
     ],
@@ -634,6 +648,17 @@ function scaleValue(value: number, factor: number) {
   return Math.round(value * factor);
 }
 
+function formatWaterAmount(
+  amount: WaterAmount,
+  factor = 1,
+) {
+  if (typeof amount === "number") {
+    return `${scaleValue(amount, factor)}g`;
+  }
+
+  return `${scaleValue(amount.min, factor)}-${scaleValue(amount.max, factor)}g`;
+}
+
 function playStepTone() {
   const audioWindow = window as typeof window & {
     webkitAudioContext?: typeof AudioContext;
@@ -672,12 +697,17 @@ export default function Home() {
   const elapsedRef = useRef(0);
   const lastTickRef = useRef<number | null>(null);
   const previousStepIndexRef = useRef(0);
+  const completionPlayedRef = useRef(false);
 
   const selectedRecipe =
     recipes.find((recipe) => recipe.id === selectedId) ?? recipes[0];
 
   const scaleFactor = dose / selectedRecipe.dose;
   const scaledWater = scaleValue(selectedRecipe.water, scaleFactor);
+  const scaledFinalWater = formatWaterAmount(
+    selectedRecipe.finalWater ?? selectedRecipe.water,
+    scaleFactor,
+  );
   const totalTime = selectedRecipe.totalTime;
 
   const filteredRecipes = useMemo(() => {
@@ -719,8 +749,14 @@ export default function Home() {
           1,
           Math.max(0, (elapsed - currentStep.start) / (currentStep.end - currentStep.start)),
         );
-  const targetWater = scaleValue(currentStep.targetWater, scaleFactor);
-  const stepWater = scaleValue(currentStep.targetWater - previousTarget, scaleFactor);
+  const targetWater = formatWaterAmount(
+    currentStep.displayTargetWater ?? currentStep.targetWater,
+    scaleFactor,
+  );
+  const stepWater = formatWaterAmount(
+    currentStep.displayStepWater ?? currentStep.targetWater - previousTarget,
+    scaleFactor,
+  );
   const progress = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
   const remaining = Math.max(0, totalTime - elapsed);
   const selectedIsFavorite = favoriteIds.includes(selectedRecipe.id);
@@ -739,6 +775,19 @@ export default function Home() {
       lastTickRef.current = now;
 
       const nextElapsed = Math.min(totalTime, elapsedRef.current + delta);
+
+      if (
+        elapsedRef.current < totalTime &&
+        nextElapsed >= totalTime &&
+        !completionPlayedRef.current
+      ) {
+        completionPlayedRef.current = true;
+
+        if (alertsEnabled) {
+          playStepTone();
+        }
+      }
+
       elapsedRef.current = nextElapsed;
       setElapsed(nextElapsed);
 
@@ -748,7 +797,7 @@ export default function Home() {
     }, 200);
 
     return () => window.clearInterval(intervalId);
-  }, [running, totalTime]);
+  }, [alertsEnabled, running, totalTime]);
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -775,6 +824,10 @@ export default function Home() {
   }, [alertsEnabled, currentStepIndex, running]);
 
   function updateElapsed(nextElapsed: number) {
+    if (nextElapsed < totalTime) {
+      completionPlayedRef.current = false;
+    }
+
     elapsedRef.current = nextElapsed;
     setElapsed(nextElapsed);
   }
@@ -894,8 +947,10 @@ export default function Home() {
                 <strong className="block text-lg">{dose}g</strong>
               </div>
               <div>
-                <span className="text-[#607064]">물</span>
-                <strong className="block text-lg">{scaledWater}g</strong>
+                <span className="text-[#607064]">
+                  {selectedRecipe.finalWater ? "최종 물" : "물"}
+                </span>
+                <strong className="block text-lg">{scaledFinalWater}</strong>
               </div>
               <div>
                 <span className="text-[#607064]">온도</span>
@@ -986,7 +1041,9 @@ export default function Home() {
                     <div className="rounded-md bg-[#f4f6f1] p-3">
                       <Droplets className="mb-2 h-4 w-4 text-[#2f6f5f]" aria-hidden="true" />
                       <span className="block text-[#607064]">물</span>
-                      <strong>{recipe.water}g</strong>
+                      <strong>
+                        {formatWaterAmount(recipe.finalWater ?? recipe.water)}
+                      </strong>
                     </div>
                     <div className="rounded-md bg-[#f4f6f1] p-3">
                       <Thermometer className="mb-2 h-4 w-4 text-[#2f6f5f]" aria-hidden="true" />
@@ -1144,7 +1201,11 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div
+              className={`mt-5 grid gap-3 ${
+                selectedRecipe.brewWater ? "grid-cols-1" : "grid-cols-2"
+              }`}
+            >
               <label className="rounded-lg border border-[#d7ded4] bg-[#f8faf6] p-3">
                 <span className="text-sm text-[#607064]">원두량</span>
                 <div className="mt-2 flex items-center gap-2">
@@ -1160,21 +1221,44 @@ export default function Home() {
                   <span className="text-sm font-semibold text-[#607064]">g</span>
                 </div>
               </label>
-              <div className="rounded-lg border border-[#d7ded4] bg-[#f8faf6] p-3">
-                <span className="text-sm text-[#607064]">총 물량</span>
-                <strong className="mt-2 block text-2xl">{scaledWater}g</strong>
-              </div>
+              {selectedRecipe.brewWater &&
+              selectedRecipe.bypassWater !== undefined &&
+              selectedRecipe.finalWater !== undefined ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg border border-[#d7ded4] bg-[#f8faf6] p-3">
+                    <span className="text-sm text-[#607064]">추출수</span>
+                    <strong className="mt-2 block text-lg">
+                      {formatWaterAmount(selectedRecipe.brewWater, scaleFactor)}
+                    </strong>
+                  </div>
+                  <div className="rounded-lg border border-[#d7ded4] bg-[#f8faf6] p-3">
+                    <span className="text-sm text-[#607064]">후가수</span>
+                    <strong className="mt-2 block text-lg">
+                      {formatWaterAmount(selectedRecipe.bypassWater, scaleFactor)}
+                    </strong>
+                  </div>
+                  <div className="rounded-lg border border-[#d7ded4] bg-[#f8faf6] p-3">
+                    <span className="text-sm text-[#607064]">최종 물</span>
+                    <strong className="mt-2 block text-lg">{scaledFinalWater}</strong>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-[#d7ded4] bg-[#f8faf6] p-3">
+                  <span className="text-sm text-[#607064]">총 물량</span>
+                  <strong className="mt-2 block text-2xl">{scaledWater}g</strong>
+                </div>
+              )}
             </div>
 
             <div className="mt-5 rounded-lg border border-[#d7ded4] bg-[#f8faf6] p-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <span className="text-sm text-[#607064]">현재 물량</span>
-                  <strong className="block text-3xl">{targetWater}g</strong>
+                  <strong className="block text-3xl">{targetWater}</strong>
                 </div>
                 <div className="text-right">
                   <span className="text-sm text-[#607064]">이번 단계</span>
-                  <strong className="block text-2xl">+{stepWater}g</strong>
+                  <strong className="block text-2xl">+{stepWater}</strong>
                 </div>
               </div>
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#d9ded6]">
@@ -1214,7 +1298,9 @@ export default function Home() {
             </dl>
 
             <div className="mt-5 space-y-2">
-              {selectedRecipe.steps.map((step, index) => {
+              {selectedRecipe.steps.map((step, index) => ({ step, index })).filter(
+                ({ step }) => step.end > step.start,
+              ).map(({ step, index }) => {
                 const active = index === currentStepIndex;
                 const completed = elapsed >= step.end;
 
@@ -1241,7 +1327,10 @@ export default function Home() {
                       </span>
                     </span>
                     <span className="text-right font-semibold">
-                      {scaleValue(step.targetWater, scaleFactor)}g
+                      {formatWaterAmount(
+                        step.displayTargetWater ?? step.targetWater,
+                        scaleFactor,
+                      )}
                     </span>
                   </button>
                 );
