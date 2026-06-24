@@ -41,8 +41,6 @@ type Recipe = {
   temp: string;
   grind: string;
   totalTime: number;
-  source?: string;
-  sourceUrl?: string;
   notes: string[];
   steps: BrewStep[];
 };
@@ -274,20 +272,18 @@ const recipes: Recipe[] = [
     ],
   },
   {
-    id: "coffimer-tetsu-46",
+    id: "tetsu-46",
     name: "테츠 카츠야 4:6",
-    origin: "Coffimer 공개 레시피",
+    origin: "바리스타 공개 레시피",
     method: "V60",
     profile: "균형감, 클린컵, 조절 가능한 단맛과 산미",
-    tags: ["Coffimer", "V60", "클래식", "라이트"],
+    tags: ["V60", "클래식", "라이트"],
     dose: 20,
     water: 300,
     ratio: "1:15",
     temp: "92C",
     grind: "중간 분쇄",
     totalTime: 210,
-    source: "Coffimer",
-    sourceUrl: "https://www.coffimer.com/",
     notes: ["전반 40%로 맛의 방향을 잡고 후반 60%로 농도를 맞춤", "물량 변경 시 각 푸어량도 함께 스케일"],
     steps: [
       {
@@ -328,20 +324,18 @@ const recipes: Recipe[] = [
     ],
   },
   {
-    id: "coffimer-anstar-6888",
+    id: "anstar-6888",
     name: "안스타 6888",
-    origin: "Coffimer 공개 레시피",
+    origin: "바리스타 공개 레시피",
     method: "V60",
     profile: "굵은 분쇄, 향미 표현, 반복하기 쉬운 펄스",
-    tags: ["Coffimer", "V60", "국내", "향미"],
+    tags: ["V60", "국내", "향미"],
     dose: 20,
     water: 300,
     ratio: "1:15",
     temp: "94C",
     grind: "굵은 분쇄",
     totalTime: 150,
-    source: "Coffimer",
-    sourceUrl: "https://www.coffimer.com/",
     notes: ["60g 블룸 뒤 80g씩 세 번 나누는 단순한 리듬", "각 푸어 후 물이 빠지는 양상을 확인"],
     steps: [
       {
@@ -382,20 +376,18 @@ const recipes: Recipe[] = [
     ],
   },
   {
-    id: "coffimer-jis-4666",
+    id: "jis-4666",
     name: "정인성 4666 오리지널",
-    origin: "Coffimer 공개 레시피",
+    origin: "바리스타 공개 레시피",
     method: "V60",
     profile: "약배전 스페셜티, 선명한 향, 안정적인 분할",
-    tags: ["Coffimer", "V60", "국내", "라이트"],
+    tags: ["V60", "국내", "라이트"],
     dose: 20,
     water: 320,
     ratio: "1:16",
     temp: "92C",
     grind: "중간보다 굵은 분쇄",
     totalTime: 160,
-    source: "Coffimer",
-    sourceUrl: "https://www.coffimer.com/",
     notes: ["40g 뜸 이후 60g씩 세 번 추출하는 4666 구조", "약배전 원두의 맛과 향 표현에 초점"],
     steps: [
       {
@@ -436,20 +428,18 @@ const recipes: Recipe[] = [
     ],
   },
   {
-    id: "coffimer-jis-ver2-hot",
+    id: "jis-ver2-hot",
     name: "정인성 국룰 Ver 2.0 HOT",
-    origin: "Coffimer 공개 레시피",
+    origin: "바리스타 공개 레시피",
     method: "V60",
     profile: "긴 뜸, 안정적인 단맛, 후가수 밸런스",
-    tags: ["Coffimer", "V60", "국내", "단맛"],
+    tags: ["V60", "국내", "단맛"],
     dose: 18,
     water: 300,
     ratio: "1:16",
     temp: "90C",
     grind: "중간 분쇄",
     totalTime: 170,
-    source: "Coffimer",
-    sourceUrl: "https://www.coffimer.com/",
     notes: ["4666 구조를 바탕으로 뜸 시간을 늘린 버전", "마지막 80g은 추출 후 뜨거운 물로 농도 조절"],
     steps: [
       {
@@ -490,20 +480,18 @@ const recipes: Recipe[] = [
     ],
   },
   {
-    id: "coffimer-yong-light",
+    id: "yong-light",
     name: "용챔 라이트로스트 15g",
-    origin: "Coffimer 공개 레시피",
+    origin: "바리스타 공개 레시피",
     method: "Hario Alpha",
     profile: "꽃향, 과일감, 빠른 굵은 물줄기",
-    tags: ["Coffimer", "국내", "라이트", "향미"],
+    tags: ["국내", "라이트", "향미"],
     dose: 15,
     water: 230,
     ratio: "1:15.3",
     temp: "95C",
     grind: "라이트로스트용 중간 분쇄",
     totalTime: 150,
-    source: "Coffimer",
-    sourceUrl: "https://www.coffimer.com/",
     notes: ["40초 뜸 뒤 굵은 물줄기로 빠르게 추출", "꽃향이나 과일감이 강한 라이트로스트에 적합"],
     steps: [
       {
@@ -537,20 +525,18 @@ const recipes: Recipe[] = [
     ],
   },
   {
-    id: "coffimer-switch-devil",
+    id: "switch-devil",
     name: "테츠 카스야 악마의 레시피",
-    origin: "Coffimer 공개 레시피",
+    origin: "바리스타 공개 레시피",
     method: "Hario Switch",
     profile: "여과와 침출, 온도 전환, 높은 단맛",
-    tags: ["Coffimer", "스위치", "침출", "단맛"],
+    tags: ["스위치", "침출", "단맛"],
     dose: 20,
     water: 280,
     ratio: "1:14",
     temp: "92C -> 70C",
     grind: "중간 분쇄",
     totalTime: 150,
-    source: "Coffimer",
-    sourceUrl: "https://www.coffimer.com/",
     notes: ["초반은 92C 여과식, 후반은 70C 침출식으로 전환", "스위치 오픈/클로즈 타이밍을 단계에 표시"],
     steps: [
       {
@@ -591,20 +577,18 @@ const recipes: Recipe[] = [
     ],
   },
   {
-    id: "coffimer-signature-cone",
+    id: "signature-cone",
     name: "시그니쳐 로스터스 콘 필터",
-    origin: "Coffimer 공개 레시피",
+    origin: "바리스타 공개 레시피",
     method: "V60",
     profile: "콘 필터, 3회 스파이럴 푸어, 깔끔한 핫 브루",
-    tags: ["Coffimer", "V60", "핫", "클린컵"],
+    tags: ["V60", "핫", "클린컵"],
     dose: 14,
     water: 210,
     ratio: "1:15",
     temp: "93C",
     grind: "1000-1100um",
     totalTime: 150,
-    source: "Coffimer",
-    sourceUrl: "https://www.coffimer.com/",
     notes: ["30초 뜸 뒤 70g, 50g, 50g 스파이럴 푸어", "2분에서 2분 30초 사이 드리퍼 제거"],
     steps: [
       {
@@ -645,20 +629,18 @@ const recipes: Recipe[] = [
     ],
   },
   {
-    id: "coffimer-deepblue-v60",
+    id: "deepblue-v60",
     name: "딥블루레이크 V60 HOT",
-    origin: "Coffimer 공개 레시피",
+    origin: "바리스타 공개 레시피",
     method: "Hario V60",
     profile: "1:16, 4-5회 분할, 안정적인 홈 브루",
-    tags: ["Coffimer", "V60", "핫", "국내"],
+    tags: ["V60", "핫", "국내"],
     dose: 15,
     water: 240,
     ratio: "1:16",
     temp: "93C",
     grind: "850-900um",
     totalTime: 170,
-    source: "Coffimer",
-    sourceUrl: "https://www.coffimer.com/",
     notes: ["50g 단위로 나누어 붓고 마지막은 40g으로 마감", "총 추출 시간은 2분 40초 전후를 목표"],
     steps: [
       {
@@ -703,7 +685,6 @@ const recipes: Recipe[] = [
 const filterOptions = [
   "전체",
   "즐겨찾기",
-  "Coffimer",
   "V60",
   "스위치",
   "라이트",
@@ -711,7 +692,7 @@ const filterOptions = [
   "아이스",
 ];
 
-const coffimerFeatureIdeas = [
+const futureFeatureIdeas = [
   {
     title: "나만의 레시피",
     description: "추출 단계를 직접 만들고 관리하는 편집 흐름",
@@ -820,7 +801,6 @@ export default function Home() {
         recipe.origin,
         recipe.method,
         recipe.profile,
-        recipe.source ?? "",
         ...recipe.tags,
       ]
         .join(" ")
@@ -1105,12 +1085,6 @@ export default function Home() {
                     {recipe.profile}
                   </p>
 
-                  {recipe.source ? (
-                    <p className="mt-2 text-xs font-medium text-[#8c5b3e]">
-                      {recipe.source} 공개 레시피 참고
-                    </p>
-                  ) : null}
-
                   <div className="mt-5 grid grid-cols-3 gap-2 text-sm">
                     <div className="rounded-md bg-[#f4f6f1] p-3">
                       <Scale className="mb-2 h-4 w-4 text-[#2f6f5f]" aria-hidden="true" />
@@ -1148,7 +1122,7 @@ export default function Home() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase text-[#607064]">
-                  Coffimer Reference
+                  Feature Ideas
                 </p>
                 <h2 className="mt-2 text-xl font-semibold">다음에 붙이면 좋은 기능</h2>
               </div>
@@ -1158,7 +1132,7 @@ export default function Home() {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              {coffimerFeatureIdeas.map((feature) => (
+              {futureFeatureIdeas.map((feature) => (
                 <div
                   key={feature.title}
                   className="rounded-lg border border-[#d7ded4] bg-[#f8faf6] p-3"
@@ -1346,17 +1320,6 @@ export default function Home() {
                 <dd className="mt-1 font-semibold">{selectedRecipe.grind}</dd>
               </div>
             </dl>
-
-            {selectedRecipe.source ? (
-              <a
-                href={selectedRecipe.sourceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 block rounded-md border border-[#d7ded4] bg-[#fffaf5] px-3 py-2 text-sm font-medium text-[#8c5b3e] transition hover:border-[#c95b3d]"
-              >
-                {selectedRecipe.source} 공개 레시피 참고
-              </a>
-            ) : null}
 
             <div className="mt-5 space-y-2">
               {selectedRecipe.steps.map((step, index) => {
