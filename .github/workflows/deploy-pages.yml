@@ -60,17 +60,21 @@ jobs:
         env:
           GITHUB_PAGES: "true"
           NEXT_PUBLIC_BASE_PATH: /brew
+          NEXT_PUBLIC_DEPLOYMENT_SHA: ${{ github.sha }}
 
       - name: Validate static export
         run: |
           immutable_marker="out/deployments/${GITHUB_SHA}.json"
+          deployment_meta="$(grep -o '<meta[^>]*name="deployment-sha"[^>]*>' out/index.html | head -n 1 || true)"
 
           test -f out/index.html
           test -d out/_next
           test -f out/deployment.json
           test -f "$immutable_marker"
+          test -n "$deployment_meta"
           grep -Fq "\"sha\": \"${GITHUB_SHA}\"" out/deployment.json
           grep -Fq "\"sha\": \"${GITHUB_SHA}\"" "$immutable_marker"
+          printf '%s' "$deployment_meta" | grep -Fq "content=\"${GITHUB_SHA}\""
           cmp --silent out/deployment.json "$immutable_marker"
           touch out/.nojekyll
 
@@ -97,6 +101,7 @@ jobs:
         run: |
           immutable_marker_url="${PAGE_URL%/}/deployments/${GITHUB_SHA}.json"
           latest_marker_url="${PAGE_URL%/}/deployment.json?run=${GITHUB_RUN_ID}"
+          page_url="${PAGE_URL%/}/?deployment=${GITHUB_SHA}&run=${GITHUB_RUN_ID}"
 
           for attempt in {1..30}; do
             immutable_metadata="$(curl --fail --silent --show-error --location \
@@ -109,8 +114,15 @@ jobs:
               -H 'Pragma: no-cache' \
               "$latest_marker_url" || true)"
 
+            deployed_html="$(curl --fail --silent --show-error --location \
+              -H 'Cache-Control: no-cache' \
+              -H 'Pragma: no-cache' \
+              "$page_url" || true)"
+
+            deployment_meta="$(printf '%s' "$deployed_html" | grep -o '<meta[^>]*name="deployment-sha"[^>]*>' | head -n 1 || true)"
             immutable_matches=false
             latest_matches=false
+            html_matches=false
 
             if printf '%s' "$immutable_metadata" | grep -Fq "\"sha\": \"${GITHUB_SHA}\""; then
               immutable_matches=true
@@ -120,16 +132,22 @@ jobs:
               latest_matches=true
             fi
 
-            if [ "$immutable_matches" = true ] && [ "$latest_matches" = true ]; then
+            if [ -n "$deployment_meta" ] && printf '%s' "$deployment_meta" | grep -Fq "content=\"${GITHUB_SHA}\""; then
+              html_matches=true
+            fi
+
+            if [ "$immutable_matches" = true ] && [ "$latest_matches" = true ] && [ "$html_matches" = true ]; then
               echo "Verified deployed commit ${GITHUB_SHA}"
               echo "Immutable marker: ${immutable_marker_url}"
+              echo "HTML marker: ${deployment_meta}"
               exit 0
             fi
 
             sleep 5
           done
 
-          echo "Expected commit ${GITHUB_SHA} was not observed at both deployment markers."
+          echo "Expected commit ${GITHUB_SHA} was not observed in all deployment markers."
           echo "Immutable marker: ${immutable_marker_url}"
           echo "Latest marker: ${latest_marker_url}"
+          echo "Page: ${page_url}"
           exit 1
