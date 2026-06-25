@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import BrewSessionManagerDialog from "./BrewSessionManagerDialog";
+import { brewSessionDiscardedEvent } from "@/lib/brew/activeBrewDiscard";
 import { brewFeedbackSavedEvent } from "@/lib/brew/sessionFeedback";
 import {
   listBrewProfileHistorySummaries,
@@ -107,7 +108,11 @@ export default function BrewHistoryDrawer() {
     }
 
     window.addEventListener(brewFeedbackSavedEvent, refreshHistory);
-    return () => window.removeEventListener(brewFeedbackSavedEvent, refreshHistory);
+    window.addEventListener(brewSessionDiscardedEvent, refreshHistory);
+    return () => {
+      window.removeEventListener(brewFeedbackSavedEvent, refreshHistory);
+      window.removeEventListener(brewSessionDiscardedEvent, refreshHistory);
+    };
   }, [open]);
 
   useEffect(() => {

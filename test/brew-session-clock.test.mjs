@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  clearBrewSessionClock,
   completeBrewSessionClock,
   getBrewSessionElapsedSeconds,
   pauseBrewSessionClock,
@@ -92,6 +93,9 @@ test("shared clock excludes paused time and keeps all timer transitions aligned"
     clock = completeBrewSessionClock(25_000);
     assert.equal(clock.status, "completed");
     assert.equal(clock.elapsedSeconds, 45);
+
+    clearBrewSessionClock();
+    assert.equal(readBrewSessionClock(), null);
   });
 });
 

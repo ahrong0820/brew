@@ -8,6 +8,10 @@ import {
 import { withUpdatedTimestamp } from "@/lib/domain/factories";
 import { detachCustomRecipesFromSession } from "@/lib/customRecipes/sourceLinks";
 import {
+  clearBrewSessionClock,
+  readBrewSessionClock,
+} from "@/lib/timer/brewSessionClock";
+import {
   beanBrewProfileStore,
   brewSessionStore,
 } from "@/lib/storage/coffeeData";
@@ -311,17 +315,9 @@ export function deleteBrewSessionRecord(sessionId: string) {
   saveProfileSessions(nextProfile, remainingSessions, { mode: "preserve" });
   const linkedRecipesDetached = detachCustomRecipesFromSession(session.id);
 
-  if (typeof window !== "undefined") {
-    try {
-      const key = "brew.activeRecommendationSession.v1";
-      const raw = window.sessionStorage.getItem(key);
-      const parsed = raw ? (JSON.parse(raw) as { sessionId?: unknown }) : null;
-      if (parsed?.sessionId === session.id) {
-        window.sessionStorage.removeItem(key);
-      }
-    } catch {
-      window.sessionStorage.removeItem("brew.activeRecommendationSession.v1");
-    }
+  const activeClock = readBrewSessionClock();
+  if (activeClock?.sessionId === session.id) {
+    clearBrewSessionClock();
   }
 
   return { linkedRecipesDetached };

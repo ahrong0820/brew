@@ -1,9 +1,6 @@
 import { deleteBrewSessionRecord } from "@/lib/brew/sessionManagement";
 import { brewSessionStore } from "@/lib/storage/coffeeData";
-import {
-  clearBrewSessionClock,
-  readBrewSessionClock,
-} from "@/lib/timer/brewSessionClock";
+import { readBrewSessionClock } from "@/lib/timer/brewSessionClock";
 
 export const brewSessionDiscardedEvent = "brew:session-discarded";
 
@@ -28,7 +25,6 @@ export function discardActiveBrewSession(sessionId: string) {
   }
 
   const result = deleteBrewSessionRecord(sessionId);
-  clearBrewSessionClock();
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(
