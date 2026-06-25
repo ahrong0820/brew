@@ -101,11 +101,15 @@ export default function BrewSessionFeedbackTracker() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const restored = readActiveSession();
-    if (restored) {
-      setActive(restored);
-      setNow(Date.now());
-    }
+    const timeoutId = window.setTimeout(() => {
+      const restored = readActiveSession();
+      if (restored) {
+        setActive(restored);
+        setNow(Date.now());
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, []);
 
   useEffect(() => {
