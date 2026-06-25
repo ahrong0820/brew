@@ -17,6 +17,10 @@ function sortByMicrons(points: GrinderMicronReferencePoint[]) {
   return [...points].sort((a, b) => a.microns - b.microns);
 }
 
+function sortBySetting(points: GrinderMicronReferencePoint[]) {
+  return [...points].sort((a, b) => a.step - b.step);
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
@@ -59,6 +63,44 @@ function interpolateSetting(
   }
 
   return last.step;
+}
+
+export function estimateMicronsForSetting(
+  profile: GrinderProfile,
+  setting: number,
+): number | null {
+  const points = profile.micronReference?.points;
+
+  if (!points || points.length < 2 || !Number.isFinite(setting)) {
+    return null;
+  }
+
+  const sorted = sortBySetting(points);
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  const adjustedSetting = setting - profile.personalOffset;
+
+  if (adjustedSetting <= first.step) {
+    return Math.round(first.microns);
+  }
+
+  if (adjustedSetting >= last.step) {
+    return Math.round(last.microns);
+  }
+
+  for (let index = 1; index < sorted.length; index += 1) {
+    const lower = sorted[index - 1];
+    const upper = sorted[index];
+
+    if (adjustedSetting <= upper.step) {
+      const settingSpan = upper.step - lower.step;
+      const micronSpan = upper.microns - lower.microns;
+      const ratio = (adjustedSetting - lower.step) / settingSpan;
+      return Math.round(lower.microns + micronSpan * ratio);
+    }
+  }
+
+  return Math.round(last.microns);
 }
 
 export function recommendSettingForMicrons(
