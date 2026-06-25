@@ -16,6 +16,7 @@ const baseIdentity = {
 
 test("legacy profiles without drink style are treated as HOT", () => {
   assert.equal(normalizeDrinkStyle(undefined), "hot");
+  assert.equal(normalizeDrinkStyle("unknown"), "hot");
   assert.equal(
     brewProfileIdentityKey(baseIdentity),
     brewProfileIdentityKey({ ...baseIdentity, drinkStyle: "hot" }),
