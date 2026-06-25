@@ -1,4 +1,9 @@
-import type { Bean, BrewSession, BrewerType, TasteGoal } from "@/lib/types/coffee";
+import type {
+  Bean,
+  BrewSession,
+  BrewerType,
+  TasteGoal,
+} from "@/lib/types/coffee";
 
 const customRecipesStorageKey = "coffee-custom-recipes";
 
@@ -62,7 +67,7 @@ function readStoredItems(): unknown[] {
 }
 
 function nextCustomRecipeId(items: unknown[]) {
-  const highestIndex = items.reduce((highest, item) => {
+  const highestIndex = items.reduce<number>((highest, item) => {
     if (typeof item !== "object" || item === null) {
       return highest;
     }
@@ -86,7 +91,10 @@ function formatTime(seconds: number) {
   return `${minutes}:${remainder.toString().padStart(2, "0")}`;
 }
 
-function buildSteps(session: BrewSession, totalTime: number): LegacyCustomRecipeStep[] {
+function buildSteps(
+  session: BrewSession,
+  totalTime: number,
+): LegacyCustomRecipeStep[] {
   const snapshotSteps = session.recipeSnapshot.steps;
 
   return snapshotSteps.map((step, index) => ({
@@ -108,14 +116,19 @@ export function copyCurrentBestToCustomRecipe(
 
   const storedItems = readStoredItems();
   const snapshot = session.recipeSnapshot;
-  const lastStepStart = snapshot.steps[snapshot.steps.length - 1]?.startSeconds ?? 0;
+  const lastStepStart =
+    snapshot.steps[snapshot.steps.length - 1]?.startSeconds ?? 0;
   const preferredTime = session.actualTimeSeconds ?? snapshot.totalTimeSeconds;
   const totalTime = Math.max(lastStepStart + 1, Math.round(preferredTime));
   const method = brewerLabels[snapshot.brewerType];
   const notes = [
     "원두별 추출 기록의 현재 베스트에서 복사한 나만의 레시피",
     `성공 추출 시간 ${formatTime(totalTime)}`,
-    `복사 기준 ${new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "short", day: "numeric" }).format(new Date(session.updatedAt))}`,
+    `복사 기준 ${new Intl.DateTimeFormat("ko-KR", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(new Date(session.updatedAt))}`,
   ];
 
   if (session.note && !session.note.includes("타이머 시작 시 자동 생성")) {
