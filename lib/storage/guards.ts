@@ -169,10 +169,21 @@ function isMicronReference(value: unknown) {
     (isRecord(value.linearFit) &&
       isFiniteNumber(value.linearFit.slope) &&
       isFiniteNumber(value.linearFit.intercept));
+  const validMetricLabel =
+    value.metricLabel === undefined || isString(value.metricLabel);
+  const validTolerance =
+    value.typicalToleranceMicrons === undefined ||
+    (isFiniteNumber(value.typicalToleranceMicrons) &&
+      value.typicalToleranceMicrons >= 0);
 
   return (
-    isOneOf(value.source, ["manufacturer", "community", "user"] as const) &&
+    isOneOf(
+      value.source,
+      ["manufacturer", "community", "reference", "user"] as const,
+    ) &&
     isString(value.sourceLabel) &&
+    validMetricLabel &&
+    validTolerance &&
     validPoints &&
     validLinearFit
   );
