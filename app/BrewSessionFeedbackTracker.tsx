@@ -5,19 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 import { saveBrewFeedback } from "@/lib/brew/sessionFeedback";
 import { brewSessionStore } from "@/lib/storage/coffeeData";
 import {
-  recommendationTimerStartEvent,
-  type RecommendationTimerStartDetail,
-} from "@/lib/timer/recommendationTimer";
+  clearBrewSessionClock,
+  completeBrewSessionClock,
+  getBrewSessionElapsedSeconds,
+  readBrewSessionClock,
+  subscribeToBrewSessionClock,
+  type BrewSessionClock,
+} from "@/lib/timer/brewSessionClock";
 import type { TastingResult } from "@/lib/types/coffee";
-
-const activeSessionStorageKey = "brew.activeRecommendationSession.v1";
-
-type ActiveSession = {
-  sessionId: string;
-  recipeName: string;
-  startedAt: number;
-  targetTimeSeconds: number;
-};
 
 type CompletedSession = {
   sessionId: string;
@@ -46,54 +41,17 @@ function formatTime(seconds: number) {
   return `${minutes}:${remainder.toString().padStart(2, "0")}`;
 }
 
-function readActiveSession(): ActiveSession | null {
-  if (typeof window === "undefined") {
-    return null;
+function isTrackableClock(clock: BrewSessionClock | null) {
+  if (!clock?.sessionId) {
+    return false;
   }
 
-  try {
-    const raw = window.sessionStorage.getItem(activeSessionStorageKey);
-    if (!raw) {
-      return null;
-    }
-
-    const parsed = JSON.parse(raw) as Partial<ActiveSession>;
-    if (
-      typeof parsed.sessionId !== "string" ||
-      typeof parsed.recipeName !== "string" ||
-      typeof parsed.startedAt !== "number" ||
-      typeof parsed.targetTimeSeconds !== "number"
-    ) {
-      return null;
-    }
-
-    const storedSession = brewSessionStore.getById(parsed.sessionId);
-    if (!storedSession || storedSession.actualTimeSeconds !== undefined) {
-      window.sessionStorage.removeItem(activeSessionStorageKey);
-      return null;
-    }
-
-    return parsed as ActiveSession;
-  } catch {
-    return null;
-  }
-}
-
-function writeActiveSession(active: ActiveSession | null) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  if (!active) {
-    window.sessionStorage.removeItem(activeSessionStorageKey);
-    return;
-  }
-
-  window.sessionStorage.setItem(activeSessionStorageKey, JSON.stringify(active));
+  const storedSession = brewSessionStore.getById(clock.sessionId);
+  return Boolean(storedSession && storedSession.actualTimeSeconds === undefined);
 }
 
 export default function BrewSessionFeedbackTracker() {
-  const [active, setActive] = useState<ActiveSession | null>(null);
+  const [clock, setClock] = useState<BrewSessionClock | null>(null);
   const [completed, setCompleted] = useState<CompletedSession | null>(null);
   const [now, setNow] = useState(0);
   const [tastingResult, setTastingResult] = useState<TastingResult | null>(null);
@@ -102,86 +60,87 @@ export default function BrewSessionFeedbackTracker() {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      const restored = readActiveSession();
-      if (restored) {
-        setActive(restored);
+      const restored = readBrewSessionClock();
+      if (isTrackableClock(restored)) {
+        setClock(restored);
         setNow(Date.now());
+      } else if (restored?.sessionId) {
+        clearBrewSessionClock();
       }
     }, 0);
 
-    return () => window.clearTimeout(timeoutId);
-  }, []);
-
-  useEffect(() => {
-    function startTracking(event: Event) {
-      const detail = (event as CustomEvent<RecommendationTimerStartDetail>).detail;
-      if (!detail?.sessionId || !detail.recipe) {
-        return;
+    const unsubscribe = subscribeToBrewSessionClock((nextClock) => {
+      if (isTrackableClock(nextClock) || nextClock?.status === "completed") {
+        setClock(nextClock);
+        setNow(Date.now());
+      } else {
+        setClock(null);
       }
+    });
 
-      const nextActive: ActiveSession = {
-        sessionId: detail.sessionId,
-        recipeName: detail.recipe.name,
-        startedAt: Date.now(),
-        targetTimeSeconds: detail.recipe.totalTime,
-      };
-
-      setActive(nextActive);
-      setCompleted(null);
-      setTastingResult(null);
-      setNote("");
-      setMessage(null);
-      setNow(Date.now());
-      writeActiveSession(nextActive);
-    }
-
-    window.addEventListener(recommendationTimerStartEvent, startTracking);
-    return () =>
-      window.removeEventListener(recommendationTimerStartEvent, startTracking);
+    return () => {
+      window.clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
-    if (!active) {
+    if (clock?.status !== "running") {
       return;
     }
 
-    const intervalId = window.setInterval(() => setNow(Date.now()), 250);
+    const intervalId = window.setInterval(() => setNow(Date.now()), 200);
     return () => window.clearInterval(intervalId);
-  }, [active]);
+  }, [clock?.status]);
 
   const elapsedSeconds = useMemo(
-    () =>
-      active
-        ? Math.max(0, Math.floor((now - active.startedAt) / 1000))
-        : 0,
-    [active, now],
+    () => getBrewSessionElapsedSeconds(clock, now),
+    [clock, now],
   );
 
+  const active =
+    clock?.sessionId && clock.status !== "completed" && isTrackableClock(clock)
+      ? clock
+      : null;
   const targetReached = active
     ? elapsedSeconds >= active.targetTimeSeconds
     : false;
 
+  function clearCompletedSession(sessionId: string) {
+    const current = readBrewSessionClock();
+    if (current?.sessionId === sessionId) {
+      clearBrewSessionClock();
+    }
+  }
+
+  function dismissFeedback() {
+    if (completed) {
+      clearCompletedSession(completed.sessionId);
+    }
+    setCompleted(null);
+    setMessage(null);
+    setTastingResult(null);
+    setNote("");
+  }
+
   function finishBrew() {
-    if (!active) {
+    if (!active?.sessionId) {
       return;
     }
 
     try {
-      const actualTimeSeconds = Math.max(1, elapsedSeconds);
+      const actualTimeSeconds = Math.max(1, Math.round(elapsedSeconds));
       saveBrewFeedback({
         sessionId: active.sessionId,
         actualTimeSeconds,
       });
-      const nextCompleted: CompletedSession = {
+      completeBrewSessionClock();
+      setCompleted({
         sessionId: active.sessionId,
         recipeName: active.recipeName,
         actualTimeSeconds,
-      };
-
-      setCompleted(nextCompleted);
-      setActive(null);
+      });
       setMessage(null);
-      writeActiveSession(null);
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -205,12 +164,7 @@ export default function BrewSessionFeedbackTracker() {
         note,
       });
       setMessage("실제 시간과 맛 평가를 저장했습니다.");
-      window.setTimeout(() => {
-        setCompleted(null);
-        setMessage(null);
-        setTastingResult(null);
-        setNote("");
-      }, 900);
+      window.setTimeout(dismissFeedback, 900);
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -227,7 +181,10 @@ export default function BrewSessionFeedbackTracker() {
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-xs font-semibold text-white/70">
-                <Timer aria-hidden="true" size={14} /> 실제 추출 시간 측정 중
+                <Timer aria-hidden="true" size={14} />
+                {active.status === "paused"
+                  ? "실제 추출 시간 일시정지"
+                  : "실제 추출 시간 측정 중"}
               </p>
               <p className="mt-1 truncate text-sm font-bold">{active.recipeName}</p>
             </div>
@@ -243,9 +200,11 @@ export default function BrewSessionFeedbackTracker() {
 
           <div className="mt-3 flex items-center justify-between gap-3">
             <p className="text-xs leading-5 text-white/75">
-              {targetReached
-                ? "목표 시간을 지났습니다. 드로다운이 끝나면 완료를 누르세요."
-                : "드로다운이 끝나는 시점에 완료를 누르세요."}
+              {active.status === "paused"
+                ? "메인 타이머에서 다시 시작하면 실제 시간 측정도 함께 재개됩니다."
+                : targetReached
+                  ? "목표 시간을 지났습니다. 드로다운이 끝나면 완료를 누르세요."
+                  : "드로다운이 끝나는 시점에 완료를 누르세요."}
             </p>
             <button
               type="button"
@@ -287,7 +246,7 @@ export default function BrewSessionFeedbackTracker() {
               </div>
               <button
                 type="button"
-                onClick={() => setCompleted(null)}
+                onClick={dismissFeedback}
                 aria-label="추출 결과 기록 닫기"
                 className="rounded-full p-2 text-[#4d574d] hover:bg-white focus:outline-none focus:ring-2 focus:ring-[#2f6f5f]"
               >
@@ -301,7 +260,7 @@ export default function BrewSessionFeedbackTracker() {
                 {formatTime(completed.actualTimeSeconds)}
               </p>
               <p className="mt-1 text-xs text-[#687168]">
-                완료 버튼을 누른 시점이 해당 세션에 저장되었습니다.
+                공용 타이머에서 일시정지를 제외한 실제 경과 시간이 저장되었습니다.
               </p>
             </div>
 
@@ -354,7 +313,7 @@ export default function BrewSessionFeedbackTracker() {
             <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                onClick={() => setCompleted(null)}
+                onClick={dismissFeedback}
                 className="h-11 rounded-lg border border-[#c8d0c5] bg-white px-4 text-sm font-semibold text-[#526055] hover:bg-[#f8faf7]"
               >
                 평가는 나중에
