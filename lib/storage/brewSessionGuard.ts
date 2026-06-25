@@ -43,6 +43,8 @@ function isRecipeSnapshot(value: unknown) {
     isString(value.sourceTemplateId) &&
     isString(value.sourceTemplateName) &&
     ["v60", "clever", "switch", "other"].includes(String(value.brewerType)) &&
+    (value.drinkStyle === undefined ||
+      ["hot", "iced"].includes(String(value.drinkStyle))) &&
     isFiniteNumber(value.doseGrams) &&
     isFiniteNumber(value.waterGrams) &&
     isFiniteNumber(value.ratio) &&
@@ -85,6 +87,8 @@ export function isCompatibleBrewSession(value: unknown): value is BrewSession {
     isString(value.id) &&
     isString(value.beanId) &&
     isString(value.profileId) &&
+    (value.drinkStyle === undefined ||
+      ["hot", "iced"].includes(String(value.drinkStyle))) &&
     tasteGoals.includes(String(value.tasteGoal)) &&
     confidences.includes(String(value.recommendationConfidence)) &&
     isRecipeSnapshot(value.recipeSnapshot) &&

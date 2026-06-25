@@ -14,6 +14,7 @@ import {
 import { useEffect, useState } from "react";
 import BrewSessionManagerDialog from "./BrewSessionManagerDialog";
 import { brewSessionDiscardedEvent } from "@/lib/brew/activeBrewDiscard";
+import { drinkStyleLabel } from "@/lib/brew/profileIdentity";
 import { brewFeedbackSavedEvent } from "@/lib/brew/sessionFeedback";
 import {
   listBrewProfileHistorySummaries,
@@ -271,7 +272,7 @@ export default function BrewHistoryDrawer() {
                           <div>
                             <h3 className="font-bold">{summary.bean.name}</h3>
                             <p className="mt-1 text-xs text-[#687168]">
-                              {brewerLabels[summary.profile.brewerType]} · {summary.grinder?.displayName ?? "그라인더 미확인"} · {tasteLabels[summary.profile.tasteGoal]}
+                              {drinkStyleLabel(summary.profile.drinkStyle)} · {brewerLabels[summary.profile.brewerType]} · {summary.grinder?.displayName ?? "그라인더 미확인"} · {tasteLabels[summary.profile.tasteGoal]}
                             </p>
                           </div>
                           <span className="rounded-full bg-[#edf2f7] px-2.5 py-1 text-xs font-semibold text-[#40536a]">

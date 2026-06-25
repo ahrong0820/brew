@@ -1,3 +1,7 @@
+import {
+  brewProfileIdentityKey,
+  normalizeDrinkStyle,
+} from "@/lib/brew/profileIdentity";
 import { createCollectionStore } from "@/lib/storage/collectionStore";
 import { isCompatibleBrewSession } from "@/lib/storage/brewSessionGuard";
 import {
@@ -35,12 +39,7 @@ export interface CoffeeIntegrityReport {
 }
 
 function profileKey(profile: BeanBrewProfile) {
-  return [
-    profile.beanId,
-    profile.brewerType,
-    profile.grinderProfileId,
-    profile.tasteGoal,
-  ].join("|");
+  return brewProfileIdentityKey(profile);
 }
 
 function sameCollection<T>(left: T[], right: T[]) {
@@ -95,7 +94,11 @@ export function repairCoffeeStorageIntegrity(): CoffeeIntegrityReport {
   const storedBeans = dedupeById(beans.list());
   const beanIds = new Set(storedBeans.map((bean) => bean.id));
   const storedProfiles = dedupeById(profiles.list());
-  const validProfiles = storedProfiles.filter((profile) =>
+  const normalizedProfiles = storedProfiles.map((profile) => ({
+    ...profile,
+    drinkStyle: normalizeDrinkStyle(profile.drinkStyle),
+  }));
+  const validProfiles = normalizedProfiles.filter((profile) =>
     beanIds.has(profile.beanId),
   );
   const removedOrphanProfiles =
@@ -127,9 +130,10 @@ export function repairCoffeeStorageIntegrity(): CoffeeIntegrityReport {
 
   let removedOrphanSessions = 0;
   let repairedSessionLinks = 0;
+  const storedSessions = dedupeById(sessions.list());
   const normalizedSessions: BrewSession[] = [];
 
-  for (const session of dedupeById(sessions.list())) {
+  for (const session of storedSessions) {
     const canonicalProfileId = profileIdRemap.get(session.profileId);
     const canonicalProfile = canonicalProfileId
       ? canonicalProfileById.get(canonicalProfileId)
@@ -140,9 +144,12 @@ export function repairCoffeeStorageIntegrity(): CoffeeIntegrityReport {
       continue;
     }
 
+    const drinkStyle = normalizeDrinkStyle(canonicalProfile.drinkStyle);
     const needsRepair =
       session.profileId !== canonicalProfile.id ||
-      session.beanId !== canonicalProfile.beanId;
+      session.beanId !== canonicalProfile.beanId ||
+      session.drinkStyle !== drinkStyle ||
+      session.recipeSnapshot.drinkStyle !== drinkStyle;
 
     normalizedSessions.push(
       needsRepair
@@ -150,6 +157,11 @@ export function repairCoffeeStorageIntegrity(): CoffeeIntegrityReport {
             ...session,
             profileId: canonicalProfile.id,
             beanId: canonicalProfile.beanId,
+            drinkStyle,
+            recipeSnapshot: {
+              ...session.recipeSnapshot,
+              drinkStyle,
+            },
           }
         : session,
     );
@@ -218,10 +230,7 @@ export function repairCoffeeStorageIntegrity(): CoffeeIntegrityReport {
   });
 
   const profileChanged = !sameCollection(storedProfiles, repairedProfiles);
-  const sessionChanged = !sameCollection(
-    dedupeById(sessions.list()),
-    repairedSessions,
-  );
+  const sessionChanged = !sameCollection(storedSessions, repairedSessions);
 
   if (profileChanged) {
     profiles.replaceAll(repairedProfiles);

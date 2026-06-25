@@ -1,4 +1,8 @@
 import {
+  drinkStyleLabel,
+  matchesBrewProfileIdentity,
+} from "@/lib/brew/profileIdentity";
+import {
   assertRecommendationLaunchAllowed,
   markRecommendationLaunch,
 } from "@/lib/brew/launchGuard";
@@ -16,6 +20,7 @@ import type {
   Bean,
   BeanBrewProfile,
   BrewerType,
+  DrinkStyle,
   GrinderProfile,
   RecipeSnapshot,
   TasteGoal,
@@ -31,6 +36,7 @@ interface PrepareRecommendationBrewInput {
   bean: Bean;
   grinder: GrinderProfile;
   brewerType: BrewerType;
+  drinkStyle: DrinkStyle;
   tasteGoal: TasteGoal;
   recommendation: BrewRecommendation;
 }
@@ -75,6 +81,7 @@ function recommendationFingerprint(input: PrepareRecommendationBrewInput) {
     beanId: input.bean.id,
     grinderId: input.grinder.id,
     brewerType: input.brewerType,
+    drinkStyle: input.drinkStyle,
     tasteGoal: input.tasteGoal,
     dose: input.recommendation.doseGrams,
     water: input.recommendation.waterGrams,
@@ -111,13 +118,16 @@ function findBrewProfile(
   brewerType: BrewerType,
   grinderProfileId: string,
   tasteGoal: TasteGoal,
+  drinkStyle: DrinkStyle,
 ) {
-  return beanBrewProfileStore.list().find(
-    (profile) =>
-      profile.beanId === beanId &&
-      profile.brewerType === brewerType &&
-      profile.grinderProfileId === grinderProfileId &&
-      profile.tasteGoal === tasteGoal,
+  return beanBrewProfileStore.list().find((profile) =>
+    matchesBrewProfileIdentity(profile, {
+      beanId,
+      brewerType,
+      grinderProfileId,
+      tasteGoal,
+      drinkStyle,
+    }),
   );
 }
 
@@ -130,6 +140,7 @@ function createOrGetBrewProfile(
     input.brewerType,
     input.grinder.id,
     input.tasteGoal,
+    input.drinkStyle,
   );
 
   if (existing) {
@@ -141,6 +152,7 @@ function createOrGetBrewProfile(
       {
         beanId: input.bean.id,
         brewerType: input.brewerType,
+        drinkStyle: input.drinkStyle,
         grinderProfileId: input.grinder.id,
         tasteGoal: input.tasteGoal,
         recommendationOffset: {},
@@ -163,9 +175,10 @@ function buildSnapshot(
       : (estimateMicronsForSetting(input.grinder, grindLevel) ?? undefined);
 
   return {
-    sourceTemplateId: `recommendation-${input.brewerType}-${input.tasteGoal}`,
+    sourceTemplateId: `recommendation-${input.drinkStyle}-${input.brewerType}-${input.tasteGoal}`,
     sourceTemplateName: input.recommendation.templateName,
     brewerType: input.brewerType,
+    drinkStyle: input.drinkStyle,
     doseGrams: input.recommendation.doseGrams,
     waterGrams: input.recommendation.waterGrams,
     ratio: input.recommendation.ratio,
@@ -206,8 +219,13 @@ function buildTimerRecipe(
     name: `${input.bean.name} · ${input.recommendation.templateName}`,
     origin: "원두 맞춤 추천",
     method: brewerLabels[input.brewerType],
-    profile: tasteLabels[input.tasteGoal],
-    tags: ["맞춤 추천", brewerLabels[input.brewerType], tasteLabels[input.tasteGoal]],
+    profile: `${drinkStyleLabel(input.drinkStyle)} · ${tasteLabels[input.tasteGoal]}`,
+    tags: [
+      "맞춤 추천",
+      drinkStyleLabel(input.drinkStyle),
+      brewerLabels[input.brewerType],
+      tasteLabels[input.tasteGoal],
+    ],
     dose: snapshot.doseGrams,
     water: snapshot.waterGrams,
     ratio: `1:${snapshot.ratio}`,
@@ -215,6 +233,7 @@ function buildTimerRecipe(
     grind: snapshot.grinderDisplayValue,
     totalTime: snapshot.totalTimeSeconds,
     notes: [
+      `음용 방식 ${drinkStyleLabel(input.drinkStyle)}`,
       `목표 추출 시간 ${formatSeconds(snapshot.targetTimeMinSeconds)}~${formatSeconds(snapshot.targetTimeMaxSeconds)}`,
       `${input.grinder.displayName} · ${input.grinder.calibrationLabel}`,
       estimatedMicronNote,
@@ -248,6 +267,7 @@ export function prepareRecommendationBrew(
     {
       beanId: input.bean.id,
       profileId: profile.id,
+      drinkStyle: input.drinkStyle,
       tasteGoal: input.tasteGoal,
       recommendationConfidence: input.recommendation.confidence,
       recipeSnapshot: snapshot,

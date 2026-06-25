@@ -102,7 +102,7 @@ export function createPersonalizedRecommendation(
     grinder: personalizedGrinder(base, input),
     reasons: [
       ...base.reasons,
-      "같은 원두·드리퍼·그라인더·맛 방향의 이전 추출 평가에서 저장한 개인 보정값을 반영했습니다.",
+      "같은 원두·음용 방식·드리퍼·그라인더·맛 방향의 이전 추출 평가에서 저장한 개인 보정값을 반영했습니다.",
     ],
     confidenceReason:
       "초기 추천 규칙에 이 원두의 이전 추출 평가를 반영했습니다. 한 번에 한 변수만 조정한 결과를 추가로 기록하면 개인 추천의 신뢰도가 높아집니다.",

@@ -153,6 +153,8 @@ export interface RecipeSnapshot {
   sourceTemplateId: string;
   sourceTemplateName: string;
   brewerType: BrewerType;
+  /** Legacy snapshots without this field are treated as hot. */
+  drinkStyle?: DrinkStyle;
   doseGrams: number;
   waterGrams: number;
   ratio: number;
@@ -173,6 +175,8 @@ export interface BeanBrewProfile {
   id: string;
   beanId: string;
   brewerType: BrewerType;
+  /** Legacy profiles without this field are treated as hot. */
+  drinkStyle?: DrinkStyle;
   grinderProfileId: string;
   tasteGoal: TasteGoal;
   currentBestSessionId?: string;
@@ -190,6 +194,8 @@ export interface BrewSession {
   id: string;
   beanId: string;
   profileId: string;
+  /** Legacy sessions without this field are treated as hot. */
+  drinkStyle?: DrinkStyle;
   tasteGoal: TasteGoal;
   recommendationConfidence: RecommendationConfidence;
   recipeSnapshot: RecipeSnapshot;

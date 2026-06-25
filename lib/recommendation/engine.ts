@@ -1,3 +1,4 @@
+import { matchesBrewProfileIdentity } from "@/lib/brew/profileIdentity";
 import { createPersonalizedRecommendation } from "@/lib/recommendation/personalized";
 import {
   beanBrewProfileStore,
@@ -11,12 +12,14 @@ import type {
 export function createRecommendation(
   input: RecommendationInput,
 ): BrewRecommendation {
-  const profile = beanBrewProfileStore.list().find(
-    (candidate) =>
-      candidate.beanId === input.bean.id &&
-      candidate.brewerType === input.preferences.defaultBrewer &&
-      candidate.grinderProfileId === input.grinder.id &&
-      candidate.tasteGoal === input.tasteGoal,
+  const profile = beanBrewProfileStore.list().find((candidate) =>
+    matchesBrewProfileIdentity(candidate, {
+      beanId: input.bean.id,
+      brewerType: input.preferences.defaultBrewer,
+      grinderProfileId: input.grinder.id,
+      tasteGoal: input.tasteGoal,
+      drinkStyle: input.preferences.defaultDrinkStyle,
+    }),
   );
   const recommendation = createPersonalizedRecommendation({
     ...input,
@@ -45,7 +48,7 @@ export function createRecommendation(
         `같은 조건에서 좋음 평가가 ${successfulSessions.length}회 누적되어 개인 성공 이력을 우선 반영했습니다.`,
       ],
       confidenceReason:
-        "같은 원두·드리퍼·그라인더·맛 방향에서 성공 기록이 2회 이상 재현되어 개인화 추천 근거가 강화되었습니다.",
+        "같은 원두·음용 방식·드리퍼·그라인더·맛 방향에서 성공 기록이 2회 이상 재현되어 개인화 추천 근거가 강화되었습니다.",
     };
   }
 

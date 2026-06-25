@@ -207,6 +207,7 @@ export default function RecommendationDrawerV2() {
         bean: selectedBean,
         grinder: selectedGrinder,
         brewerType: preferences.defaultBrewer,
+        drinkStyle: preferences.defaultDrinkStyle,
         tasteGoal,
         recommendation,
       });
@@ -408,7 +409,7 @@ export default function RecommendationDrawerV2() {
 
                     {preferences?.defaultDrinkStyle === "iced" && (
                       <p className="mt-3 rounded-lg bg-[#fff8ee] px-3 py-2 text-xs leading-5 text-[#704b2d]">
-                        이번 단계의 자동 물량은 따뜻한 추출 기준입니다. 아이스용 추출수와 얼음 배분은 다음 단계에서 추가합니다.
+                        ICED 개인화 기록은 HOT과 분리해 저장됩니다. 현재 자동 물량은 따뜻한 추출 기준이며, 아이스용 추출수와 얼음 배분은 다음 단계에서 추가합니다.
                       </p>
                     )}
 
