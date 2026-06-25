@@ -3,6 +3,7 @@ import BeanLibraryDrawer from "./BeanLibraryDrawer";
 import BrewSessionFeedbackTracker from "./BrewSessionFeedbackTracker";
 import GrindMicronDrawer from "./GrindMicronDrawer";
 import MobileRecipeEnhancer from "./MobileRecipeEnhancer";
+import NextBrewAdjustmentDrawer from "./NextBrewAdjustmentDrawer";
 import RecommendationDrawer from "./RecommendationDrawer";
 import "./globals.css";
 
@@ -30,6 +31,7 @@ export default function RootLayout({
         <RecommendationDrawer />
         <BeanLibraryDrawer />
         <BrewSessionFeedbackTracker />
+        <NextBrewAdjustmentDrawer />
         {children}
       </body>
     </html>
