@@ -16,6 +16,7 @@ function getDirectChild<T extends Element>(
   return (Array.from(parent.children).find(predicate) as T | undefined) ?? null;
 }
 
+// Adds mobile-only presentation behavior without changing recipe or timer state.
 export default function MobileRecipeEnhancer() {
   useEffect(() => {
     let customSection: HTMLElement | null = null;
