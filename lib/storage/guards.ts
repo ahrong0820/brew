@@ -125,6 +125,7 @@ const grinderRecommendationStatuses: readonly GrinderRecommendationStatus[] = [
 const grinderAdjustmentDirections: readonly GrinderAdjustmentDirection[] = [
   "higher-is-coarser",
   "higher-is-finer",
+  "unknown",
 ];
 
 const recommendationConfidences: readonly RecommendationConfidence[] = [
