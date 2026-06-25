@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import BeanLibraryDrawer from "./BeanLibraryDrawer";
 import BrewHistoryDrawer from "./BrewHistoryDrawer";
 import BrewSessionFeedbackTracker from "./BrewSessionFeedbackTracker";
-import CurrentBestRecipeExporter from "./CurrentBestRecipeExporter";
 import GrindMicronDrawer from "./GrindMicronDrawer";
+import MobileCoffeeNav from "./MobileCoffeeNav";
 import MobileRecipeEnhancer from "./MobileRecipeEnhancer";
 import NextBrewAdjustmentDrawer from "./NextBrewAdjustmentDrawer";
 import RecommendationDrawer from "./RecommendationDrawer";
@@ -30,12 +30,12 @@ export default function RootLayout({
       <body>
         <MobileRecipeEnhancer />
         <GrindMicronDrawer />
-        <CurrentBestRecipeExporter />
         <BrewHistoryDrawer />
         <RecommendationDrawer />
         <BeanLibraryDrawer />
         <BrewSessionFeedbackTracker />
         <NextBrewAdjustmentDrawer />
+        <MobileCoffeeNav />
         {children}
       </body>
     </html>
