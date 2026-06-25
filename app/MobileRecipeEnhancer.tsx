@@ -21,10 +21,16 @@ export default function MobileRecipeEnhancer() {
     let customSection: HTMLElement | null = null;
 
     function updateToggle(button: HTMLButtonElement, open: boolean) {
-      button.setAttribute("aria-expanded", String(open));
-      button.textContent = open
-        ? "편집기 닫기"
-        : "＋ 나만의 레시피 만들기";
+      const expanded = String(open);
+      const label = open ? "편집기 닫기" : "＋ 나만의 레시피 만들기";
+
+      if (button.getAttribute("aria-expanded") !== expanded) {
+        button.setAttribute("aria-expanded", expanded);
+      }
+
+      if (button.textContent !== label) {
+        button.textContent = label;
+      }
     }
 
     function setEditorOpen(open: boolean) {
@@ -68,8 +74,17 @@ export default function MobileRecipeEnhancer() {
       if (recipeList) {
         recipeList.dataset.recipeList = "true";
         Array.from(recipeList.children).forEach((element) => {
-          if (element.tagName === "BUTTON") {
-            (element as HTMLElement).dataset.recipeRow = "true";
+          if (element.tagName !== "BUTTON") {
+            return;
+          }
+
+          const recipeRow = element as HTMLElement;
+          recipeRow.dataset.recipeRow = "true";
+
+          if (recipeRow.classList.contains("ring-2")) {
+            recipeRow.setAttribute("aria-current", "true");
+          } else {
+            recipeRow.removeAttribute("aria-current");
           }
         });
       }
@@ -112,13 +127,11 @@ export default function MobileRecipeEnhancer() {
     }
 
     function handleClick(event: MouseEvent) {
-      const target = event.target as HTMLElement | null;
-
-      if (!target) {
+      if (!(event.target instanceof Element)) {
         return;
       }
 
-      const toggle = target.closest(
+      const toggle = event.target.closest(
         "[data-custom-editor-toggle]",
       ) as HTMLButtonElement | null;
 
@@ -127,7 +140,7 @@ export default function MobileRecipeEnhancer() {
         return;
       }
 
-      const recipeRow = target.closest('[data-recipe-row="true"]');
+      const recipeRow = event.target.closest('[data-recipe-row="true"]');
 
       if (recipeRow && window.matchMedia(mobileQuery).matches) {
         const timerPanel = document.querySelector(
@@ -143,7 +156,7 @@ export default function MobileRecipeEnhancer() {
         });
       }
 
-      const clickedButton = target.closest("button");
+      const clickedButton = event.target.closest("button");
 
       if (
         clickedButton &&
@@ -161,10 +174,14 @@ export default function MobileRecipeEnhancer() {
     document.addEventListener("click", handleClick);
 
     const observer = new MutationObserver(syncDom);
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+    const observerTarget = document.querySelector("main");
+
+    if (observerTarget) {
+      observer.observe(observerTarget, {
+        childList: true,
+        subtree: true,
+      });
+    }
 
     return () => {
       observer.disconnect();
