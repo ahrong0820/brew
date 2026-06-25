@@ -1,0 +1,33 @@
+name: Fix legacy recommendation drink style
+
+on:
+  push:
+    branches:
+      - feat/split-hot-iced-personalization
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/split-hot-iced-personalization
+          fetch-depth: 0
+      - name: Apply legacy drawer fix
+        run: node scripts/fix-legacy-recommendation-drink-style.mjs
+      - name: Remove temporary files
+        run: |
+          rm scripts/fix-legacy-recommendation-drink-style.mjs
+          rm .github/workflows/fix-legacy-recommendation-drink-style.yml
+          rm -f typecheck-errors.txt
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/RecommendationDrawer.tsx scripts/fix-legacy-recommendation-drink-style.mjs .github/workflows/fix-legacy-recommendation-drink-style.yml typecheck-errors.txt
+          git commit -m "fix: pass drink style from legacy recommendation drawer"
+          git push origin HEAD:feat/split-hot-iced-personalization
