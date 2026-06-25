@@ -1,5 +1,6 @@
 import type {
   Bean,
+  BeanBrewProfile,
   GrinderProfile,
   RecommendationConfidence,
   TasteGoal,
@@ -11,6 +12,7 @@ export interface RecommendationInput {
   grinder: GrinderProfile;
   preferences: UserPreferences;
   tasteGoal: TasteGoal;
+  recommendationOffset?: BeanBrewProfile["recommendationOffset"];
 }
 
 export interface RecommendationStep {
