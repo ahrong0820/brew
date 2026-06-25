@@ -5,6 +5,7 @@ import {
   completeBrewSessionClock,
   getBrewSessionElapsedSeconds,
   pauseBrewSessionClock,
+  readBrewSessionClock,
   resetBrewSessionClock,
   resumeBrewSessionClock,
   seekBrewSessionClock,
@@ -25,7 +26,15 @@ const recipe = {
   grind: "중간",
   totalTime: 180,
   notes: [],
-  steps: [{ label: "블루밍", start: 0, end: 40, targetWater: 40, cue: "전체를 적시기" }],
+  steps: [
+    {
+      label: "블루밍",
+      start: 0,
+      end: 40,
+      targetWater: 40,
+      cue: "전체를 적시기",
+    },
+  ],
 };
 
 function withBrowserMock(run) {
@@ -84,4 +93,42 @@ test("shared clock excludes paused time and keeps all timer transitions aligned"
     assert.equal(clock.status, "completed");
     assert.equal(clock.elapsedSeconds, 45);
   });
+});
+
+test("shared clock keeps working when session storage is unavailable", () => {
+  const originalWindow = globalThis.window;
+  const originalCustomEvent = globalThis.CustomEvent;
+
+  globalThis.CustomEvent = class {
+    constructor(type, init = {}) {
+      this.type = type;
+      this.detail = init.detail;
+    }
+  };
+  globalThis.window = {
+    sessionStorage: {
+      getItem() {
+        throw new Error("storage unavailable");
+      },
+      setItem() {
+        throw new Error("storage unavailable");
+      },
+      removeItem() {
+        throw new Error("storage unavailable");
+      },
+    },
+    dispatchEvent: () => true,
+  };
+
+  try {
+    startBrewSessionClock({ recipe, sessionId: "memory-session" }, 1_000);
+    assert.equal(readBrewSessionClock().sessionId, "memory-session");
+
+    const paused = pauseBrewSessionClock(4_000);
+    assert.equal(paused.status, "paused");
+    assert.equal(paused.elapsedSeconds, 3);
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.CustomEvent = originalCustomEvent;
+  }
 });
