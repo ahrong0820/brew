@@ -1,4 +1,8 @@
 import {
+  assertRecommendationLaunchAllowed,
+  markRecommendationLaunch,
+} from "@/lib/brew/launchGuard";
+import {
   createBeanBrewProfile,
   createBrewSession,
   withUpdatedTimestamp,
@@ -64,6 +68,24 @@ function numericGrindLevel(recommendation: BrewRecommendation) {
 
   const value = Number(recommendation.grinder.displayValue);
   return Number.isFinite(value) ? value : undefined;
+}
+
+function recommendationFingerprint(input: PrepareRecommendationBrewInput) {
+  return JSON.stringify({
+    beanId: input.bean.id,
+    grinderId: input.grinder.id,
+    brewerType: input.brewerType,
+    tasteGoal: input.tasteGoal,
+    dose: input.recommendation.doseGrams,
+    water: input.recommendation.waterGrams,
+    ratio: input.recommendation.ratio,
+    temperature: input.recommendation.temperatureCelsius,
+    grind: input.recommendation.grinder.displayValue,
+    steps: input.recommendation.steps.map((step) => [
+      step.startSeconds,
+      step.targetWaterGrams,
+    ]),
+  });
 }
 
 function buildTimerSteps(recommendation: BrewRecommendation) {
@@ -211,6 +233,9 @@ function formatSeconds(seconds: number) {
 export function prepareRecommendationBrew(
   input: PrepareRecommendationBrewInput,
 ): RecommendationTimerStartDetail {
+  const fingerprint = recommendationFingerprint(input);
+  assertRecommendationLaunchAllowed(fingerprint);
+
   const timestamp = new Date().toISOString();
   const { profile, created } = createOrGetBrewProfile(input, timestamp);
   const existingSessions = brewSessionStore.list();
@@ -255,6 +280,8 @@ export function prepareRecommendationBrew(
     }
     throw new Error("추출 기록 연결을 저장하지 못했습니다.");
   }
+
+  markRecommendationLaunch(fingerprint, session.id);
 
   return {
     recipe: buildTimerRecipe(input, session.id, snapshot, steps),
