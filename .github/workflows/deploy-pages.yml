@@ -1,4 +1,5 @@
 name: Deploy GitHub Pages
+run-name: Deploy ${{ github.sha }} to GitHub Pages
 
 on:
   push:
@@ -13,11 +14,12 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,8 +35,24 @@ jobs:
           node-version: 22.13.0
           cache: pnpm
 
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Write deployment metadata
+        run: |
+          mkdir -p public
+          cat > public/deployment.json <<EOF
+          {
+            "repository": "${GITHUB_REPOSITORY}",
+            "sha": "${GITHUB_SHA}",
+            "runId": "${GITHUB_RUN_ID}",
+            "runNumber": "${GITHUB_RUN_NUMBER}",
+            "builtAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
 
       - name: Build static export
         run: pnpm build:github
@@ -42,11 +60,13 @@ jobs:
           GITHUB_PAGES: "true"
           NEXT_PUBLIC_BASE_PATH: /brew
 
-      - name: Disable Jekyll
-        run: touch out/.nojekyll
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
+      - name: Validate static export
+        run: |
+          test -f out/index.html
+          test -d out/_next
+          test -f out/deployment.json
+          grep -Fq "\"sha\": \"${GITHUB_SHA}\"" out/deployment.json
+          touch out/.nojekyll
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
@@ -58,8 +78,30 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify deployed commit
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          marker_url="${PAGE_URL%/}/deployment.json?run=${GITHUB_RUN_ID}"
+
+          for attempt in {1..30}; do
+            deployed_metadata="$(curl --fail --silent --show-error --location \
+              -H 'Cache-Control: no-cache' "$marker_url" || true)"
+
+            if printf '%s' "$deployed_metadata" | grep -Fq "\"sha\": \"${GITHUB_SHA}\""; then
+              echo "Verified deployed commit ${GITHUB_SHA}"
+              exit 0
+            fi
+
+            sleep 5
+          done
+
+          echo "Expected commit ${GITHUB_SHA} was not observed at ${marker_url}."
+          exit 1
