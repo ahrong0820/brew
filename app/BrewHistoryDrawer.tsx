@@ -1,14 +1,21 @@
 "use client";
 
-import { Award, Clock3, History, Sparkles, X } from "lucide-react";
-import { useEffect, useState } from "react";
 import {
-  brewFeedbackSavedEvent,
-} from "@/lib/brew/sessionFeedback";
+  Award,
+  Check,
+  Clock3,
+  Copy,
+  History,
+  Sparkles,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { brewFeedbackSavedEvent } from "@/lib/brew/sessionFeedback";
 import {
   listBrewProfileHistorySummaries,
   type BrewProfileHistorySummary,
 } from "@/lib/brew/history";
+import { copyCurrentBestToCustomRecipe } from "@/lib/customRecipes/currentBestCopy";
 import { initializeCoffeeStorage } from "@/lib/storage/coffeeData";
 import type {
   BrewerType,
@@ -54,9 +61,16 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+type CopyStatus = {
+  profileId: string;
+  message: string;
+  success: boolean;
+};
+
 export default function BrewHistoryDrawer() {
   const [open, setOpen] = useState(false);
   const [summaries, setSummaries] = useState<BrewProfileHistorySummary[]>([]);
+  const [copyStatus, setCopyStatus] = useState<CopyStatus | null>(null);
 
   function loadHistory() {
     initializeCoffeeStorage();
@@ -94,6 +108,44 @@ export default function BrewHistoryDrawer() {
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [open]);
 
+  function copyBest(summary: BrewProfileHistorySummary) {
+    if (!summary.currentBest) {
+      return;
+    }
+
+    try {
+      const result = copyCurrentBestToCustomRecipe(
+        summary.bean,
+        summary.currentBest,
+      );
+      const actionMessage =
+        result.copyAction === "updated"
+          ? "기존 베스트 레시피를 최신 조건으로 갱신했습니다."
+          : result.copyAction === "unchanged"
+            ? "같은 현재 베스트가 이미 나만의 레시피에 저장되어 있습니다."
+            : "현재 베스트를 나만의 레시피에 저장했습니다.";
+
+      setCopyStatus({
+        profileId: summary.profile.id,
+        message: actionMessage,
+        success: true,
+      });
+
+      if (result.copyAction !== "unchanged") {
+        window.setTimeout(() => window.location.reload(), 900);
+      }
+    } catch (error) {
+      setCopyStatus({
+        profileId: summary.profile.id,
+        message:
+          error instanceof Error
+            ? error.message
+            : "나만의 레시피로 저장하지 못했습니다.",
+        success: false,
+      });
+    }
+  }
+
   const sessionCount = summaries.reduce(
     (total, summary) => total + summary.sessions.length,
     0,
@@ -105,6 +157,7 @@ export default function BrewHistoryDrawer() {
         type="button"
         onClick={() => {
           loadHistory();
+          setCopyStatus(null);
           setOpen(true);
         }}
         className="fixed bottom-52 right-4 z-40 flex h-12 items-center gap-2 rounded-full border border-[#586a80] bg-[#edf2f7] px-4 text-sm font-semibold text-[#40536a] shadow-lg transition hover:bg-[#e1e9f1] focus:outline-none focus:ring-2 focus:ring-[#586a80] focus:ring-offset-2"
@@ -164,6 +217,11 @@ export default function BrewHistoryDrawer() {
                 <div className="space-y-4">
                   {summaries.map((summary) => {
                     const best = summary.currentBest;
+                    const status =
+                      copyStatus?.profileId === summary.profile.id
+                        ? copyStatus
+                        : null;
+
                     return (
                       <article
                         key={summary.profile.id}
@@ -184,11 +242,15 @@ export default function BrewHistoryDrawer() {
                         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                           <div className="rounded-lg bg-[#f8faf7] p-3">
                             <p className="text-xs text-[#687168]">전체 추출</p>
-                            <p className="mt-1 text-lg font-bold">{summary.sessions.length}회</p>
+                            <p className="mt-1 text-lg font-bold">
+                              {summary.sessions.length}회
+                            </p>
                           </div>
                           <div className="rounded-lg bg-[#f8faf7] p-3">
                             <p className="text-xs text-[#687168]">좋음 평가</p>
-                            <p className="mt-1 text-lg font-bold">{summary.successfulSessions.length}회</p>
+                            <p className="mt-1 text-lg font-bold">
+                              {summary.successfulSessions.length}회
+                            </p>
                           </div>
                           <div className="col-span-2 rounded-lg bg-[#f8faf7] p-3 sm:col-span-1">
                             <p className="text-xs text-[#687168]">최근 추출</p>
@@ -230,6 +292,34 @@ export default function BrewHistoryDrawer() {
                             {best.note && (
                               <p className="mt-3 text-xs leading-5 text-[#6f603e]">
                                 {best.note}
+                              </p>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => copyBest(summary)}
+                              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-[#8a6d35] bg-white px-4 py-2.5 text-sm font-bold text-[#715927] transition hover:bg-[#fff4d4] focus:outline-none focus:ring-2 focus:ring-[#8a6d35] focus:ring-offset-2"
+                            >
+                              {status?.success ? (
+                                <Check aria-hidden="true" size={17} />
+                              ) : (
+                                <Copy aria-hidden="true" size={17} />
+                              )}
+                              {status?.success
+                                ? "나만의 레시피 저장 확인"
+                                : "나만의 레시피로 저장"}
+                            </button>
+
+                            {status && (
+                              <p
+                                role="status"
+                                className={`mt-2 rounded-lg px-3 py-2 text-xs leading-5 ${
+                                  status.success
+                                    ? "bg-[#eef5ef] text-[#245647]"
+                                    : "bg-[#fff0e8] text-[#8a4d24]"
+                                }`}
+                              >
+                                {status.message}
                               </p>
                             )}
                           </div>
