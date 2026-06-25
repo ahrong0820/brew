@@ -4,6 +4,7 @@ import {
   ChevronDown,
   Coffee,
   Gauge,
+  Play,
   Save,
   Settings2,
   Sparkles,
@@ -11,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { prepareRecommendationBrew } from "@/lib/recommendation/brewLaunch";
 import { createRecommendation } from "@/lib/recommendation/engine";
 import {
   beanStore,
@@ -19,6 +21,7 @@ import {
   initializeCoffeeStorage,
   saveUserPreferences,
 } from "@/lib/storage/coffeeData";
+import { dispatchRecommendationTimerStart } from "@/lib/timer/recommendationTimer";
 import type {
   Bean,
   BrewerType,
@@ -205,6 +208,37 @@ export default function RecommendationDrawer() {
       }),
     );
     setMessage(null);
+  }
+
+  function startRecommendedTimer() {
+    if (!selectedBean || !selectedGrinder || !preferences || !recommendation) {
+      setMessage("추천 조건을 다시 확인해 주세요.");
+      return;
+    }
+
+    try {
+      const detail = prepareRecommendationBrew({
+        bean: selectedBean,
+        grinder: selectedGrinder,
+        brewerType: preferences.defaultBrewer,
+        tasteGoal,
+        recommendation,
+      });
+
+      dispatchRecommendationTimerStart(detail);
+      setMessage(
+        detail.isFirstSession
+          ? "첫 추출 기록을 저장하고 타이머를 시작했습니다."
+          : "새 추출 기록을 저장하고 타이머를 시작했습니다.",
+      );
+      setOpen(false);
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "추출 기록을 저장하지 못했습니다.",
+      );
+    }
   }
 
   return (
@@ -572,6 +606,18 @@ export default function RecommendationDrawer() {
                           ))}
                         </ol>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={startRecommendedTimer}
+                        className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-[#8a623d] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#735033] focus:outline-none focus:ring-2 focus:ring-[#8a623d] focus:ring-offset-2"
+                      >
+                        <Play aria-hidden="true" size={18} />
+                        이 레시피로 타이머 시작
+                      </button>
+                      <p className="mt-2 text-center text-xs leading-5 text-[#687168]">
+                        시작과 동시에 이 조건을 원두별 추출 기록에 저장합니다.
+                      </p>
 
                       <div className="mt-5 rounded-lg bg-[#f8faf7] p-4">
                         <h4 className="text-sm font-bold">추천 근거</h4>
