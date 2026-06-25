@@ -129,7 +129,9 @@ export function listBrewProfileHistorySummaries(): BrewProfileHistorySummary[] {
       const currentBest =
         profileSessions.find(
           (session) => session.id === profile.currentBestSessionId,
-        ) ?? profileSessions.find((session) => session.status === "current-best");
+        ) ??
+        profileSessions.find((session) => session.status === "current-best") ??
+        successfulSessions[0];
 
       return {
         profile,
