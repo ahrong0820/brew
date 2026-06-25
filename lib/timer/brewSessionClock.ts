@@ -35,6 +35,8 @@ interface StartBrewSessionClockInput {
   isFirstSession?: boolean;
 }
 
+let inMemoryClock: BrewSessionClock | null = null;
+
 function isClockStatus(value: unknown): value is BrewSessionClockStatus {
   return value === "running" || value === "paused" || value === "completed";
 }
@@ -77,7 +79,10 @@ function parseClock(value: unknown): BrewSessionClock | null {
     return null;
   }
 
-  if (candidate.sessionId !== undefined && typeof candidate.sessionId !== "string") {
+  if (
+    candidate.sessionId !== undefined &&
+    typeof candidate.sessionId !== "string"
+  ) {
     return null;
   }
 
@@ -142,6 +147,8 @@ function emitClockChange(clock: BrewSessionClock | null) {
 }
 
 function persistClock(clock: BrewSessionClock | null) {
+  inMemoryClock = clock;
+
   if (typeof window === "undefined") {
     return clock;
   }
@@ -166,26 +173,28 @@ function persistClock(clock: BrewSessionClock | null) {
 
 export function readBrewSessionClock(): BrewSessionClock | null {
   if (typeof window === "undefined") {
-    return null;
+    return inMemoryClock;
   }
 
   try {
     const raw = window.sessionStorage.getItem(activeBrewSessionStorageKey);
     if (!raw) {
-      return null;
+      return inMemoryClock;
     }
 
     const parsed: unknown = JSON.parse(raw);
     const clock = parseClock(parsed) ?? parseLegacyClock(parsed);
 
     if (!clock) {
+      inMemoryClock = null;
       window.sessionStorage.removeItem(activeBrewSessionStorageKey);
+      return null;
     }
 
+    inMemoryClock = clock;
     return clock;
   } catch {
-    window.sessionStorage.removeItem(activeBrewSessionStorageKey);
-    return null;
+    return inMemoryClock;
   }
 }
 
@@ -258,7 +267,11 @@ export function pauseBrewSessionClock(now = Date.now()) {
 
 export function resumeBrewSessionClock(now = Date.now()) {
   const current = readBrewSessionClock();
-  if (!current || current.status === "running" || current.status === "completed") {
+  if (
+    !current ||
+    current.status === "running" ||
+    current.status === "completed"
+  ) {
     return current;
   }
 
@@ -338,5 +351,6 @@ export function subscribeToBrewSessionClock(
   };
 
   window.addEventListener(brewSessionClockChangeEvent, handleChange);
-  return () => window.removeEventListener(brewSessionClockChangeEvent, handleChange);
+  return () =>
+    window.removeEventListener(brewSessionClockChangeEvent, handleChange);
 }
