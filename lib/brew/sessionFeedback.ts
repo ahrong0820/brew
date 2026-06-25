@@ -1,3 +1,4 @@
+import { promoteCurrentBestSession } from "@/lib/brew/history";
 import { withUpdatedTimestamp } from "@/lib/domain/factories";
 import { brewSessionStore } from "@/lib/storage/coffeeData";
 import type {
@@ -42,10 +43,12 @@ export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
   const trimmedNote = input.note?.trim();
   const nextTastingResult = input.tastingResult ?? session.tastingResult;
   const nextStatus: BrewSessionStatus =
-    nextTastingResult === "good"
-      ? "good"
-      : session.status === "good"
-        ? "good"
+    input.tastingResult === undefined
+      ? session.status
+      : nextTastingResult === "good"
+        ? session.status === "current-best"
+          ? "current-best"
+          : "good"
         : "trial";
   const nextSession: BrewSession = withUpdatedTimestamp<BrewSession>({
     ...session,
@@ -54,18 +57,25 @@ export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
     note: trimmedNote ? trimmedNote : session.note,
     status: nextStatus,
   });
+  const savedSession =
+    input.tastingResult === "good"
+      ? promoteCurrentBestSession(nextSession)
+      : nextSession;
 
-  if (!brewSessionStore.upsert(nextSession)) {
+  if (
+    input.tastingResult !== "good" &&
+    !brewSessionStore.upsert(savedSession)
+  ) {
     throw new Error("추출 기록을 저장하지 못했습니다.");
   }
 
   if (input.tastingResult && typeof window !== "undefined") {
     window.dispatchEvent(
       new CustomEvent<BrewFeedbackSavedDetail>(brewFeedbackSavedEvent, {
-        detail: { sessionId: nextSession.id },
+        detail: { sessionId: savedSession.id },
       }),
     );
   }
 
-  return nextSession;
+  return savedSession;
 }
