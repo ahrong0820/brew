@@ -157,8 +157,12 @@ export interface RecipeSnapshot {
   waterGrams: number;
   ratio: number;
   temperatureCelsius: number;
-  grindLevel: number;
+  grindLevel?: number;
   grinderDisplayValue: string;
+  grinderProfileId?: string;
+  grinderModel?: GrinderModel;
+  grinderCalibrationLabel?: string;
+  estimatedRepresentativeMicrons?: number;
   totalTimeSeconds: number;
   targetTimeMinSeconds: number;
   targetTimeMaxSeconds: number;
