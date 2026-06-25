@@ -227,3 +227,5 @@ jobs:
           git add app/page.tsx .github/workflows/apply-mobile-compact.yml
           git commit -m "feat: add mobile compact recipe list"
           git push origin HEAD:feat/mobile-compact-recipe-list
+
+# retrigger after workflow creation
