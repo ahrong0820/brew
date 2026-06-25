@@ -6,6 +6,9 @@
   "engines": {
     "node": ">=22.13.0"
   },
+  "imports": {
+    "#brew-session-clock": "./lib/timer/brewSessionClock.ts"
+  },
   "scripts": {
     "dev": "vinext dev",
     "build": "vinext build",

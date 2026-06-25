@@ -1,17 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { activeBrewSessionStorageKey } from "../lib/timer/brewSessionClock.ts";
 import {
   dispatchRecommendationTimerStart,
   recommendationTimerStartEvent,
 } from "../lib/timer/recommendationTimer.ts";
 
-test("dispatchRecommendationTimerStart emits the expected event and detail", () => {
-  const hadWindow = Object.hasOwn(globalThis, "window");
+test("dispatchRecommendationTimerStart starts the shared clock and emits the detail", () => {
   const originalWindow = globalThis.window;
-  const hadCustomEvent = Object.hasOwn(globalThis, "CustomEvent");
   const originalCustomEvent = globalThis.CustomEvent;
   const dispatchedEvents = [];
+  const storedValues = new Map();
 
   class TestCustomEvent {
     constructor(type, init = {}) {
@@ -22,6 +22,17 @@ test("dispatchRecommendationTimerStart emits the expected event and detail", () 
 
   globalThis.CustomEvent = TestCustomEvent;
   globalThis.window = {
+    sessionStorage: {
+      getItem(key) {
+        return storedValues.get(key) ?? null;
+      },
+      setItem(key, value) {
+        storedValues.set(key, String(value));
+      },
+      removeItem(key) {
+        storedValues.delete(key);
+      },
+    },
     dispatchEvent(event) {
       dispatchedEvents.push(event);
       return true;
@@ -60,20 +71,21 @@ test("dispatchRecommendationTimerStart emits the expected event and detail", () 
   try {
     dispatchRecommendationTimerStart(detail);
 
-    assert.equal(dispatchedEvents.length, 1);
-    assert.equal(dispatchedEvents[0].type, recommendationTimerStartEvent);
-    assert.deepEqual(dispatchedEvents[0].detail, detail);
-  } finally {
-    if (hadWindow) {
-      globalThis.window = originalWindow;
-    } else {
-      delete globalThis.window;
-    }
+    const recommendationEvent = dispatchedEvents.find(
+      (event) => event.type === recommendationTimerStartEvent,
+    );
+    assert.ok(recommendationEvent);
+    assert.deepEqual(recommendationEvent.detail, detail);
 
-    if (hadCustomEvent) {
-      globalThis.CustomEvent = originalCustomEvent;
-    } else {
-      delete globalThis.CustomEvent;
-    }
+    const storedClock = JSON.parse(
+      storedValues.get(activeBrewSessionStorageKey),
+    );
+    assert.equal(storedClock.sessionId, detail.sessionId);
+    assert.equal(storedClock.recipe.id, detail.recipe.id);
+    assert.equal(storedClock.status, "running");
+    assert.equal(storedClock.elapsedSeconds, 0);
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.CustomEvent = originalCustomEvent;
   }
 });

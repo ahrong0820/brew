@@ -1,3 +1,5 @@
+import { startRecommendationBrewSessionClock } from "#brew-session-clock";
+
 export type TimerWaterAmount = number | { min: number; max: number };
 
 export interface TimerBrewStep {
@@ -41,6 +43,7 @@ export const recommendationTimerStartEvent = "brew:recommendation-timer-start";
 export function dispatchRecommendationTimerStart(
   detail: RecommendationTimerStartDetail,
 ) {
+  startRecommendationBrewSessionClock(detail);
   window.dispatchEvent(
     new CustomEvent<RecommendationTimerStartDetail>(
       recommendationTimerStartEvent,
