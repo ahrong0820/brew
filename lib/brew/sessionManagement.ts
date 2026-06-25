@@ -1,6 +1,9 @@
 import {
   clearedCurrentBestSessionId,
   isCurrentBestExplicitlyCleared,
+  listExplicitlyClearedProfileIds,
+  markCurrentBestExplicitlyCleared,
+  removeCurrentBestExplicitlyCleared,
 } from "@/lib/brew/currentBestState";
 import { withUpdatedTimestamp } from "@/lib/domain/factories";
 import { detachCustomRecipesFromSession } from "@/lib/customRecipes/sourceLinks";
@@ -136,15 +139,20 @@ function saveProfileSessions(
     const nextStatus = normalizedStatus(session, actualBestId);
     const nextTastingResult =
       nextStatus === "current-best" ? "good" : session.tastingResult;
+    const changed =
+      nextStatus !== session.status ||
+      nextTastingResult !== session.tastingResult;
 
-    return withUpdatedTimestamp<BrewSession>(
-      {
-        ...session,
-        tastingResult: nextTastingResult,
-        status: nextStatus,
-      },
-      session.updatedAt === timestamp ? session.updatedAt : timestamp,
-    );
+    return changed
+      ? withUpdatedTimestamp<BrewSession>(
+          {
+            ...session,
+            tastingResult: nextTastingResult,
+            status: nextStatus,
+          },
+          timestamp,
+        )
+      : session;
   });
   const otherSessions = previousSessions.filter(
     (session) => session.profileId !== profile.id,
@@ -205,14 +213,9 @@ export function updateBrewSessionRecord(
     .list()
     .filter((item) => item.profileId === profile.id)
     .map((item) => (item.id === nextSession.id ? nextSession : item));
-  const currentWasBest =
-    profile.currentBestSessionId === session.id ||
-    session.status === "current-best";
-  const selection: BestSelection =
-    currentWasBest && nextTastingResult !== "good"
-      ? { mode: "preserve" }
-      : { mode: "preserve" };
-  const result = saveProfileSessions(profile, profileSessions, selection);
+  const result = saveProfileSessions(profile, profileSessions, {
+    mode: "preserve",
+  });
 
   return (
     result.sessions.find((item) => item.id === nextSession.id) ?? nextSession
@@ -230,14 +233,31 @@ export function setCurrentBestSession(sessionId: string) {
     throw new Error("연결된 추출 프로필을 찾지 못했습니다.");
   }
 
-  const profileSessions = brewSessionStore
-    .list()
-    .filter((item) => item.profileId === profile.id);
+  const wasExplicitlyCleared = listExplicitlyClearedProfileIds().includes(
+    profile.id,
+  );
+  if (
+    wasExplicitlyCleared &&
+    !removeCurrentBestExplicitlyCleared(profile.id)
+  ) {
+    throw new Error("현재 베스트 해제 상태를 갱신하지 못했습니다.");
+  }
 
-  return saveProfileSessions(profile, profileSessions, {
-    mode: "select",
-    sessionId,
-  });
+  try {
+    const profileSessions = brewSessionStore
+      .list()
+      .filter((item) => item.profileId === profile.id);
+
+    return saveProfileSessions(profile, profileSessions, {
+      mode: "select",
+      sessionId,
+    });
+  } catch (error) {
+    if (wasExplicitlyCleared) {
+      markCurrentBestExplicitlyCleared(profile.id);
+    }
+    throw error;
+  }
 }
 
 export function clearCurrentBestSession(profileId: string) {
@@ -246,11 +266,20 @@ export function clearCurrentBestSession(profileId: string) {
     throw new Error("현재 베스트를 해제할 추출 프로필을 찾지 못했습니다.");
   }
 
-  const profileSessions = brewSessionStore
-    .list()
-    .filter((item) => item.profileId === profile.id);
+  if (!markCurrentBestExplicitlyCleared(profile.id)) {
+    throw new Error("현재 베스트 해제 상태를 저장하지 못했습니다.");
+  }
 
-  return saveProfileSessions(profile, profileSessions, { mode: "clear" });
+  try {
+    const profileSessions = brewSessionStore
+      .list()
+      .filter((item) => item.profileId === profile.id);
+
+    return saveProfileSessions(profile, profileSessions, { mode: "clear" });
+  } catch (error) {
+    removeCurrentBestExplicitlyCleared(profile.id);
+    throw error;
+  }
 }
 
 export function deleteBrewSessionRecord(sessionId: string) {
@@ -280,12 +309,7 @@ export function deleteBrewSessionRecord(sessionId: string) {
     : profile;
 
   saveProfileSessions(nextProfile, remainingSessions, { mode: "preserve" });
-
-  if (!detachCustomRecipesFromSession(session.id)) {
-    throw new Error(
-      "추출 기록은 삭제했지만 연결된 나만의 레시피의 원본 표시를 정리하지 못했습니다.",
-    );
-  }
+  const linkedRecipesDetached = detachCustomRecipesFromSession(session.id);
 
   if (typeof window !== "undefined") {
     try {
@@ -299,4 +323,6 @@ export function deleteBrewSessionRecord(sessionId: string) {
       window.sessionStorage.removeItem("brew.activeRecommendationSession.v1");
     }
   }
+
+  return { linkedRecipesDetached };
 }
