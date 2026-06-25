@@ -2,6 +2,10 @@ import {
   createDefaultGrinderProfiles,
   createDefaultUserPreferences,
 } from "@/data/defaultCoffeeProfiles";
+import {
+  clearedCurrentBestSessionId,
+  listExplicitlyClearedProfileIds,
+} from "@/lib/brew/currentBestState";
 import { isCompatibleBrewSession } from "@/lib/storage/brewSessionGuard";
 import { createCollectionStore } from "@/lib/storage/collectionStore";
 import {
@@ -88,12 +92,49 @@ export function ensureDefaultGrinderProfiles(): boolean {
   ]);
 }
 
+function applyExplicitlyClearedCurrentBest() {
+  const clearedProfileIds = new Set(listExplicitlyClearedProfileIds());
+  if (clearedProfileIds.size === 0) {
+    return true;
+  }
+
+  const profiles = beanBrewProfileStore.list();
+  const sessions = brewSessionStore.list();
+  const nextProfiles = profiles.map((profile) =>
+    clearedProfileIds.has(profile.id)
+      ? {
+          ...profile,
+          currentBestSessionId: clearedCurrentBestSessionId,
+        }
+      : profile,
+  );
+  const nextSessions = sessions.map((session) =>
+    clearedProfileIds.has(session.profileId) &&
+    session.status === "current-best"
+      ? { ...session, status: "good" as const }
+      : session,
+  );
+
+  if (!beanBrewProfileStore.replaceAll(nextProfiles)) {
+    return false;
+  }
+
+  if (!brewSessionStore.replaceAll(nextSessions)) {
+    beanBrewProfileStore.replaceAll(profiles);
+    brewSessionStore.replaceAll(sessions);
+    return false;
+  }
+
+  return true;
+}
+
 export function initializeCoffeeStorage(): boolean {
   const grinderProfilesReady = ensureDefaultGrinderProfiles();
   const storedPreferences = getUserPreferences();
   const preferencesReady = saveUserPreferences(storedPreferences);
 
   repairCoffeeStorageIntegrity();
+  const clearStateReady = applyExplicitlyClearedCurrentBest();
 
-  return grinderProfilesReady && preferencesReady;
+  return grinderProfilesReady && preferencesReady && clearStateReady;
 }

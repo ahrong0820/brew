@@ -3,13 +3,16 @@
 import {
   Award,
   Check,
+  ChevronDown,
   Clock3,
   Copy,
   History,
+  Settings2,
   Sparkles,
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import BrewSessionManagerDialog from "./BrewSessionManagerDialog";
 import { brewFeedbackSavedEvent } from "@/lib/brew/sessionFeedback";
 import {
   listBrewProfileHistorySummaries,
@@ -18,9 +21,11 @@ import {
 import { copyCurrentBestToCustomRecipe } from "@/lib/customRecipes/currentBestCopy";
 import { initializeCoffeeStorage } from "@/lib/storage/coffeeData";
 import type {
+  BrewSession,
   BrewerType,
   RecommendationConfidence,
   TasteGoal,
+  TastingResult,
 } from "@/lib/types/coffee";
 
 const brewerLabels: Record<BrewerType, string> = {
@@ -41,6 +46,16 @@ const confidenceLabels: Record<RecommendationConfidence, string> = {
   high: "높음",
   medium: "보통",
   reference: "기록 없음",
+};
+
+const tastingLabels: Record<TastingResult, string> = {
+  good: "좋음",
+  "too-sour": "시고 덜 추출됨",
+  "not-sweet-enough": "단맛 부족",
+  "bitter-astringent": "쓰고 떫음",
+  "too-weak": "너무 연함",
+  "too-strong": "너무 진함",
+  "aroma-muted": "향이 답답함",
 };
 
 function formatTime(seconds: number | undefined) {
@@ -71,6 +86,8 @@ export default function BrewHistoryDrawer() {
   const [open, setOpen] = useState(false);
   const [summaries, setSummaries] = useState<BrewProfileHistorySummary[]>([]);
   const [copyStatus, setCopyStatus] = useState<CopyStatus | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [selectedSession, setSelectedSession] = useState<BrewSession | null>(null);
 
   function loadHistory() {
     initializeCoffeeStorage();
@@ -94,7 +111,7 @@ export default function BrewHistoryDrawer() {
   }, [open]);
 
   useEffect(() => {
-    if (!open) {
+    if (!open || selectedSession) {
       return;
     }
 
@@ -106,7 +123,7 @@ export default function BrewHistoryDrawer() {
 
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [open]);
+  }, [open, selectedSession]);
 
   function copyBest(summary: BrewProfileHistorySummary) {
     if (!summary.currentBest) {
@@ -146,10 +163,21 @@ export default function BrewHistoryDrawer() {
     }
   }
 
+  function handleSessionChanged(message: string) {
+    setActionMessage(message);
+    setSelectedSession(null);
+    loadHistory();
+  }
+
   const sessionCount = summaries.reduce(
     (total, summary) => total + summary.sessions.length,
     0,
   );
+  const selectedIsCurrentBest = selectedSession
+    ? summaries.some(
+        (summary) => summary.currentBest?.id === selectedSession.id,
+      )
+    : false;
 
   return (
     <>
@@ -158,6 +186,7 @@ export default function BrewHistoryDrawer() {
         onClick={() => {
           loadHistory();
           setCopyStatus(null);
+          setActionMessage(null);
           setOpen(true);
         }}
         className="fixed bottom-52 right-4 z-40 flex h-12 items-center gap-2 rounded-full border border-[#586a80] bg-[#edf2f7] px-4 text-sm font-semibold text-[#40536a] shadow-lg transition hover:bg-[#e1e9f1] focus:outline-none focus:ring-2 focus:ring-[#586a80] focus:ring-offset-2"
@@ -200,6 +229,12 @@ export default function BrewHistoryDrawer() {
             </header>
 
             <div className="overflow-y-auto px-4 py-5 sm:px-6">
+              {actionMessage && (
+                <p role="status" className="mb-4 rounded-lg bg-[#eaf3ee] px-3 py-2 text-sm text-[#245647]">
+                  {actionMessage}
+                </p>
+              )}
+
               {summaries.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-[#aeb9ab] bg-white px-5 py-12 text-center">
                   <History
@@ -330,10 +365,77 @@ export default function BrewHistoryDrawer() {
                               className="mt-0.5 shrink-0"
                               size={15}
                             />
-                            아직 좋음 평가가 없습니다. 좋은 결과를 기록하면 가장 최근
-                            성공 세션이 현재 베스트가 됩니다.
+                            현재 베스트가 지정되지 않았습니다. 아래 세션 목록에서 좋음
+                            기록을 베스트로 지정할 수 있습니다.
                           </div>
                         )}
+
+                        <details className="group mt-4 rounded-lg border border-[#d7ded4] bg-[#f8faf7]">
+                          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-[#40536a]">
+                            <span className="flex items-center gap-2">
+                              <Settings2 aria-hidden="true" size={16} />
+                              추출 세션 {summary.sessions.length}회 관리
+                            </span>
+                            <ChevronDown
+                              aria-hidden="true"
+                              className="transition group-open:rotate-180"
+                              size={17}
+                            />
+                          </summary>
+
+                          <div className="space-y-2 border-t border-[#d7ded4] p-3">
+                            {summary.sessions.length === 0 ? (
+                              <p className="px-2 py-3 text-xs text-[#687168]">
+                                저장된 세션이 없습니다.
+                              </p>
+                            ) : (
+                              summary.sessions.map((session) => {
+                                const sessionIsBest = best?.id === session.id;
+                                return (
+                                  <div
+                                    key={session.id}
+                                    className="rounded-lg border border-[#dde3db] bg-white p-3"
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <p className="truncate text-sm font-semibold">
+                                          {session.recipeSnapshot.sourceTemplateName}
+                                        </p>
+                                        <p className="mt-1 text-xs text-[#687168]">
+                                          {formatDate(session.createdAt)} · 실제 {formatTime(session.actualTimeSeconds)} · {session.tastingResult ? tastingLabels[session.tastingResult] : "미평가"}
+                                        </p>
+                                      </div>
+                                      {sessionIsBest && (
+                                        <span className="shrink-0 rounded-full bg-[#fff4cf] px-2 py-1 text-[11px] font-bold text-[#715927]">
+                                          베스트
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-[#687168]">
+                                      <span className="rounded-md bg-[#f4f6f1] px-2 py-1">
+                                        {session.recipeSnapshot.grinderDisplayValue}
+                                      </span>
+                                      <span className="rounded-md bg-[#f4f6f1] px-2 py-1">
+                                        {session.recipeSnapshot.temperatureCelsius}℃
+                                      </span>
+                                      <span className="rounded-md bg-[#f4f6f1] px-2 py-1">
+                                        1:{session.recipeSnapshot.ratio}
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => setSelectedSession(session)}
+                                      className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-[#aab7c5] bg-white text-xs font-bold text-[#40536a] hover:bg-[#edf2f7]"
+                                    >
+                                      <Settings2 aria-hidden="true" size={14} />
+                                      상세·수정·삭제
+                                    </button>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </details>
                       </article>
                     );
                   })}
@@ -342,6 +444,16 @@ export default function BrewHistoryDrawer() {
             </div>
           </section>
         </div>
+      )}
+
+      {selectedSession && (
+        <BrewSessionManagerDialog
+          key={selectedSession.id}
+          session={selectedSession}
+          isCurrentBest={selectedIsCurrentBest}
+          onClose={() => setSelectedSession(null)}
+          onChanged={handleSessionChanged}
+        />
       )}
     </>
   );
