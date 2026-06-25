@@ -19,6 +19,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  recommendationTimerStartEvent,
+  type RecommendationTimerStartDetail,
+} from "@/lib/timer/recommendationTimer";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const heroImageSrc = `${basePath}/brewing-hero.png`;
@@ -802,6 +806,7 @@ function runSmartAlert() {
 
 export default function Home() {
   const [customRecipes, setCustomRecipes] = useState<Recipe[]>([]);
+  const [recommendedRecipe, setRecommendedRecipe] = useState<Recipe | null>(null);
   const [selectedId, setSelectedId] = useState(recipes[0].id);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("전체");
@@ -824,8 +829,12 @@ export default function Home() {
   const previousStepIndexRef = useRef(0);
   const completionPlayedRef = useRef(false);
   const allRecipes = useMemo(
-    () => [...customRecipes, ...recipes],
-    [customRecipes],
+    () => [
+      ...(recommendedRecipe ? [recommendedRecipe] : []),
+      ...customRecipes,
+      ...recipes,
+    ],
+    [customRecipes, recommendedRecipe],
   );
 
   const selectedRecipe =
@@ -942,6 +951,41 @@ export default function Home() {
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    function startRecommendationTimer(event: Event) {
+      const detail = (event as CustomEvent<RecommendationTimerStartDetail>).detail;
+
+      if (!detail?.recipe) {
+        return;
+      }
+
+      setRecommendedRecipe(detail.recipe);
+      setSelectedId(detail.recipe.id);
+      setDose(detail.recipe.dose);
+      completionPlayedRef.current = false;
+      elapsedRef.current = 0;
+      setElapsed(0);
+      setRunning(true);
+
+      window.setTimeout(() => {
+        document.getElementById("brew-timer-panel")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 0);
+    }
+
+    window.addEventListener(
+      recommendationTimerStartEvent,
+      startRecommendationTimer,
+    );
+    return () =>
+      window.removeEventListener(
+        recommendationTimerStartEvent,
+        startRecommendationTimer,
+      );
   }, []);
 
   useEffect(() => {
@@ -1535,7 +1579,10 @@ export default function Home() {
         </section>
 
         <aside className="order-1 min-w-0 space-y-4 lg:sticky lg:top-6 lg:order-2 lg:self-start">
-          <section className="rounded-lg border border-[#d7ded4] bg-white p-5 shadow-sm shadow-black/5">
+          <section
+            id="brew-timer-panel"
+            className="rounded-lg border border-[#d7ded4] bg-white p-5 shadow-sm shadow-black/5"
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase text-[#607064]">
