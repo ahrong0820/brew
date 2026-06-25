@@ -1,0 +1,36 @@
+name: Apply drink style personalization
+
+on:
+  push:
+    branches:
+      - feat/split-hot-iced-personalization
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/split-hot-iced-personalization
+          fetch-depth: 0
+
+      - name: Apply integration
+        run: node scripts/apply-drink-style-personalization.mjs
+
+      - name: Remove one-time files
+        run: |
+          rm scripts/apply-drink-style-personalization.mjs
+          rm .github/workflows/apply-drink-style-personalization.yml
+
+      - name: Commit integrated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/BrewHistoryDrawer.tsx app/RecommendationDrawerV2.tsx lib/brew/profileIdentity.ts lib/customRecipes/currentBestCopy.ts lib/recommendation/brewLaunch.ts lib/recommendation/engine.ts lib/recommendation/personalized.ts lib/storage/brewSessionGuard.ts lib/storage/guards.ts lib/storage/integrity.ts lib/types/coffee.ts test/profile-identity.test.mjs scripts/apply-drink-style-personalization.mjs .github/workflows/apply-drink-style-personalization.yml
+          git commit -m "feat: separate HOT and ICED personalization data"
+          git push origin HEAD:feat/split-hot-iced-personalization
