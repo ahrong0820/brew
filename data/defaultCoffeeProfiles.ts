@@ -26,7 +26,7 @@ export function createDefaultGrinderProfiles(
         source: "reference",
         sourceLabel: "복수 공개 자료를 종합한 참고 곡선",
         metricLabel: "예상 대표 입도",
-        typicalToleranceMicrons: 80,
+        typicalToleranceMicrons: 35,
         points: [
           { step: 4, microns: 450 },
           { step: 5, microns: 560 },
@@ -97,7 +97,7 @@ export function createDefaultGrinderProfiles(
         source: "reference",
         sourceLabel: "기본형 Encore 출고 상태 참고 곡선",
         metricLabel: "예상 대표 입도",
-        typicalToleranceMicrons: 120,
+        typicalToleranceMicrons: 50,
         points: [
           { step: 0, microns: 250 },
           { step: 5, microns: 400 },
