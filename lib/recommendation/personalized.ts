@@ -1,4 +1,4 @@
-import { createRecommendation } from "@/lib/recommendation/engine";
+import { createRecommendation } from "@/lib/recommendation/baseEngine";
 import type {
   BrewRecommendation,
   RecommendationInput,
@@ -39,9 +39,11 @@ function personalizedGrinder(
   const bounds =
     referencePoints.length > 0
       ? {
-          min: Math.min(...referencePoints.map((point) => point.step)) +
+          min:
+            Math.min(...referencePoints.map((point) => point.step)) +
             input.grinder.personalOffset,
-          max: Math.max(...referencePoints.map((point) => point.step)) +
+          max:
+            Math.max(...referencePoints.map((point) => point.step)) +
             input.grinder.personalOffset,
         }
       : fallbackBounds;
@@ -50,7 +52,9 @@ function personalizedGrinder(
   const rangeMin = roundTo(next - rangeWidth, step);
   const rangeMax = roundTo(next + rangeWidth, step);
   const format = (value: number) =>
-    input.grinder.displayUnit === "dial" ? value.toFixed(1) : String(Math.round(value));
+    input.grinder.displayUnit === "dial"
+      ? value.toFixed(1)
+      : String(Math.round(value));
 
   return {
     ...recommendation.grinder,
