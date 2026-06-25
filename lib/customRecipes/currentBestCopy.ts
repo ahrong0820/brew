@@ -1,3 +1,7 @@
+import {
+  drinkStyleLabel,
+  normalizeDrinkStyle,
+} from "@/lib/brew/profileIdentity";
 import type {
   Bean,
   BrewSession,
@@ -169,8 +173,13 @@ export function copyCurrentBestToCustomRecipe(
   const preferredTime = session.actualTimeSeconds ?? snapshot.totalTimeSeconds;
   const totalTime = Math.max(lastStepStart + 1, Math.round(preferredTime));
   const method = brewerLabels[snapshot.brewerType];
-  const generatedName = `${bean.name} · 현재 베스트`;
+  const drinkStyle = normalizeDrinkStyle(
+    session.drinkStyle ?? snapshot.drinkStyle,
+  );
+  const styleLabel = drinkStyleLabel(drinkStyle);
+  const generatedName = `${bean.name} · ${styleLabel} 현재 베스트`;
   const notes = [
+    `음용 방식 ${styleLabel}`,
     "원두별 추출 기록의 현재 베스트에서 복사한 나만의 레시피",
     `성공 추출 시간 ${formatTime(totalTime)}`,
     `복사 기준 ${new Intl.DateTimeFormat("ko-KR", {
@@ -196,8 +205,8 @@ export function copyCurrentBestToCustomRecipe(
     name: existingForProfile?.name ?? generatedName,
     origin: "나만의 레시피",
     method,
-    profile: `${tasteLabels[session.tasteGoal]} · 현재 베스트`,
-    tags: ["나만의 레시피", method, "현재 베스트"],
+    profile: `${styleLabel} · ${tasteLabels[session.tasteGoal]} · 현재 베스트`,
+    tags: ["나만의 레시피", method, styleLabel, "현재 베스트"],
     dose: snapshot.doseGrams,
     water: snapshot.waterGrams,
     ratio: `1:${snapshot.ratio}`,

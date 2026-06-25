@@ -259,6 +259,8 @@ export function isBeanBrewProfile(value: unknown): value is BeanBrewProfile {
     isString(value.id) &&
     isString(value.beanId) &&
     isOneOf(value.brewerType, brewerTypes) &&
+    (value.drinkStyle === undefined ||
+      isOneOf(value.drinkStyle, drinkStyles)) &&
     isString(value.grinderProfileId) &&
     isOneOf(value.tasteGoal, tasteGoals) &&
     isOptionalString(value.currentBestSessionId) &&
@@ -292,6 +294,8 @@ function isRecipeSnapshot(value: unknown) {
     isString(value.sourceTemplateId) &&
     isString(value.sourceTemplateName) &&
     isOneOf(value.brewerType, brewerTypes) &&
+    (value.drinkStyle === undefined ||
+      isOneOf(value.drinkStyle, drinkStyles)) &&
     isFiniteNumber(value.doseGrams) &&
     isFiniteNumber(value.waterGrams) &&
     isFiniteNumber(value.ratio) &&
@@ -315,6 +319,8 @@ export function isBrewSession(value: unknown): value is BrewSession {
     isString(value.id) &&
     isString(value.beanId) &&
     isString(value.profileId) &&
+    (value.drinkStyle === undefined ||
+      isOneOf(value.drinkStyle, drinkStyles)) &&
     isOneOf(value.tasteGoal, tasteGoals) &&
     isOneOf(value.recommendationConfidence, recommendationConfidences) &&
     isRecipeSnapshot(value.recipeSnapshot) &&
