@@ -155,6 +155,8 @@ function persistClock(clock: BrewSessionClock | null) {
     } else {
       window.sessionStorage.removeItem(activeBrewSessionStorageKey);
     }
+  } catch {
+    // 저장소를 사용할 수 없어도 현재 탭의 타이머 상태는 계속 동기화합니다.
   } finally {
     emitClockChange(clock);
   }

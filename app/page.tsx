@@ -1091,7 +1091,7 @@ export default function Home() {
 
   function updateElapsed(nextElapsed: number) {
     const now = Date.now();
-    let current = readBrewSessionClock();
+    const current = readBrewSessionClock();
 
     if (isDifferentTrackedRecipe(current, selectedRecipe)) {
       setTimerNotice("진행 중인 추천 추출에서는 현재 레시피의 단계만 이동할 수 있습니다.");
@@ -1100,7 +1100,7 @@ export default function Home() {
 
     if (!current || current.recipe?.id !== selectedRecipe.id || current.status === "completed") {
       startBrewSessionClock({ recipe: selectedRecipe }, now);
-      current = pauseBrewSessionClock(now);
+      pauseBrewSessionClock(now);
     }
 
     seekBrewSessionClock(nextElapsed, now);
@@ -1179,6 +1179,18 @@ export default function Home() {
   }
 
   function saveCustomRecipe() {
+    const activeClock = readBrewSessionClock();
+    if (activeClock?.sessionId && activeClock.status !== "completed") {
+      setTimerNotice(
+        "진행 중인 추천 추출을 완료한 뒤 나만의 레시피를 저장해 주세요.",
+      );
+      document.getElementById("brew-timer-panel")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+
     const safeDose = clampNumber(draftDose, 8, 60);
     const steps = buildBrewSteps(draftSteps);
     const lastStep = steps[steps.length - 1];
