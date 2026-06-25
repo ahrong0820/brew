@@ -2,6 +2,7 @@
   "name": "coffee-recipe-brew-timer",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.7.0",
   "engines": {
     "node": ">=22.13.0"
   },
@@ -11,6 +12,9 @@
     "build:github": "next build",
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
+    "typecheck": "tsc --noEmit --pretty false",
+    "test": "node --experimental-strip-types --test",
+    "validate:static-export": "node scripts/validate-static-export.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

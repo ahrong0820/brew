@@ -65,18 +65,7 @@ jobs:
 
       - name: Validate static export
         run: |
-          immutable_marker="out/deployments/${GITHUB_SHA}.json"
-          deployment_meta="$(grep -o '<meta[^>]*name="deployment-sha"[^>]*>' out/index.html | head -n 1 || true)"
-
-          test -f out/index.html
-          test -d out/_next
-          test -f out/deployment.json
-          test -f "$immutable_marker"
-          test -n "$deployment_meta"
-          grep -Fq "\"sha\": \"${GITHUB_SHA}\"" out/deployment.json
-          grep -Fq "\"sha\": \"${GITHUB_SHA}\"" "$immutable_marker"
-          printf '%s' "$deployment_meta" | grep -Fq "content=\"${GITHUB_SHA}\""
-          cmp --silent out/deployment.json "$immutable_marker"
+          pnpm run validate:static-export out "$GITHUB_SHA"
           touch out/.nojekyll
 
       - name: Upload Pages artifact

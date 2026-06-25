@@ -11,32 +11,54 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 22.13.0
+          cache: pnpm
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: pnpm install --frozen-lockfile
 
       - name: Run lint
-        run: npm run lint
+        run: pnpm lint
+
+      - name: Run type check
+        run: pnpm typecheck
+
+      - name: Run automated tests
+        run: pnpm test
+
+      - name: Write deployment metadata
+        run: |
+          mkdir -p public/deployments
+          cat > public/deployment.json <<EOF
+          {
+            "repository": "${GITHUB_REPOSITORY}",
+            "sha": "${GITHUB_SHA}",
+            "runId": "${GITHUB_RUN_ID}",
+            "runNumber": "${GITHUB_RUN_NUMBER}",
+            "builtAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+          cp public/deployment.json "public/deployments/${GITHUB_SHA}.json"
 
       - name: Build GitHub Pages
-        run: npm run build:github
+        run: pnpm build:github
         env:
           GITHUB_PAGES: "true"
           NEXT_PUBLIC_BASE_PATH: /brew
           NEXT_PUBLIC_DEPLOYMENT_SHA: ${{ github.sha }}
 
-      - name: Validate HTML deployment marker
-        run: |
-          deployment_meta="$(grep -o '<meta[^>]*name="deployment-sha"[^>]*>' out/index.html | head -n 1 || true)"
-
-          test -f out/index.html
-          test -n "$deployment_meta"
-          printf '%s' "$deployment_meta" | grep -Fq "content=\"${GITHUB_SHA}\""
+      - name: Validate static export
+        run: pnpm run validate:static-export out "$GITHUB_SHA"
