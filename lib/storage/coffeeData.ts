@@ -92,11 +92,8 @@ export function initializeCoffeeStorage(): boolean {
   const grinderProfilesReady = ensureDefaultGrinderProfiles();
   const storedPreferences = getUserPreferences();
   const preferencesReady = saveUserPreferences(storedPreferences);
-  const integrityReport = repairCoffeeStorageIntegrity();
 
-  return (
-    grinderProfilesReady &&
-    preferencesReady &&
-    (integrityReport.changed || !integrityReport.changed)
-  );
+  repairCoffeeStorageIntegrity();
+
+  return grinderProfilesReady && preferencesReady;
 }
