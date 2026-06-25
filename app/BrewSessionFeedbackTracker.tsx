@@ -1,7 +1,8 @@
 "use client";
 
-import { Check, Coffee, Save, Timer, X } from "lucide-react";
+import { Check, Coffee, Save, Timer, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { discardActiveBrewSession } from "@/lib/brew/activeBrewDiscard";
 import { saveBrewFeedback } from "@/lib/brew/sessionFeedback";
 import { brewSessionStore } from "@/lib/storage/coffeeData";
 import {
@@ -57,6 +58,8 @@ export default function BrewSessionFeedbackTracker() {
   const [tastingResult, setTastingResult] = useState<TastingResult | null>(null);
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -150,6 +153,43 @@ export default function BrewSessionFeedbackTracker() {
     }
   }
 
+  function requestDiscard() {
+    setMessage(null);
+    setDiscardOpen(true);
+  }
+
+  function closeDiscard() {
+    if (!discarding) {
+      setDiscardOpen(false);
+      setMessage(null);
+    }
+  }
+
+  function confirmDiscard() {
+    if (!active?.sessionId || discarding) {
+      return;
+    }
+
+    setDiscarding(true);
+    setMessage(null);
+
+    try {
+      discardActiveBrewSession(active.sessionId);
+      setDiscardOpen(false);
+      setCompleted(null);
+      setTastingResult(null);
+      setNote("");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "진행 중인 추출을 폐기하지 못했습니다.",
+      );
+    } finally {
+      setDiscarding(false);
+    }
+  }
+
   function saveFeedback() {
     if (!completed || !tastingResult) {
       setMessage("맛 평가를 하나 선택해 주세요.");
@@ -198,7 +238,7 @@ export default function BrewSessionFeedbackTracker() {
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between gap-3">
+          <div className="mt-3">
             <p className="text-xs leading-5 text-white/75">
               {active.status === "paused"
                 ? "메인 타이머에서 다시 시작하면 실제 시간 측정도 함께 재개됩니다."
@@ -206,14 +246,24 @@ export default function BrewSessionFeedbackTracker() {
                   ? "목표 시간을 지났습니다. 드로다운이 끝나면 완료를 누르세요."
                   : "드로다운이 끝나는 시점에 완료를 누르세요."}
             </p>
-            <button
-              type="button"
-              onClick={finishBrew}
-              className="flex h-10 shrink-0 items-center gap-2 rounded-lg bg-white px-4 text-sm font-bold text-[#173d34] transition hover:bg-[#e9f2ed] focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#173d34]"
-            >
-              <Check aria-hidden="true" size={17} />
-              추출 완료
-            </button>
+            <div className="mt-3 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={requestDiscard}
+                className="flex h-10 items-center gap-2 rounded-lg border border-white/35 px-3 text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white"
+              >
+                <Trash2 aria-hidden="true" size={16} />
+                추출 취소
+              </button>
+              <button
+                type="button"
+                onClick={finishBrew}
+                className="flex h-10 items-center gap-2 rounded-lg bg-white px-4 text-sm font-bold text-[#173d34] transition hover:bg-[#e9f2ed] focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#173d34]"
+              >
+                <Check aria-hidden="true" size={17} />
+                추출 완료
+              </button>
+            </div>
           </div>
 
           {message && (
@@ -221,6 +271,71 @@ export default function BrewSessionFeedbackTracker() {
               {message}
             </p>
           )}
+        </div>
+      )}
+
+      {discardOpen && active && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 sm:items-center sm:p-6">
+          <section
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="discard-brew-title"
+            aria-describedby="discard-brew-description"
+            className="w-full rounded-t-2xl bg-[#f4f6f1] p-5 shadow-2xl sm:max-w-md sm:rounded-2xl sm:p-6"
+          >
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f9e4de] text-[#9a3f2e]">
+                <Trash2 aria-hidden="true" size={19} />
+              </span>
+              <div>
+                <h2 id="discard-brew-title" className="text-lg font-bold text-[#292d28]">
+                  진행 중인 추출을 폐기할까요?
+                </h2>
+                <p
+                  id="discard-brew-description"
+                  className="mt-2 text-sm leading-6 text-[#626b62]"
+                >
+                  타이머를 종료하고 아직 완료되지 않은 추출 기록을 삭제합니다.
+                  원두와 추천 설정은 유지되며, 삭제한 기록은 되돌릴 수 없습니다.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-xl border border-[#d7ded4] bg-white p-4">
+              <p className="truncate text-sm font-bold text-[#294f43]">
+                {active.recipeName}
+              </p>
+              <p className="mt-1 font-mono text-xl font-bold text-[#173d34]">
+                {formatTime(elapsedSeconds)}
+              </p>
+            </div>
+
+            {message && (
+              <p className="mt-4 rounded-lg bg-[#fff0eb] px-3 py-2 text-sm text-[#8b3e2f]">
+                {message}
+              </p>
+            )}
+
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={closeDiscard}
+                disabled={discarding}
+                className="h-11 rounded-lg border border-[#c8d0c5] bg-white px-4 text-sm font-semibold text-[#526055] hover:bg-[#f8faf7] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                계속 추출
+              </button>
+              <button
+                type="button"
+                onClick={confirmDiscard}
+                disabled={discarding}
+                className="flex h-11 items-center justify-center gap-2 rounded-lg bg-[#a54432] px-4 text-sm font-bold text-white hover:bg-[#8d3829] focus:outline-none focus:ring-2 focus:ring-[#a54432] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Trash2 aria-hidden="true" size={17} />
+                {discarding ? "폐기 중" : "취소하고 폐기"}
+              </button>
+            </div>
+          </section>
         </div>
       )}
 
