@@ -42,7 +42,7 @@ export function createDefaultGrinderProfiles(
       calibrationStatus: "unknown",
       recommendationStatus: "reference",
       displayUnit: "step",
-      adjustmentDirection: "higher-is-coarser",
+      adjustmentDirection: "unknown",
       personalOffset: 0,
       notes: [
         "다이얼 범위와 실제 V60 성공 설정을 확인한 뒤 변환표를 확정합니다.",
