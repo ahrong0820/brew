@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import BeanLibraryPanel from "./BeanLibraryPanel";
+import BeanLibraryDrawer from "./BeanLibraryDrawer";
 import MobileRecipeEnhancer from "./MobileRecipeEnhancer";
 import "./globals.css";
 
@@ -23,7 +23,7 @@ export default function RootLayout({
     <html lang="ko">
       <body>
         <MobileRecipeEnhancer />
-        <BeanLibraryPanel />
+        <BeanLibraryDrawer />
         {children}
       </body>
     </html>
