@@ -101,8 +101,10 @@ export interface GrinderMicronReferencePoint {
 }
 
 export interface GrinderMicronReference {
-  source: "manufacturer" | "community" | "user";
+  source: "manufacturer" | "community" | "reference" | "user";
   sourceLabel: string;
+  metricLabel?: string;
+  typicalToleranceMicrons?: number;
   points: GrinderMicronReferencePoint[];
   linearFit?: {
     slope: number;
