@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, Clock3, Save, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   recordBrewActualTime,
   saveBrewFeedback,
@@ -112,23 +112,12 @@ export default function BrewSessionFeedbackManager() {
       return;
     }
 
-    const updateElapsed = () => {
+    const intervalId = window.setInterval(() => {
       setElapsedSeconds((Date.now() - activeBrew.startedAt) / 1000);
-    };
+    }, 250);
 
-    updateElapsed();
-    const intervalId = window.setInterval(updateElapsed, 250);
     return () => window.clearInterval(intervalId);
   }, [activeBrew, actualTimeSeconds]);
-
-  useEffect(() => {
-    if (actualTimeSeconds === null) {
-      return;
-    }
-
-    setMinutes(Math.floor(actualTimeSeconds / 60));
-    setSeconds(actualTimeSeconds % 60);
-  }, [actualTimeSeconds]);
 
   useEffect(() => {
     if (!feedbackOpen) {
@@ -145,13 +134,10 @@ export default function BrewSessionFeedbackManager() {
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [feedbackOpen]);
 
-  const targetReached = useMemo(
-    () =>
-      activeBrew !== null &&
-      actualTimeSeconds === null &&
-      elapsedSeconds >= activeBrew.targetTimeSeconds,
-    [activeBrew, actualTimeSeconds, elapsedSeconds],
-  );
+  const targetReached =
+    activeBrew !== null &&
+    actualTimeSeconds === null &&
+    elapsedSeconds >= activeBrew.targetTimeSeconds;
 
   function finishBrew() {
     if (!activeBrew) {
@@ -172,6 +158,8 @@ export default function BrewSessionFeedbackManager() {
     }
 
     setActualTimeSeconds(actual);
+    setMinutes(Math.floor(actual / 60));
+    setSeconds(actual % 60);
     setFeedbackOpen(true);
     setMessage(null);
   }
@@ -196,7 +184,10 @@ export default function BrewSessionFeedbackManager() {
       return;
     }
 
-    setActualTimeSeconds(updated.actualTimeSeconds ?? correctedActualTime);
+    const savedActualTime = updated.actualTimeSeconds ?? correctedActualTime;
+    setActualTimeSeconds(savedActualTime);
+    setMinutes(Math.floor(savedActualTime / 60));
+    setSeconds(savedActualTime % 60);
     setSaved(true);
     setFeedbackOpen(false);
     setMessage("추출 결과를 저장했습니다.");
