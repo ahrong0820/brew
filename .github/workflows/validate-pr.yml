@@ -28,3 +28,15 @@ jobs:
 
       - name: Build GitHub Pages
         run: npm run build:github
+        env:
+          GITHUB_PAGES: "true"
+          NEXT_PUBLIC_BASE_PATH: /brew
+          NEXT_PUBLIC_DEPLOYMENT_SHA: ${{ github.sha }}
+
+      - name: Validate HTML deployment marker
+        run: |
+          deployment_meta="$(grep -o '<meta[^>]*name="deployment-sha"[^>]*>' out/index.html | head -n 1 || true)"
+
+          test -f out/index.html
+          test -n "$deployment_meta"
+          printf '%s' "$deployment_meta" | grep -Fq "content=\"${GITHUB_SHA}\""
