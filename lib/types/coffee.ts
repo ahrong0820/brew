@@ -58,7 +58,8 @@ export type GrinderRecommendationStatus =
 
 export type GrinderAdjustmentDirection =
   | "higher-is-coarser"
-  | "higher-is-finer";
+  | "higher-is-finer"
+  | "unknown";
 
 export type RecommendationConfidence = "high" | "medium" | "reference";
 
