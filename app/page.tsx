@@ -20,6 +20,18 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  clearBrewSessionClock,
+  getBrewSessionElapsedSeconds,
+  pauseBrewSessionClock,
+  readBrewSessionClock,
+  resetBrewSessionClock,
+  resumeBrewSessionClock,
+  seekBrewSessionClock,
+  startBrewSessionClock,
+  subscribeToBrewSessionClock,
+  type BrewSessionClock,
+} from "@/lib/timer/brewSessionClock";
+import {
   recommendationTimerStartEvent,
   type RecommendationTimerStartDetail,
 } from "@/lib/timer/recommendationTimer";
@@ -811,8 +823,9 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("전체");
   const [dose, setDose] = useState(recipes[0].dose);
-  const [elapsed, setElapsed] = useState(0);
-  const [running, setRunning] = useState(false);
+  const [timerClock, setTimerClock] = useState<BrewSessionClock | null>(null);
+  const [clockNow, setClockNow] = useState(0);
+  const [timerNotice, setTimerNotice] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [draftName, setDraftName] = useState("오전용 V60 레시피");
@@ -824,8 +837,7 @@ export default function Home() {
   const [draftSteps, setDraftSteps] =
     useState<DraftStep[]>(createDefaultDraftSteps);
   const [storageLoaded, setStorageLoaded] = useState(false);
-  const elapsedRef = useRef(0);
-  const lastTickRef = useRef<number | null>(null);
+  const previousElapsedRef = useRef(0);
   const previousStepIndexRef = useRef(0);
   const completionPlayedRef = useRef(false);
   const allRecipes = useMemo(
@@ -847,6 +859,8 @@ export default function Home() {
     scaleFactor,
   );
   const totalTime = selectedRecipe.totalTime;
+  const elapsed = getBrewSessionElapsedSeconds(timerClock, clockNow);
+  const running = timerClock?.status === "running";
 
   const filteredRecipes = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -906,42 +920,58 @@ export default function Home() {
   );
 
   useEffect(() => {
+    function applyClock(nextClock: BrewSessionClock | null) {
+      setTimerClock(nextClock);
+      setClockNow(Date.now());
+
+      if (nextClock?.recipe) {
+        if (nextClock.recipe.id.startsWith("recommendation-")) {
+          setRecommendedRecipe(nextClock.recipe as Recipe);
+        }
+        setSelectedId(nextClock.recipe.id);
+        setDose(nextClock.recipe.dose);
+      }
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      applyClock(readBrewSessionClock());
+    }, 0);
+    const unsubscribe = subscribeToBrewSessionClock(applyClock);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!running) {
-      lastTickRef.current = null;
       return;
     }
 
-    lastTickRef.current = Date.now();
-    const intervalId = window.setInterval(() => {
-      const now = Date.now();
-      const lastTick = lastTickRef.current ?? now;
-      const delta = (now - lastTick) / 1000;
-      lastTickRef.current = now;
-
-      const nextElapsed = Math.min(totalTime, elapsedRef.current + delta);
-
-      if (
-        elapsedRef.current < totalTime &&
-        nextElapsed >= totalTime &&
-        !completionPlayedRef.current
-      ) {
-        completionPlayedRef.current = true;
-
-        if (alertsEnabled) {
-          runSmartAlert();
-        }
-      }
-
-      elapsedRef.current = nextElapsed;
-      setElapsed(nextElapsed);
-
-      if (nextElapsed >= totalTime) {
-        setRunning(false);
-      }
-    }, 200);
-
+    const intervalId = window.setInterval(() => setClockNow(Date.now()), 200);
     return () => window.clearInterval(intervalId);
-  }, [alertsEnabled, running, totalTime]);
+  }, [running]);
+
+  useEffect(() => {
+    if (elapsed < totalTime) {
+      completionPlayedRef.current = false;
+    }
+
+    if (
+      running &&
+      previousElapsedRef.current < totalTime &&
+      elapsed >= totalTime &&
+      !completionPlayedRef.current
+    ) {
+      completionPlayedRef.current = true;
+      if (alertsEnabled) {
+        runSmartAlert();
+      }
+    }
+
+    previousElapsedRef.current = elapsed;
+  }, [alertsEnabled, elapsed, running, totalTime]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -964,10 +994,11 @@ export default function Home() {
       setRecommendedRecipe(detail.recipe);
       setSelectedId(detail.recipe.id);
       setDose(detail.recipe.dose);
+      setTimerClock(readBrewSessionClock());
+      setClockNow(Date.now());
+      setTimerNotice(null);
       completionPlayedRef.current = false;
-      elapsedRef.current = 0;
-      setElapsed(0);
-      setRunning(true);
+      previousElapsedRef.current = 0;
 
       window.setTimeout(() => {
         document.getElementById("brew-timer-panel")?.scrollIntoView({
@@ -1027,20 +1058,75 @@ export default function Home() {
     previousStepIndexRef.current = currentStepIndex;
   }, [alertsEnabled, currentStepIndex, running]);
 
+  function isDifferentTrackedRecipe(
+    clock: BrewSessionClock | null,
+    recipe: Recipe,
+  ) {
+    return Boolean(
+      clock?.sessionId &&
+        clock.status !== "completed" &&
+        clock.recipe?.id !== recipe.id,
+    );
+  }
+
+  function toggleTimer() {
+    const now = Date.now();
+    const current = readBrewSessionClock();
+
+    if (isDifferentTrackedRecipe(current, selectedRecipe)) {
+      setTimerNotice("진행 중인 추천 추출을 완료한 뒤 다른 레시피를 시작해 주세요.");
+      return;
+    }
+
+    if (!current || current.recipe?.id !== selectedRecipe.id || current.status === "completed") {
+      startBrewSessionClock({ recipe: selectedRecipe }, now);
+    } else if (current.status === "running") {
+      pauseBrewSessionClock(now);
+    } else {
+      resumeBrewSessionClock(now);
+    }
+
+    setTimerNotice(null);
+  }
+
   function updateElapsed(nextElapsed: number) {
+    const now = Date.now();
+    let current = readBrewSessionClock();
+
+    if (isDifferentTrackedRecipe(current, selectedRecipe)) {
+      setTimerNotice("진행 중인 추천 추출에서는 현재 레시피의 단계만 이동할 수 있습니다.");
+      return;
+    }
+
+    if (!current || current.recipe?.id !== selectedRecipe.id || current.status === "completed") {
+      startBrewSessionClock({ recipe: selectedRecipe }, now);
+      current = pauseBrewSessionClock(now);
+    }
+
+    seekBrewSessionClock(nextElapsed, now);
+    setTimerNotice(null);
     if (nextElapsed < totalTime) {
       completionPlayedRef.current = false;
     }
-
-    elapsedRef.current = nextElapsed;
-    setElapsed(nextElapsed);
   }
 
   function selectRecipe(recipe: Recipe) {
+    const current = readBrewSessionClock();
+    if (isDifferentTrackedRecipe(current, recipe)) {
+      setTimerNotice("진행 중인 추천 추출을 완료한 뒤 다른 레시피를 선택해 주세요.");
+      document.getElementById("brew-timer-panel")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+
+    clearBrewSessionClock();
     setSelectedId(recipe.id);
     setDose(recipe.dose);
-    updateElapsed(0);
-    setRunning(false);
+    setTimerNotice(null);
+    completionPlayedRef.current = false;
+    previousElapsedRef.current = 0;
   }
 
   function toggleFavorite(recipeId: string) {
@@ -1130,8 +1216,10 @@ export default function Home() {
     setSelectedId(customRecipe.id);
     setDose(customRecipe.dose);
     setFilter("나만의 레시피");
-    updateElapsed(0);
-    setRunning(false);
+    clearBrewSessionClock();
+    setTimerNotice(null);
+    completionPlayedRef.current = false;
+    previousElapsedRef.current = 0;
   }
 
   function deleteCustomRecipe(recipeId: string) {
@@ -1146,8 +1234,10 @@ export default function Home() {
   }
 
   function resetTimer() {
-    updateElapsed(0);
-    setRunning(false);
+    resetBrewSessionClock();
+    setTimerNotice(null);
+    completionPlayedRef.current = false;
+    previousElapsedRef.current = 0;
   }
 
   function jumpToPreviousStep() {
@@ -1170,7 +1260,6 @@ export default function Home() {
     }
 
     updateElapsed(totalTime);
-    setRunning(false);
   }
 
   return (
@@ -1619,7 +1708,7 @@ export default function Home() {
               <div className="mt-6 flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setRunning((current) => !current)}
+                  onClick={toggleTimer}
                   className="flex h-11 flex-1 items-center justify-center gap-2 rounded-md bg-white text-sm font-semibold text-[#1f251f] transition hover:bg-[#e5eee4]"
                 >
                   {running ? (
@@ -1654,6 +1743,11 @@ export default function Home() {
                   <RotateCcw className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
+              {timerNotice && (
+                <p className="mt-3 rounded-md bg-[#fff3df] px-3 py-2 text-xs leading-5 text-[#805526]">
+                  {timerNotice}
+                </p>
+              )}
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2">
