@@ -2,15 +2,18 @@
 
 import {
   CalendarDays,
+  ChevronDown,
+  CircleHelp,
   Coffee,
   Pencil,
   Plus,
   Save,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { createBean, withUpdatedTimestamp } from "@/lib/domain/factories";
 import {
   beanBrewProfileStore,
@@ -43,6 +46,8 @@ type Option<T extends string> = {
   value: T;
   label: string;
 };
+
+type FieldBadgeKind = "required" | "recommendation" | "optional";
 
 const emptyForm: FormState = {
   name: "",
@@ -148,6 +153,66 @@ function displayDate(value?: string) {
   }).format(date);
 }
 
+function recommendationInfoCount(bean: Pick<Bean, "originCountry" | "roastLevel" | "process">) {
+  return [
+    bean.originCountry !== "unknown",
+    bean.roastLevel !== "unknown",
+    bean.process !== "unknown",
+  ].filter(Boolean).length;
+}
+
+function FieldBadge({ kind }: { kind: FieldBadgeKind }) {
+  const config: Record<FieldBadgeKind, { label: string; className: string }> = {
+    required: {
+      label: "필수",
+      className: "bg-[#fff0ed] text-[#9b3d34]",
+    },
+    recommendation: {
+      label: "추천 기준",
+      className: "bg-[#e8f3ed] text-[#2f6f5f]",
+    },
+    optional: {
+      label: "선택 기록",
+      className: "bg-[#edf1ea] text-[#5f695f]",
+    },
+  };
+  const selected = config[kind];
+
+  return (
+    <span
+      className={`ml-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ${selected.className}`}
+    >
+      {selected.label}
+    </span>
+  );
+}
+
+function FormSection({
+  title,
+  description,
+  children,
+  tone = "neutral",
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+  tone?: "neutral" | "recommendation";
+}) {
+  return (
+    <fieldset
+      className={`rounded-xl border p-4 sm:p-5 ${
+        tone === "recommendation"
+          ? "border-[#a9c8b9] bg-[#f1f8f4]"
+          : "border-[#d7ded4] bg-[#fbfcfa]"
+      }`}
+    >
+      <legend className="px-1 text-sm font-bold text-[#303830]">{title}</legend>
+      <p className="mb-4 text-xs leading-5 text-[#687168]">{description}</p>
+      {children}
+    </fieldset>
+  );
+}
+
 const inputClass =
   "w-full rounded-lg border border-[#c8d0c5] bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#2f6f5f] focus:ring-2 focus:ring-[#2f6f5f]/20";
 
@@ -163,6 +228,19 @@ export default function BeanLibraryDrawer() {
     () => [...beans].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     [beans],
   );
+  const recommendationCount = recommendationInfoCount(form);
+  const missingRecommendationFields = [
+    form.originCountry === "unknown" ? "산지" : null,
+    form.roastLevel === "unknown" ? "배전도" : null,
+    form.process === "unknown" ? "가공 방식" : null,
+  ].filter((value): value is string => value !== null);
+  const detailCount = [
+    form.roastDate,
+    form.openedDate,
+    form.variety.trim(),
+    form.flavorNotes.trim(),
+    form.memo.trim(),
+  ].filter(Boolean).length;
 
   function reloadBeans() {
     setBeans(beanStore.list());
@@ -344,8 +422,8 @@ export default function BeanLibraryDrawer() {
                     <p className="text-sm font-medium text-[#333a33]">
                       이름과 로스팅 배치별로 원두를 관리합니다.
                     </p>
-                    <p className="mt-1 text-xs text-[#687168]">
-                      산지·배전도·가공 방식은 맞춤 추천에 사용됩니다.
+                    <p className="mt-1 text-xs leading-5 text-[#687168]">
+                      산지·배전도·가공 방식은 추천 기준 정보이며, 날짜·품종·향미는 선택 기록입니다.
                     </p>
                   </div>
                   <button
@@ -385,167 +463,248 @@ export default function BeanLibraryDrawer() {
                     </button>
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="sm:col-span-2">
-                      <span className="mb-1.5 block text-sm font-semibold">
-                        원두 이름 <span className="text-[#b3483d]">*</span>
-                      </span>
-                      <input
-                        value={form.name}
-                        onChange={(event) => setField("name", event.target.value)}
-                        placeholder="예: 에티오피아 트와콕 셀렉션 내추럴"
-                        className={inputClass}
-                      />
-                    </label>
+                  <div
+                    className={`mb-4 flex gap-3 rounded-xl border px-4 py-3 ${
+                      recommendationCount === 3
+                        ? "border-[#9fc3b1] bg-[#edf7f1] text-[#245647]"
+                        : "border-[#d7c89f] bg-[#fff9e9] text-[#715927]"
+                    }`}
+                  >
+                    {recommendationCount === 3 ? (
+                      <Sparkles aria-hidden="true" className="mt-0.5 shrink-0" size={18} />
+                    ) : (
+                      <CircleHelp aria-hidden="true" className="mt-0.5 shrink-0" size={18} />
+                    )}
+                    <div>
+                      <p className="text-sm font-bold">
+                        {recommendationCount === 3
+                          ? "추천 기준 정보 완료"
+                          : `참고 추천 가능 · ${recommendationCount}/3 입력`}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 opacity-85">
+                        {recommendationCount === 3
+                          ? "산지·배전도·가공 방식을 모두 입력해 원두 조건을 충분히 구분할 수 있습니다."
+                          : `미확인: ${missingRecommendationFields.join(" · ")}. 잘 모름으로 저장해도 추천은 받을 수 있습니다.`}
+                      </p>
+                    </div>
+                  </div>
 
-                    <label>
-                      <span className="mb-1.5 block text-sm font-semibold">
-                        로스터
-                      </span>
-                      <input
-                        value={form.roaster}
-                        onChange={(event) =>
-                          setField("roaster", event.target.value)
-                        }
-                        placeholder="선택 입력"
-                        className={inputClass}
-                      />
-                    </label>
+                  <div className="space-y-4">
+                    <FormSection
+                      title="기본 정보"
+                      description="원두를 목록과 추출 기록에서 구분하기 위한 정보입니다."
+                    >
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <label className="sm:col-span-2">
+                          <span className="mb-1.5 block text-sm font-semibold">
+                            원두 이름
+                            <FieldBadge kind="required" />
+                          </span>
+                          <input
+                            value={form.name}
+                            onChange={(event) => setField("name", event.target.value)}
+                            placeholder="예: 에티오피아 트와콕 셀렉션 내추럴"
+                            className={inputClass}
+                          />
+                        </label>
 
-                    <label>
-                      <span className="mb-1.5 block text-sm font-semibold">
-                        산지
-                      </span>
-                      <select
-                        value={form.originCountry}
-                        onChange={(event) =>
-                          setField(
-                            "originCountry",
-                            event.target.value as OriginCountry,
-                          )
-                        }
-                        className={inputClass}
-                      >
-                        {originOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                        <label className="sm:col-span-2">
+                          <span className="mb-1.5 block text-sm font-semibold">
+                            로스터
+                            <FieldBadge kind="optional" />
+                          </span>
+                          <input
+                            value={form.roaster}
+                            onChange={(event) =>
+                              setField("roaster", event.target.value)
+                            }
+                            placeholder="선택 입력"
+                            className={inputClass}
+                          />
+                        </label>
+                      </div>
+                    </FormSection>
 
-                    <label>
-                      <span className="mb-1.5 block text-sm font-semibold">
-                        배전도
-                      </span>
-                      <select
-                        value={form.roastLevel}
-                        onChange={(event) =>
-                          setField(
-                            "roastLevel",
-                            event.target.value as RoastLevel,
-                          )
-                        }
-                        className={inputClass}
-                      >
-                        {roastOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <FormSection
+                      title="레시피 추천 기준 정보"
+                      description="산지·배전도·가공 방식의 조합으로 원두의 추출 시작점을 구분합니다. 모르는 항목은 ‘잘 모름’으로 저장할 수 있습니다."
+                      tone="recommendation"
+                    >
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <label>
+                          <span className="mb-1.5 block text-sm font-semibold">
+                            산지
+                            <FieldBadge kind="recommendation" />
+                          </span>
+                          <select
+                            value={form.originCountry}
+                            onChange={(event) =>
+                              setField(
+                                "originCountry",
+                                event.target.value as OriginCountry,
+                              )
+                            }
+                            className={inputClass}
+                          >
+                            {originOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="mt-1.5 block text-xs leading-5 text-[#65766c]">
+                            산지별 향미 성향과 물 빠짐 대응을 구분하는 기준입니다.
+                          </span>
+                        </label>
 
-                    <label>
-                      <span className="mb-1.5 block text-sm font-semibold">
-                        가공 방식
-                      </span>
-                      <select
-                        value={form.process}
-                        onChange={(event) =>
-                          setField(
-                            "process",
-                            event.target.value as ProcessMethod,
-                          )
-                        }
-                        className={inputClass}
-                      >
-                        {processOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                        <label>
+                          <span className="mb-1.5 block text-sm font-semibold">
+                            배전도
+                            <FieldBadge kind="recommendation" />
+                          </span>
+                          <select
+                            value={form.roastLevel}
+                            onChange={(event) =>
+                              setField(
+                                "roastLevel",
+                                event.target.value as RoastLevel,
+                              )
+                            }
+                            className={inputClass}
+                          >
+                            {roastOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="mt-1.5 block text-xs leading-5 text-[#65766c]">
+                            물 온도와 시작 분쇄도 계산에 반영됩니다.
+                          </span>
+                        </label>
 
-                    <label>
-                      <span className="mb-1.5 block text-sm font-semibold">
-                        로스팅 날짜
-                      </span>
-                      <input
-                        type="date"
-                        value={form.roastDate}
-                        onChange={(event) =>
-                          setField("roastDate", event.target.value)
-                        }
-                        className={inputClass}
-                      />
-                    </label>
+                        <label className="sm:col-span-2">
+                          <span className="mb-1.5 block text-sm font-semibold">
+                            가공 방식
+                            <FieldBadge kind="recommendation" />
+                          </span>
+                          <select
+                            value={form.process}
+                            onChange={(event) =>
+                              setField(
+                                "process",
+                                event.target.value as ProcessMethod,
+                              )
+                            }
+                            className={inputClass}
+                          >
+                            {processOptions.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="mt-1.5 block text-xs leading-5 text-[#65766c]">
+                            가공 향과 추출 강도를 고려한 온도·분쇄 보정에 반영됩니다.
+                          </span>
+                        </label>
+                      </div>
+                    </FormSection>
 
-                    <label>
-                      <span className="mb-1.5 block text-sm font-semibold">
-                        개봉일
-                      </span>
-                      <input
-                        type="date"
-                        value={form.openedDate}
-                        onChange={(event) =>
-                          setField("openedDate", event.target.value)
-                        }
-                        className={inputClass}
-                      />
-                    </label>
+                    <details className="group rounded-xl border border-[#d7ded4] bg-[#fbfcfa]">
+                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 sm:px-5">
+                        <div>
+                          <p className="text-sm font-bold">
+                            상세 기록
+                            <FieldBadge kind="optional" />
+                          </p>
+                          <p className="mt-1 text-xs leading-5 text-[#687168]">
+                            로스팅 날짜·개봉일·품종·향미·메모는 추천 없이도 자유롭게 기록합니다.
+                          </p>
+                        </div>
+                        <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-[#5f695f]">
+                          {detailCount > 0 ? `${detailCount}개 입력` : "선택"}
+                          <ChevronDown
+                            aria-hidden="true"
+                            className="transition group-open:rotate-180"
+                            size={17}
+                          />
+                        </span>
+                      </summary>
 
-                    <label>
-                      <span className="mb-1.5 block text-sm font-semibold">
-                        품종
-                      </span>
-                      <input
-                        value={form.variety}
-                        onChange={(event) =>
-                          setField("variety", event.target.value)
-                        }
-                        placeholder="예: Heirloom, Geisha"
-                        className={inputClass}
-                      />
-                    </label>
+                      <div className="grid gap-4 border-t border-[#d7ded4] px-4 py-4 sm:grid-cols-2 sm:px-5 sm:py-5">
+                        <label>
+                          <span className="mb-1.5 block text-sm font-semibold">
+                            로스팅 날짜
+                          </span>
+                          <input
+                            type="date"
+                            value={form.roastDate}
+                            onChange={(event) =>
+                              setField("roastDate", event.target.value)
+                            }
+                            className={inputClass}
+                          />
+                        </label>
 
-                    <label className="sm:col-span-2">
-                      <span className="mb-1.5 block text-sm font-semibold">
-                        향미 노트
-                      </span>
-                      <input
-                        value={form.flavorNotes}
-                        onChange={(event) =>
-                          setField("flavorNotes", event.target.value)
-                        }
-                        placeholder="쉼표로 구분: 딸기, 자스민, 밀크초콜릿"
-                        className={inputClass}
-                      />
-                    </label>
+                        <label>
+                          <span className="mb-1.5 block text-sm font-semibold">
+                            개봉일
+                          </span>
+                          <input
+                            type="date"
+                            value={form.openedDate}
+                            onChange={(event) =>
+                              setField("openedDate", event.target.value)
+                            }
+                            className={inputClass}
+                          />
+                        </label>
 
-                    <label className="sm:col-span-2">
-                      <span className="mb-1.5 block text-sm font-semibold">
-                        메모
-                      </span>
-                      <textarea
-                        value={form.memo}
-                        onChange={(event) => setField("memo", event.target.value)}
-                        rows={3}
-                        placeholder="구매처나 원두 상태 등 자유롭게 기록"
-                        className={`${inputClass} resize-y`}
-                      />
-                    </label>
+                        <label className="sm:col-span-2">
+                          <span className="mb-1.5 block text-sm font-semibold">
+                            품종
+                          </span>
+                          <input
+                            value={form.variety}
+                            onChange={(event) =>
+                              setField("variety", event.target.value)
+                            }
+                            placeholder="예: Heirloom, Geisha"
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="sm:col-span-2">
+                          <span className="mb-1.5 block text-sm font-semibold">
+                            향미 노트
+                          </span>
+                          <input
+                            value={form.flavorNotes}
+                            onChange={(event) =>
+                              setField("flavorNotes", event.target.value)
+                            }
+                            placeholder="쉼표로 구분: 딸기, 자스민, 밀크초콜릿"
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="sm:col-span-2">
+                          <span className="mb-1.5 block text-sm font-semibold">
+                            메모
+                          </span>
+                          <textarea
+                            value={form.memo}
+                            onChange={(event) =>
+                              setField("memo", event.target.value)
+                            }
+                            rows={3}
+                            placeholder="구매처나 원두 상태 등 자유롭게 기록"
+                            className={`${inputClass} resize-y`}
+                          />
+                        </label>
+                      </div>
+                    </details>
                   </div>
 
                   {error && (
@@ -597,6 +756,7 @@ export default function BeanLibraryDrawer() {
                 <ul className="space-y-3">
                   {sortedBeans.map((bean) => {
                     const roastDate = displayDate(bean.roastDate);
+                    const beanRecommendationCount = recommendationInfoCount(bean);
 
                     return (
                       <li
@@ -608,12 +768,25 @@ export default function BeanLibraryDrawer() {
                             <Coffee aria-hidden="true" size={20} />
                           </span>
                           <div className="min-w-0 flex-1">
-                            <h3 className="truncate font-bold">{bean.name}</h3>
-                            {bean.roaster && (
-                              <p className="mt-0.5 truncate text-xs text-[#687168]">
-                                {bean.roaster}
-                              </p>
-                            )}
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <h3 className="truncate font-bold">{bean.name}</h3>
+                                {bean.roaster && (
+                                  <p className="mt-0.5 truncate text-xs text-[#687168]">
+                                    {bean.roaster}
+                                  </p>
+                                )}
+                              </div>
+                              <span
+                                className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${
+                                  beanRecommendationCount === 3
+                                    ? "bg-[#e8f3ed] text-[#2f6f5f]"
+                                    : "bg-[#fff9e9] text-[#715927]"
+                                }`}
+                              >
+                                추천 정보 {beanRecommendationCount}/3
+                              </span>
+                            </div>
 
                             <div className="mt-3 flex flex-wrap gap-1.5">
                               <span className="rounded-full bg-[#edf1ea] px-2.5 py-1 text-xs font-medium">
