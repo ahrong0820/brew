@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import MobileRecipeEnhancer from "./MobileRecipeEnhancer";
 import "./globals.css";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -19,7 +20,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <MobileRecipeEnhancer />
+        {children}
+      </body>
     </html>
   );
 }
