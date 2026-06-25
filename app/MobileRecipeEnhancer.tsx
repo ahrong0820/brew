@@ -178,6 +178,8 @@ export default function MobileRecipeEnhancer() {
 
     if (observerTarget) {
       observer.observe(observerTarget, {
+        attributes: true,
+        attributeFilter: ["class"],
         childList: true,
         subtree: true,
       });
