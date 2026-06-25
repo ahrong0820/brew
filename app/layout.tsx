@@ -6,7 +6,7 @@ import GrindMicronDrawer from "./GrindMicronDrawer";
 import MobileCoffeeNav from "./MobileCoffeeNav";
 import MobileRecipeEnhancer from "./MobileRecipeEnhancer";
 import NextBrewAdjustmentDrawer from "./NextBrewAdjustmentDrawer";
-import RecommendationDrawer from "./RecommendationDrawer";
+import RecommendationDrawer from "./RecommendationDrawerV2";
 import "./globals.css";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
