@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import BeanLibraryDrawer from "./BeanLibraryDrawer";
 import MobileRecipeEnhancer from "./MobileRecipeEnhancer";
+import RecommendationDrawer from "./RecommendationDrawer";
 import "./globals.css";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -23,6 +24,7 @@ export default function RootLayout({
     <html lang="ko">
       <body>
         <MobileRecipeEnhancer />
+        <RecommendationDrawer />
         <BeanLibraryDrawer />
         {children}
       </body>
