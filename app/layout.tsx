@@ -10,6 +10,7 @@ import RecommendationDrawer from "./RecommendationDrawerV2";
 import "./globals.css";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+const deploymentSha = process.env.NEXT_PUBLIC_DEPLOYMENT_SHA ?? "development";
 
 export const metadata: Metadata = {
   title: "핸드드립 레시피 노트",
@@ -17,6 +18,9 @@ export const metadata: Metadata = {
   icons: {
     icon: `${basePath}/favicon.svg`,
     shortcut: `${basePath}/favicon.svg`,
+  },
+  other: {
+    "deployment-sha": deploymentSha,
   },
 };
 
