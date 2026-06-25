@@ -65,7 +65,7 @@ jobs:
 
       - name: Validate static export
         run: |
-          pnpm run validate:static-export -- out "$GITHUB_SHA"
+          pnpm run validate:static-export out "$GITHUB_SHA"
           touch out/.nojekyll
 
       - name: Upload Pages artifact
