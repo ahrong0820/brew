@@ -95,6 +95,21 @@ export interface Bean {
   updatedAt: string;
 }
 
+export interface GrinderMicronReferencePoint {
+  step: number;
+  microns: number;
+}
+
+export interface GrinderMicronReference {
+  source: "manufacturer" | "community" | "user";
+  sourceLabel: string;
+  points: GrinderMicronReferencePoint[];
+  linearFit?: {
+    slope: number;
+    intercept: number;
+  };
+}
+
 export interface GrinderProfile {
   id: string;
   model: GrinderModel;
@@ -107,6 +122,7 @@ export interface GrinderProfile {
   adjustmentDirection: GrinderAdjustmentDirection;
   displayStep?: number;
   personalOffset: number;
+  micronReference?: GrinderMicronReference;
   notes: string[];
   isBuiltIn: boolean;
   createdAt: string;

@@ -151,6 +151,33 @@ const tastingResults: readonly TastingResult[] = [
   "good",
 ];
 
+function isMicronReference(value: unknown) {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const validPoints =
+    Array.isArray(value.points) &&
+    value.points.every(
+      (point) =>
+        isRecord(point) &&
+        isFiniteNumber(point.step) &&
+        isFiniteNumber(point.microns),
+    );
+  const validLinearFit =
+    value.linearFit === undefined ||
+    (isRecord(value.linearFit) &&
+      isFiniteNumber(value.linearFit.slope) &&
+      isFiniteNumber(value.linearFit.intercept));
+
+  return (
+    isOneOf(value.source, ["manufacturer", "community", "user"] as const) &&
+    isString(value.sourceLabel) &&
+    validPoints &&
+    validLinearFit
+  );
+}
+
 export function isBean(value: unknown): value is Bean {
   if (!isRecord(value)) {
     return false;
@@ -191,6 +218,8 @@ export function isGrinderProfile(value: unknown): value is GrinderProfile {
     isOneOf(value.adjustmentDirection, grinderAdjustmentDirections) &&
     (value.displayStep === undefined || isFiniteNumber(value.displayStep)) &&
     isFiniteNumber(value.personalOffset) &&
+    (value.micronReference === undefined ||
+      isMicronReference(value.micronReference)) &&
     isStringArray(value.notes) &&
     typeof value.isBuiltIn === "boolean" &&
     isString(value.createdAt) &&

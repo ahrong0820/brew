@@ -223,6 +223,30 @@ function encoreRecommendation(input: RecommendationInput): GrinderRecommendation
   };
 }
 
+function e80ReferenceRecommendation(
+  input: RecommendationInput,
+): GrinderRecommendation {
+  const points = input.grinder.micronReference?.points ?? [];
+  const first = points[0];
+  const last = points[points.length - 1];
+  const referenceRange =
+    first && last
+      ? `${first.step}~${last.step} Step = ${first.microns.toLocaleString("ko-KR")}~${last.microns.toLocaleString("ko-KR")}μm`
+      : "제조사 미크론 표 확인";
+
+  return {
+    displayValue: "제조사 기준 확보",
+    displayRange: referenceRange,
+    commonDescription: commonGrindDescription(
+      input.preferences.defaultBrewer,
+      input.tasteGoal,
+    ),
+    calibrationLabel: input.grinder.calibrationLabel,
+    isNumeric: false,
+    note: "제조사 표에서 Step가 커질수록 굵어지며, 선형 근사는 약 μm = 120.26 + 22.493 × Step입니다. 다만 특정 V60 레시피의 목표 미크론은 별도 검증이 필요하므로 아직 단일 Step를 정답처럼 제시하지 않습니다.",
+  };
+}
+
 function referenceRecommendation(input: RecommendationInput): GrinderRecommendation {
   return {
     displayValue: "보정 필요",
@@ -244,6 +268,10 @@ function grinderRecommendation(input: RecommendationInput) {
 
   if (input.grinder.model === "baratza-encore") {
     return encoreRecommendation(input);
+  }
+
+  if (input.grinder.model === "holzklotz-e80") {
+    return e80ReferenceRecommendation(input);
   }
 
   return referenceRecommendation(input);
@@ -331,7 +359,15 @@ function recommendationReasons(input: RecommendationInput, ratio: number) {
   ];
 
   if (input.bean.process === "natural" || input.bean.process === "fermented") {
-    reasons.push("가공 향의 과도한 추출을 줄이도록 온도와 분쇄도를 보수적으로 조정했습니다.");
+    reasons.push(
+      "가공 향의 과도한 추출을 줄이도록 온도와 분쇄도를 보수적으로 조정했습니다.",
+    );
+  }
+
+  if (input.grinder.model === "holzklotz-e80") {
+    reasons.push(
+      "E80 분쇄 방향과 Step-미크론 관계에는 제조사 제공 자료를 사용했습니다.",
+    );
   }
 
   return reasons;
@@ -371,6 +407,6 @@ export function createRecommendation(
     confidenceReason:
       confidence === "medium"
         ? "동일 그라인더 영점과 입력된 배전도·가공 방식에 초기 규칙을 적용했습니다. 실제 성공 기록은 아직 반영되지 않았습니다."
-        : "일부 원두 정보 또는 그라인더 변환 데이터가 부족해 참고 시작점으로 제공합니다.",
+        : "일부 원두 정보 또는 그라인더별 목표 분쇄 기준이 부족해 참고 시작점으로 제공합니다.",
   };
 }
