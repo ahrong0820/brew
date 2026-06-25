@@ -2,11 +2,11 @@ import {
   createDefaultGrinderProfiles,
   createDefaultUserPreferences,
 } from "@/data/defaultCoffeeProfiles";
+import { isCompatibleBrewSession } from "@/lib/storage/brewSessionGuard";
 import { createCollectionStore } from "@/lib/storage/collectionStore";
 import {
   isBean,
   isBeanBrewProfile,
-  isBrewSession,
   isGrinderProfile,
   isUserPreferences,
 } from "@/lib/storage/guards";
@@ -40,7 +40,7 @@ export const beanBrewProfileStore = createCollectionStore<BeanBrewProfile>(
 
 export const brewSessionStore = createCollectionStore<BrewSession>(
   storageKeys.brewSessions,
-  isBrewSession,
+  isCompatibleBrewSession,
 );
 
 export function getUserPreferences(): UserPreferences {
