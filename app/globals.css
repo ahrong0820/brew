@@ -93,6 +93,11 @@ button:disabled {
     transform: none !important;
   }
 
+  [data-recipe-row="true"][aria-current="true"] {
+    background: #eef5ef !important;
+    box-shadow: inset 4px 0 0 #2f6f5f !important;
+  }
+
   [data-recipe-row="true"]:last-child {
     border-bottom-width: 0 !important;
   }
