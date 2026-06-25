@@ -1,4 +1,0 @@
-$ tsc --noEmit --pretty false
-app/RecommendationDrawer.tsx(220,48): error TS2345: Argument of type '{ bean: Bean; grinder: GrinderProfile; brewerType: BrewerType; tasteGoal: TasteGoal; recommendation: BrewRecommendation; }' is not assignable to parameter of type 'PrepareRecommendationBrewInput'.
-  Property 'drinkStyle' is missing in type '{ bean: Bean; grinder: GrinderProfile; brewerType: BrewerType; tasteGoal: TasteGoal; recommendation: BrewRecommendation; }' but required in type 'PrepareRecommendationBrewInput'.
-[ELIFECYCLE] Command failed with exit code 2.

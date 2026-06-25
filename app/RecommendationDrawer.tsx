@@ -221,6 +221,7 @@ export default function RecommendationDrawer() {
         bean: selectedBean,
         grinder: selectedGrinder,
         brewerType: preferences.defaultBrewer,
+        drinkStyle: preferences.defaultDrinkStyle,
         tasteGoal,
         recommendation,
       });
