@@ -114,10 +114,18 @@ function applyExplicitlyClearedCurrentBest() {
       ? { ...session, status: "good" as const }
       : session,
   );
-  const profilesSaved = beanBrewProfileStore.replaceAll(nextProfiles);
-  const sessionsSaved = brewSessionStore.replaceAll(nextSessions);
 
-  return profilesSaved && sessionsSaved;
+  if (!beanBrewProfileStore.replaceAll(nextProfiles)) {
+    return false;
+  }
+
+  if (!brewSessionStore.replaceAll(nextSessions)) {
+    beanBrewProfileStore.replaceAll(profiles);
+    brewSessionStore.replaceAll(sessions);
+    return false;
+  }
+
+  return true;
 }
 
 export function initializeCoffeeStorage(): boolean {
