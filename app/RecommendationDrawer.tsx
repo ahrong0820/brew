@@ -1,12 +1,10 @@
 "use client";
 
 import {
-  ChevronDown,
   Coffee,
   Gauge,
   Play,
   Save,
-  Settings2,
   Sparkles,
   Thermometer,
   X,
@@ -14,6 +12,10 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { prepareRecommendationBrew } from "@/lib/recommendation/brewLaunch";
 import { createRecommendation } from "@/lib/recommendation/engine";
+import {
+  recommendedRatioForTaste,
+  recommendedWaterGrams,
+} from "@/lib/recommendation/recipeMath";
 import {
   beanStore,
   getUserPreferences,
@@ -68,6 +70,21 @@ function confidenceLabel(recommendation: BrewRecommendation) {
   return recommendation.confidence === "medium" ? "보통" : "참고";
 }
 
+function preferencesWithCalculatedWater(
+  preferences: UserPreferences,
+  tasteGoal: TasteGoal,
+) {
+  const ratio = recommendedRatioForTaste(tasteGoal);
+
+  return {
+    ...preferences,
+    defaultWaterGrams: recommendedWaterGrams(
+      preferences.defaultDoseGrams,
+      ratio,
+    ),
+  };
+}
+
 export default function RecommendationDrawer() {
   const [open, setOpen] = useState(false);
   const [beans, setBeans] = useState<Bean[]>([]);
@@ -76,7 +93,6 @@ export default function RecommendationDrawer() {
   const [beanId, setBeanId] = useState("");
   const [grinderId, setGrinderId] = useState("");
   const [tasteGoal, setTasteGoal] = useState<TasteGoal>("balanced");
-  const [showSettings, setShowSettings] = useState(false);
   const [recommendation, setRecommendation] =
     useState<BrewRecommendation | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -89,16 +105,24 @@ export default function RecommendationDrawer() {
     () => grinders.find((grinder) => grinder.id === grinderId),
     [grinders, grinderId],
   );
+  const automaticRatio = recommendedRatioForTaste(tasteGoal);
+  const automaticWaterGrams = preferences
+    ? recommendedWaterGrams(preferences.defaultDoseGrams, automaticRatio)
+    : 0;
 
   function loadData() {
     initializeCoffeeStorage();
     const storedBeans = beanStore.list();
     const storedGrinders = grinderProfileStore.list();
     const storedPreferences = getUserPreferences();
+    const normalizedPreferences = preferencesWithCalculatedWater(
+      storedPreferences,
+      storedPreferences.defaultTasteGoal,
+    );
 
     setBeans(storedBeans);
     setGrinders(storedGrinders);
-    setPreferences(storedPreferences);
+    setPreferences(normalizedPreferences);
     setBeanId((current) =>
       storedBeans.some((bean) => bean.id === current)
         ? current
@@ -110,12 +134,13 @@ export default function RecommendationDrawer() {
       }
 
       return storedGrinders.some(
-        (grinder) => grinder.id === storedPreferences.defaultGrinderProfileId,
+        (grinder) =>
+          grinder.id === normalizedPreferences.defaultGrinderProfileId,
       )
-        ? storedPreferences.defaultGrinderProfileId
+        ? normalizedPreferences.defaultGrinderProfileId
         : (storedGrinders[0]?.id ?? "");
     });
-    setTasteGoal(storedPreferences.defaultTasteGoal);
+    setTasteGoal(normalizedPreferences.defaultTasteGoal);
   }
 
   useEffect(() => {
@@ -149,29 +174,54 @@ export default function RecommendationDrawer() {
     key: K,
     value: UserPreferences[K],
   ) {
+    setPreferences((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const next = { ...current, [key]: value };
+      return preferencesWithCalculatedWater(next, tasteGoal);
+    });
+    setRecommendation(null);
+    setMessage(null);
+  }
+
+  function selectTasteGoal(nextTasteGoal: TasteGoal) {
+    setTasteGoal(nextTasteGoal);
     setPreferences((current) =>
-      current ? { ...current, [key]: value } : current,
+      current
+        ? preferencesWithCalculatedWater(current, nextTasteGoal)
+        : current,
     );
     setRecommendation(null);
     setMessage(null);
   }
 
-  function saveEnvironment() {
+  function currentPreferences() {
     if (!preferences) {
+      return null;
+    }
+
+    return {
+      ...preferencesWithCalculatedWater(preferences, tasteGoal),
+      defaultGrinderProfileId:
+        grinderId || preferences.defaultGrinderProfileId,
+      defaultTasteGoal: tasteGoal,
+      updatedAt: new Date().toISOString(),
+    } satisfies UserPreferences;
+  }
+
+  function saveEnvironment() {
+    const nextPreferences = currentPreferences();
+    if (!nextPreferences) {
       return false;
     }
 
-    const nextPreferences: UserPreferences = {
-      ...preferences,
-      defaultGrinderProfileId: grinderId || preferences.defaultGrinderProfileId,
-      defaultTasteGoal: tasteGoal,
-      updatedAt: new Date().toISOString(),
-    };
     const saved = saveUserPreferences(nextPreferences);
 
     if (saved) {
       setPreferences(nextPreferences);
-      setMessage("기본 추출 환경을 저장했습니다.");
+      setMessage("현재 원두량과 추출 환경을 기본값으로 저장했습니다.");
     } else {
       setMessage("기본 환경을 저장하지 못했습니다.");
     }
@@ -190,12 +240,19 @@ export default function RecommendationDrawer() {
       return;
     }
 
-    const nextPreferences: UserPreferences = {
-      ...preferences,
-      defaultGrinderProfileId: selectedGrinder.id,
-      defaultTasteGoal: tasteGoal,
-      updatedAt: new Date().toISOString(),
-    };
+    if (
+      !Number.isFinite(preferences.defaultDoseGrams) ||
+      preferences.defaultDoseGrams < 8 ||
+      preferences.defaultDoseGrams > 40
+    ) {
+      setMessage("원두량은 8g에서 40g 사이로 입력해 주세요.");
+      return;
+    }
+
+    const nextPreferences = currentPreferences();
+    if (!nextPreferences) {
+      return;
+    }
 
     saveUserPreferences(nextPreferences);
     setPreferences(nextPreferences);
@@ -289,8 +346,8 @@ export default function RecommendationDrawer() {
                   />
                   <h3 className="mt-4 font-bold">등록된 원두가 없습니다</h3>
                   <p className="mt-2 text-sm leading-6 text-[#687168]">
-                    우측 하단의 내 원두에서 원두 이름, 배전도와 가공 방식을
-                    먼저 등록해 주세요.
+                    내 원두에서 원두 이름과 산지·배전도·가공 방식을 먼저
+                    등록해 주세요.
                   </p>
                 </div>
               ) : (
@@ -320,6 +377,26 @@ export default function RecommendationDrawer() {
 
                       <label>
                         <span className="mb-1.5 block text-sm font-semibold">
+                          원두량(g)
+                        </span>
+                        <input
+                          type="number"
+                          min={8}
+                          max={40}
+                          step={1}
+                          value={preferences?.defaultDoseGrams ?? 15}
+                          onChange={(event) =>
+                            updatePreference(
+                              "defaultDoseGrams",
+                              Number(event.target.value),
+                            )
+                          }
+                          className={fieldClass}
+                        />
+                      </label>
+
+                      <label>
+                        <span className="mb-1.5 block text-sm font-semibold">
                           그라인더
                         </span>
                         <select
@@ -338,27 +415,49 @@ export default function RecommendationDrawer() {
                         </select>
                       </label>
 
-                      <div>
+                      <label>
                         <span className="mb-1.5 block text-sm font-semibold">
-                          현재 기본 조건
+                          드리퍼
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => setShowSettings((current) => !current)}
-                          className="flex w-full items-center justify-between rounded-lg border border-[#c8d0c5] bg-[#f8faf7] px-3 py-2.5 text-left text-sm"
+                        <select
+                          value={preferences?.defaultBrewer ?? "v60"}
+                          onChange={(event) =>
+                            updatePreference(
+                              "defaultBrewer",
+                              event.target.value as BrewerType,
+                            )
+                          }
+                          className={fieldClass}
                         >
-                          <span>
-                            {preferences
-                              ? `${brewerOptions.find((item) => item.value === preferences.defaultBrewer)?.label} · ${preferences.defaultDoseGrams}g · ${preferences.defaultWaterGrams}g`
-                              : "불러오는 중"}
-                          </span>
-                          <ChevronDown
-                            aria-hidden="true"
-                            className={showSettings ? "rotate-180" : ""}
-                            size={17}
-                          />
-                        </button>
-                      </div>
+                          {brewerOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        <span className="mb-1.5 block text-sm font-semibold">
+                          음용 방식
+                        </span>
+                        <select
+                          value={preferences?.defaultDrinkStyle ?? "hot"}
+                          onChange={(event) =>
+                            updatePreference(
+                              "defaultDrinkStyle",
+                              event.target.value as DrinkStyle,
+                            )
+                          }
+                          className={fieldClass}
+                        >
+                          {drinkStyleOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
                     </div>
 
                     <fieldset className="mt-5">
@@ -370,10 +469,7 @@ export default function RecommendationDrawer() {
                             <button
                               key={option.value}
                               type="button"
-                              onClick={() => {
-                                setTasteGoal(option.value);
-                                setRecommendation(null);
-                              }}
+                              onClick={() => selectTasteGoal(option.value)}
                               className={`rounded-lg border px-3 py-3 text-left transition ${
                                 selected
                                   ? "border-[#2f6f5f] bg-[#eef5ef] text-[#245647]"
@@ -392,107 +488,36 @@ export default function RecommendationDrawer() {
                       </div>
                     </fieldset>
 
-                    {showSettings && preferences && (
-                      <div className="mt-5 rounded-lg border border-[#d7ded4] bg-[#f8faf7] p-4">
-                        <div className="mb-3 flex items-center gap-2">
-                          <Settings2 aria-hidden="true" size={17} />
-                          <h3 className="text-sm font-bold">기본 추출 환경</h3>
+                    {preferences && (
+                      <div className="mt-5 rounded-lg border border-[#a9c8b9] bg-[#f1f8f4] p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold text-[#2f6f5f]">
+                              자동 계산
+                            </p>
+                            <p className="mt-1 text-sm font-bold text-[#245647]">
+                              원두 {preferences.defaultDoseGrams}g · 물 {automaticWaterGrams}g
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-[#2f6f5f]">
+                            1:{automaticRatio}
+                          </span>
                         </div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <label>
-                            <span className="mb-1 block text-xs font-semibold">
-                              드리퍼
-                            </span>
-                            <select
-                              value={preferences.defaultBrewer}
-                              onChange={(event) =>
-                                updatePreference(
-                                  "defaultBrewer",
-                                  event.target.value as BrewerType,
-                                )
-                              }
-                              className={fieldClass}
-                            >
-                              {brewerOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-
-                          <label>
-                            <span className="mb-1 block text-xs font-semibold">
-                              핫 / 아이스
-                            </span>
-                            <select
-                              value={preferences.defaultDrinkStyle}
-                              onChange={(event) =>
-                                updatePreference(
-                                  "defaultDrinkStyle",
-                                  event.target.value as DrinkStyle,
-                                )
-                              }
-                              className={fieldClass}
-                            >
-                              {drinkStyleOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-
-                          <label>
-                            <span className="mb-1 block text-xs font-semibold">
-                              원두량(g)
-                            </span>
-                            <input
-                              type="number"
-                              min={8}
-                              max={40}
-                              step={1}
-                              value={preferences.defaultDoseGrams}
-                              onChange={(event) =>
-                                updatePreference(
-                                  "defaultDoseGrams",
-                                  Number(event.target.value),
-                                )
-                              }
-                              className={fieldClass}
-                            />
-                          </label>
-
-                          <label>
-                            <span className="mb-1 block text-xs font-semibold">
-                              총 물량(g)
-                            </span>
-                            <input
-                              type="number"
-                              min={100}
-                              max={700}
-                              step={5}
-                              value={preferences.defaultWaterGrams}
-                              onChange={(event) =>
-                                updatePreference(
-                                  "defaultWaterGrams",
-                                  Number(event.target.value),
-                                )
-                              }
-                              className={fieldClass}
-                            />
-                          </label>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={saveEnvironment}
-                          className="mt-3 flex items-center gap-1.5 rounded-lg border border-[#2f6f5f] bg-white px-3 py-2 text-xs font-semibold text-[#2f6f5f] hover:bg-[#eef5ef]"
-                        >
-                          <Save aria-hidden="true" size={14} />
-                          기본 환경 저장
-                        </button>
+                        <p className="mt-2 text-xs leading-5 text-[#65766c]">
+                          원두량과 맛 목표에 맞춰 비율과 총 물량을 자동으로 계산합니다.
+                          분쇄도·온도·시간·푸어 단계는 추천 결과에서 함께 생성됩니다.
+                        </p>
                       </div>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={saveEnvironment}
+                      className="mt-3 flex items-center gap-1.5 rounded-lg border border-[#2f6f5f] bg-white px-3 py-2 text-xs font-semibold text-[#2f6f5f] hover:bg-[#eef5ef]"
+                    >
+                      <Save aria-hidden="true" size={14} />
+                      현재 조건을 기본값으로 저장
+                    </button>
 
                     {message && (
                       <p className="mt-4 rounded-lg bg-[#fff8ee] px-3 py-2 text-sm text-[#704b2d]">
