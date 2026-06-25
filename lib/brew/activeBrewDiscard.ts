@@ -6,7 +6,7 @@ export const brewSessionDiscardedEvent = "brew:session-discarded";
 
 export interface BrewSessionDiscardedDetail {
   sessionId: string;
-  linkedRecipesDetached: number;
+  linkedRecipesDetached: boolean;
 }
 
 export function discardActiveBrewSession(sessionId: string) {
