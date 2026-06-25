@@ -1,3 +1,6 @@
+import {
+  isCurrentBestExplicitlyCleared,
+} from "@/lib/brew/currentBestState";
 import { withUpdatedTimestamp } from "@/lib/domain/factories";
 import {
   beanBrewProfileStore,
@@ -84,9 +87,15 @@ export function listBrewProfileHistorySummaries(): BrewProfileHistorySummary[] {
       .filter((session) => session.profileId === profile.id)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
     const successfulSessions = profileSessions.filter(isSuccessfulSession);
-    const currentBest = profileSessions.find((session) => session.id === profile.currentBestSessionId)
-      ?? profileSessions.find((session) => session.status === "current-best")
-      ?? successfulSessions[0];
+    const currentBest = isCurrentBestExplicitlyCleared(
+      profile.currentBestSessionId,
+    )
+      ? undefined
+      : profileSessions.find(
+            (session) => session.id === profile.currentBestSessionId,
+          ) ??
+        profileSessions.find((session) => session.status === "current-best") ??
+        successfulSessions[0];
 
     summaries.push({
       profile,
