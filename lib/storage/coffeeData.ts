@@ -59,16 +59,32 @@ export function saveUserPreferences(preferences: UserPreferences): boolean {
 
 export function ensureDefaultGrinderProfiles(): boolean {
   const storedProfiles = grinderProfileStore.list();
-  const storedIds = new Set(storedProfiles.map((profile) => profile.id));
-  const missingDefaults = createDefaultGrinderProfiles().filter(
-    (profile) => !storedIds.has(profile.id),
+  const defaults = createDefaultGrinderProfiles();
+  const defaultIds = new Set(defaults.map((profile) => profile.id));
+  const storedById = new Map(storedProfiles.map((profile) => [profile.id, profile]));
+
+  const refreshedDefaults = defaults.map((profile) => {
+    const stored = storedById.get(profile.id);
+
+    if (!stored) {
+      return profile;
+    }
+
+    return {
+      ...stored,
+      ...profile,
+      personalOffset: stored.personalOffset,
+      createdAt: stored.createdAt,
+    };
+  });
+  const customProfiles = storedProfiles.filter(
+    (profile) => !defaultIds.has(profile.id),
   );
 
-  if (missingDefaults.length === 0) {
-    return true;
-  }
-
-  return grinderProfileStore.replaceAll([...storedProfiles, ...missingDefaults]);
+  return grinderProfileStore.replaceAll([
+    ...refreshedDefaults,
+    ...customProfiles,
+  ]);
 }
 
 export function initializeCoffeeStorage(): boolean {
