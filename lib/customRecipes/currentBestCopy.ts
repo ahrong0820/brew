@@ -9,6 +9,8 @@ const customRecipesStorageKey = "coffee-custom-recipes";
 
 export const customRecipeImportedEvent = "coffee:custom-recipe-imported";
 
+export type CurrentBestCopyAction = "created" | "updated" | "unchanged";
+
 export interface LegacyCustomRecipeStep {
   label: string;
   start: number;
@@ -32,6 +34,9 @@ export interface LegacyCustomRecipe {
   totalTime: number;
   notes: string[];
   steps: LegacyCustomRecipeStep[];
+  sourceCurrentBestProfileId?: string;
+  sourceCurrentBestSessionId?: string;
+  copyAction?: CurrentBestCopyAction;
 }
 
 export interface CustomRecipeImportedDetail {
@@ -64,6 +69,23 @@ function readStoredItems(): unknown[] {
   } catch {
     return [];
   }
+}
+
+function isLegacyCustomRecipe(value: unknown): value is LegacyCustomRecipe {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Partial<LegacyCustomRecipe>;
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.name === "string" &&
+    typeof candidate.method === "string" &&
+    typeof candidate.dose === "number" &&
+    typeof candidate.water === "number" &&
+    Array.isArray(candidate.tags) &&
+    Array.isArray(candidate.steps)
+  );
 }
 
 function nextCustomRecipeId(items: unknown[]) {
@@ -106,6 +128,22 @@ function buildSteps(
   }));
 }
 
+function writeStoredItems(items: unknown[]) {
+  try {
+    window.localStorage.setItem(
+      customRecipesStorageKey,
+      JSON.stringify(items),
+    );
+  } catch {
+    throw new Error("나만의 레시피 저장소에 복사하지 못했습니다.");
+  }
+}
+
+function withoutCopyAction(recipe: LegacyCustomRecipe): LegacyCustomRecipe {
+  const { copyAction: _copyAction, ...storedRecipe } = recipe;
+  return storedRecipe;
+}
+
 export function copyCurrentBestToCustomRecipe(
   bean: Bean,
   session: BrewSession,
@@ -115,12 +153,23 @@ export function copyCurrentBestToCustomRecipe(
   }
 
   const storedItems = readStoredItems();
+  const storedRecipes = storedItems.filter(isLegacyCustomRecipe);
+  const exactExisting = storedRecipes.find(
+    (recipe) =>
+      recipe.sourceCurrentBestSessionId === session.id,
+  );
+
+  if (exactExisting) {
+    return { ...exactExisting, copyAction: "unchanged" };
+  }
+
   const snapshot = session.recipeSnapshot;
   const lastStepStart =
     snapshot.steps[snapshot.steps.length - 1]?.startSeconds ?? 0;
   const preferredTime = session.actualTimeSeconds ?? snapshot.totalTimeSeconds;
   const totalTime = Math.max(lastStepStart + 1, Math.round(preferredTime));
   const method = brewerLabels[snapshot.brewerType];
+  const generatedName = `${bean.name} · 현재 베스트`;
   const notes = [
     "원두별 추출 기록의 현재 베스트에서 복사한 나만의 레시피",
     `성공 추출 시간 ${formatTime(totalTime)}`,
@@ -135,9 +184,16 @@ export function copyCurrentBestToCustomRecipe(
     notes.push(session.note);
   }
 
+  const existingForProfile = storedRecipes.find(
+    (recipe) =>
+      recipe.sourceCurrentBestProfileId === session.profileId ||
+      (recipe.name === generatedName &&
+        recipe.method === method &&
+        recipe.tags.includes("현재 베스트")),
+  );
   const recipe: LegacyCustomRecipe = {
-    id: nextCustomRecipeId(storedItems),
-    name: `${bean.name} · 현재 베스트`,
+    id: existingForProfile?.id ?? nextCustomRecipeId(storedItems),
+    name: existingForProfile?.name ?? generatedName,
     origin: "나만의 레시피",
     method,
     profile: `${tasteLabels[session.tasteGoal]} · 현재 베스트`,
@@ -150,22 +206,33 @@ export function copyCurrentBestToCustomRecipe(
     totalTime,
     notes,
     steps: buildSteps(session, totalTime),
+    sourceCurrentBestProfileId: session.profileId,
+    sourceCurrentBestSessionId: session.id,
   };
 
-  try {
-    window.localStorage.setItem(
-      customRecipesStorageKey,
-      JSON.stringify([recipe, ...storedItems]),
+  let nextItems: unknown[];
+  let copyAction: CurrentBestCopyAction;
+
+  if (existingForProfile) {
+    nextItems = storedItems.map((item) =>
+      isLegacyCustomRecipe(item) && item.id === existingForProfile.id
+        ? withoutCopyAction(recipe)
+        : item,
     );
-  } catch {
-    throw new Error("나만의 레시피 저장소에 복사하지 못했습니다.");
+    copyAction = "updated";
+  } else {
+    nextItems = [withoutCopyAction(recipe), ...storedItems];
+    copyAction = "created";
   }
 
+  writeStoredItems(nextItems);
+
+  const result = { ...recipe, copyAction };
   window.dispatchEvent(
     new CustomEvent<CustomRecipeImportedDetail>(customRecipeImportedEvent, {
-      detail: { recipe },
+      detail: { recipe: result },
     }),
   );
 
-  return recipe;
+  return result;
 }
