@@ -61,4 +61,4 @@ jobs:
           NEXT_PUBLIC_DEPLOYMENT_SHA: ${{ github.sha }}
 
       - name: Validate static export
-        run: pnpm run validate:static-export -- out "$GITHUB_SHA"
+        run: pnpm run validate:static-export out "$GITHUB_SHA"
