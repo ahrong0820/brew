@@ -1,6 +1,6 @@
 import { withUpdatedTimestamp } from "@/lib/domain/factories";
 import { brewSessionStore } from "@/lib/storage/coffeeData";
-import type { BrewSession, TastingResult } from "@/lib/types/coffee";
+import type { BrewSession, BrewSessionStatus, TastingResult } from "@/lib/types/coffee";
 
 export interface BrewFeedbackInput {
   sessionId: string;
@@ -30,17 +30,19 @@ export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
 
   const actualTimeSeconds = normalizeActualTime(input.actualTimeSeconds);
   const trimmedNote = input.note?.trim();
-  const nextSession = withUpdatedTimestamp({
+  const nextTastingResult = input.tastingResult ?? session.tastingResult;
+  const nextStatus: BrewSessionStatus =
+    nextTastingResult === "good"
+      ? "good"
+      : session.status === "good"
+        ? "good"
+        : "trial";
+  const nextSession: BrewSession = withUpdatedTimestamp<BrewSession>({
     ...session,
     actualTimeSeconds: actualTimeSeconds ?? session.actualTimeSeconds,
-    tastingResult: input.tastingResult ?? session.tastingResult,
+    tastingResult: nextTastingResult,
     note: trimmedNote ? trimmedNote : session.note,
-    status:
-      (input.tastingResult ?? session.tastingResult) === "good"
-        ? "good"
-        : session.status === "good"
-          ? "good"
-          : "trial",
+    status: nextStatus,
   });
 
   if (!brewSessionStore.upsert(nextSession)) {
