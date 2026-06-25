@@ -43,7 +43,7 @@ jobs:
 
       - name: Write deployment metadata
         run: |
-          mkdir -p public
+          mkdir -p public/deployments
           cat > public/deployment.json <<EOF
           {
             "repository": "${GITHUB_REPOSITORY}",
@@ -53,6 +53,7 @@ jobs:
             "builtAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
           EOF
+          cp public/deployment.json "public/deployments/${GITHUB_SHA}.json"
 
       - name: Build static export
         run: pnpm build:github
@@ -62,10 +63,15 @@ jobs:
 
       - name: Validate static export
         run: |
+          immutable_marker="out/deployments/${GITHUB_SHA}.json"
+
           test -f out/index.html
           test -d out/_next
           test -f out/deployment.json
+          test -f "$immutable_marker"
           grep -Fq "\"sha\": \"${GITHUB_SHA}\"" out/deployment.json
+          grep -Fq "\"sha\": \"${GITHUB_SHA}\"" "$immutable_marker"
+          cmp --silent out/deployment.json "$immutable_marker"
           touch out/.nojekyll
 
       - name: Upload Pages artifact
@@ -89,19 +95,41 @@ jobs:
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
-          marker_url="${PAGE_URL%/}/deployment.json?run=${GITHUB_RUN_ID}"
+          immutable_marker_url="${PAGE_URL%/}/deployments/${GITHUB_SHA}.json"
+          latest_marker_url="${PAGE_URL%/}/deployment.json?run=${GITHUB_RUN_ID}"
 
           for attempt in {1..30}; do
-            deployed_metadata="$(curl --fail --silent --show-error --location \
-              -H 'Cache-Control: no-cache' "$marker_url" || true)"
+            immutable_metadata="$(curl --fail --silent --show-error --location \
+              -H 'Cache-Control: no-cache' \
+              -H 'Pragma: no-cache' \
+              "$immutable_marker_url" || true)"
 
-            if printf '%s' "$deployed_metadata" | grep -Fq "\"sha\": \"${GITHUB_SHA}\""; then
+            latest_metadata="$(curl --fail --silent --show-error --location \
+              -H 'Cache-Control: no-cache' \
+              -H 'Pragma: no-cache' \
+              "$latest_marker_url" || true)"
+
+            immutable_matches=false
+            latest_matches=false
+
+            if printf '%s' "$immutable_metadata" | grep -Fq "\"sha\": \"${GITHUB_SHA}\""; then
+              immutable_matches=true
+            fi
+
+            if printf '%s' "$latest_metadata" | grep -Fq "\"sha\": \"${GITHUB_SHA}\""; then
+              latest_matches=true
+            fi
+
+            if [ "$immutable_matches" = true ] && [ "$latest_matches" = true ]; then
               echo "Verified deployed commit ${GITHUB_SHA}"
+              echo "Immutable marker: ${immutable_marker_url}"
               exit 0
             fi
 
             sleep 5
           done
 
-          echo "Expected commit ${GITHUB_SHA} was not observed at ${marker_url}."
+          echo "Expected commit ${GITHUB_SHA} was not observed at both deployment markers."
+          echo "Immutable marker: ${immutable_marker_url}"
+          echo "Latest marker: ${latest_marker_url}"
           exit 1
