@@ -95,7 +95,7 @@ function writeActiveSession(active: ActiveSession | null) {
 export default function BrewSessionFeedbackTracker() {
   const [active, setActive] = useState<ActiveSession | null>(null);
   const [completed, setCompleted] = useState<CompletedSession | null>(null);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(0);
   const [tastingResult, setTastingResult] = useState<TastingResult | null>(null);
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
