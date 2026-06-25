@@ -1,4 +1,4 @@
-import { startRecommendationBrewSessionClock } from "./brewSessionClock.ts";
+import { startRecommendationBrewSessionClock } from "#brew-session-clock";
 
 export type TimerWaterAmount = number | { min: number; max: number };
 
