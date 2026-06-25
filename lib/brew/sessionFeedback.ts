@@ -1,6 +1,16 @@
 import { withUpdatedTimestamp } from "@/lib/domain/factories";
 import { brewSessionStore } from "@/lib/storage/coffeeData";
-import type { BrewSession, BrewSessionStatus, TastingResult } from "@/lib/types/coffee";
+import type {
+  BrewSession,
+  BrewSessionStatus,
+  TastingResult,
+} from "@/lib/types/coffee";
+
+export const brewFeedbackSavedEvent = "brew:feedback-saved";
+
+export interface BrewFeedbackSavedDetail {
+  sessionId: string;
+}
 
 export interface BrewFeedbackInput {
   sessionId: string;
@@ -47,6 +57,14 @@ export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
 
   if (!brewSessionStore.upsert(nextSession)) {
     throw new Error("추출 기록을 저장하지 못했습니다.");
+  }
+
+  if (input.tastingResult && typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent<BrewFeedbackSavedDetail>(brewFeedbackSavedEvent, {
+        detail: { sessionId: nextSession.id },
+      }),
+    );
   }
 
   return nextSession;
