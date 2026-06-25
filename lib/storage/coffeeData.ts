@@ -10,6 +10,7 @@ import {
   isGrinderProfile,
   isUserPreferences,
 } from "@/lib/storage/guards";
+import { repairCoffeeStorageIntegrity } from "@/lib/storage/integrity";
 import { storageKeys } from "@/lib/storage/keys";
 import {
   readVersionedValue,
@@ -91,6 +92,11 @@ export function initializeCoffeeStorage(): boolean {
   const grinderProfilesReady = ensureDefaultGrinderProfiles();
   const storedPreferences = getUserPreferences();
   const preferencesReady = saveUserPreferences(storedPreferences);
+  const integrityReport = repairCoffeeStorageIntegrity();
 
-  return grinderProfilesReady && preferencesReady;
+  return (
+    grinderProfilesReady &&
+    preferencesReady &&
+    (integrityReport.changed || !integrityReport.changed)
+  );
 }
