@@ -5,7 +5,7 @@ import type {
   RecommendationRuleRegistry,
 } from "@/lib/types/recommendationRule";
 
-export const recommendationRuleRegistryVersion = "1.1.0";
+export const recommendationRuleRegistryVersion = "1.2.0";
 
 export const recommendationRuleRegistry: RecommendationRuleRegistry = {
   version: recommendationRuleRegistryVersion,
