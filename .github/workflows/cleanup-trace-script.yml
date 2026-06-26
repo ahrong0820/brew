@@ -1,4 +1,4 @@
-name: Cleanup trace integration
+name: Finalize trace cleanup
 
 on:
   push:
@@ -16,8 +16,8 @@ jobs:
         with:
           ref: recommendation-trace-snapshot
       - run: |
-          git rm scripts/apply-recommendation-trace.mjs
+          git rm .github/workflows/cleanup-trace-script.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore: remove temporary trace script"
+          git commit -m "chore: remove temporary cleanup workflow"
           git push origin HEAD:recommendation-trace-snapshot
