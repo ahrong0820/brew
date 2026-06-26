@@ -5,6 +5,7 @@ import {
   History,
   MapPinned,
   Ruler,
+  ShieldCheck,
   Sparkles,
   Wrench,
   X,
@@ -20,6 +21,7 @@ const launcherTargets = [
   { key: "origin-region", label: "세부 산지" },
   { key: "history", label: "추출 기록" },
   { key: "grind", label: "분쇄도 변환" },
+  { key: "evidence", label: "근거 현황" },
 ] as const;
 
 type LauncherKey = (typeof launcherTargets)[number]["key"];
@@ -180,7 +182,7 @@ export default function MobileCoffeeNav() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="mobile-tools-title"
-            className="relative w-full rounded-t-3xl bg-[#f4f6f1] px-4 pb-6 pt-4 shadow-2xl"
+            className="relative max-h-[88dvh] w-full overflow-y-auto rounded-t-3xl bg-[#f4f6f1] px-4 pb-6 pt-4 shadow-2xl"
             style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
           >
             <div className="flex items-center justify-between">
@@ -230,6 +232,22 @@ export default function MobileCoffeeNav() {
                 <strong className="block text-sm">세부 산지</strong>
                 <span className="mt-1 block text-xs leading-5 text-[#687168]">
                   저장 원두에 지역·주·구역 정보를 추가하거나 수정합니다.
+                </span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openLauncher("evidence")}
+              className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-[#d7ded4] bg-white p-4 text-left shadow-sm"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f5f3f8] text-[#5b4f69]">
+                <ShieldCheck aria-hidden="true" size={21} />
+              </span>
+              <span>
+                <strong className="block text-sm">근거 현황</strong>
+                <span className="mt-1 block text-xs leading-5 text-[#687168]">
+                  현재 반영된 규칙과 후보·직접 검증 대기 자료를 구분해 확인합니다.
                 </span>
               </span>
             </button>
