@@ -1,3 +1,4 @@
+import { calculateOriginMatch } from "#origin-region-matching";
 import type { EvidenceContext, NumericRange } from "@/lib/types/evidence";
 import type {
   ConditionMatchDimension,
@@ -70,51 +71,6 @@ function combineStates(
   return "partial";
 }
 
-function originMatch(
-  evidenceBean: EvidenceContext["bean"],
-  targetBean: EvidenceContext["bean"],
-): ConditionMatchState {
-  const targetCountries = targetBean?.originCountries;
-  const targetGroups = targetBean?.originGroups;
-  if (!targetCountries?.length && !targetGroups?.length) {
-    return "not-applicable";
-  }
-
-  const evidenceCountries = evidenceBean?.originCountries;
-  const evidenceGroups = evidenceBean?.originGroups;
-  if (!evidenceCountries?.length && !evidenceGroups?.length) {
-    return "unknown";
-  }
-
-  const countryState = arrayMatch(evidenceCountries, targetCountries);
-  const groupState = arrayMatch(evidenceGroups, targetGroups);
-
-  if (targetCountries?.length) {
-    if (countryState === "match") {
-      return "match";
-    }
-    if (countryState === "partial") {
-      return "partial";
-    }
-    if (groupState === "match" || groupState === "partial") {
-      return "partial";
-    }
-    if (countryState === "mismatch") {
-      return "mismatch";
-    }
-    return groupState === "mismatch" ? "mismatch" : "unknown";
-  }
-
-  if (
-    groupState === "match" ||
-    groupState === "partial" ||
-    groupState === "mismatch"
-  ) {
-    return groupState;
-  }
-  return "unknown";
-}
-
 function conditionDimensions(
   evidence: EvidenceContext,
   target: EvidenceContext,
@@ -128,7 +84,7 @@ function conditionDimensions(
       evidence.brew?.drinkStyles,
       target.brew?.drinkStyles,
     ),
-    origin: originMatch(evidence.bean, target.bean),
+    origin: calculateOriginMatch(evidence.bean, target.bean),
     roastLevel: arrayMatch(
       evidence.bean?.roastLevels,
       target.bean?.roastLevels,

@@ -7,7 +7,8 @@
     "node": ">=22.13.0"
   },
   "imports": {
-    "#brew-session-clock": "./lib/timer/brewSessionClock.ts"
+    "#brew-session-clock": "./lib/timer/brewSessionClock.ts",
+    "#origin-region-matching": "./lib/recommendation/originRegionMatching.ts"
   },
   "scripts": {
     "dev": "vinext dev",
