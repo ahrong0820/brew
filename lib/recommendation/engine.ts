@@ -1,5 +1,9 @@
 import { matchesBrewProfileIdentity } from "@/lib/brew/profileIdentity";
 import {
+  isKUltraOfficialProfile,
+  kUltraOfficialRuleId,
+} from "@/lib/recommendation/kUltraOfficialRange";
+import {
   normalizeRatio,
   normalizeRecommendationForGrinder,
   recommendedRatioForTaste,
@@ -10,9 +14,7 @@ import {
   createAppliedRule,
   personalHistorySourceId,
 } from "@/lib/recommendation/ruleEvidence";
-import {
-  v60FoundationRuleIds,
-} from "@/lib/recommendation/v60Foundation";
+import { v60FoundationRuleIds } from "@/lib/recommendation/v60Foundation";
 import {
   applyV60FoundationRecommendation,
   appliesV60HotPaperFoundation,
@@ -30,6 +32,10 @@ import type {
 function baseAppliedRules(input: RecommendationInput) {
   const brewer = input.preferences.defaultBrewer;
   const usesV60Foundation = appliesV60HotPaperFoundation(input);
+  const usesKUltraOfficialRange =
+    isKUltraOfficialProfile(input.grinder) &&
+    brewer === "v60" &&
+    input.preferences.defaultDrinkStyle === "hot";
   const grinderEvidence =
     input.grinder.model === "holzklotz-e80"
       ? {
@@ -37,6 +43,9 @@ function baseAppliedRules(input: RecommendationInput) {
           sourceId: "manufacturer:holzklotz-e80-micron-reference",
         }
       : {};
+  const grinderRuleId = usesKUltraOfficialRange
+    ? kUltraOfficialRuleId
+    : `grind.${input.grinder.model}.v1`;
 
   return [
     createAppliedRule({
@@ -60,9 +69,11 @@ function baseAppliedRules(input: RecommendationInput) {
       description: "배전도·가공 방식·맛 목표의 초기 온도 오프셋 적용",
     }),
     createAppliedRule({
-      id: `grind.${input.grinder.model}.v1`,
+      id: grinderRuleId,
       parameter: "grind",
-      description: "그라인더 모델과 영점 기준의 초기 분쇄도 및 지원 범위 적용",
+      description: usesKUltraOfficialRange
+        ? "K-Ultra 공식 저항 시작 영점과 Pour Over 8.0~9.0 범위 적용"
+        : "그라인더 모델과 영점 기준의 초기 분쇄도 및 지원 범위 적용",
       ...grinderEvidence,
     }),
     createAppliedRule({
