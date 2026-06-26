@@ -6,6 +6,7 @@ import GrindMicronDrawer from "./GrindMicronDrawer";
 import MobileCoffeeNav from "./MobileCoffeeNav";
 import MobileRecipeEnhancer from "./MobileRecipeEnhancer";
 import NextBrewAdjustmentDrawer from "./NextBrewAdjustmentDrawer";
+import OriginRegionDrawer from "./OriginRegionDrawer";
 import RecommendationDrawer from "./RecommendationDrawerV2";
 import "./globals.css";
 
@@ -37,6 +38,7 @@ export default function RootLayout({
         <BrewHistoryDrawer />
         <RecommendationDrawer />
         <BeanLibraryDrawer />
+        <OriginRegionDrawer />
         <BrewSessionFeedbackTracker />
         <NextBrewAdjustmentDrawer />
         <MobileCoffeeNav />
