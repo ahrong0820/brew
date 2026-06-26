@@ -3,6 +3,7 @@
 import {
   Coffee,
   History,
+  MapPinned,
   Ruler,
   Sparkles,
   Wrench,
@@ -16,6 +17,7 @@ const activeSessionStorageKey = "brew.activeRecommendationSession.v1";
 const launcherTargets = [
   { key: "recommendation", label: "맞춤 추천" },
   { key: "beans", label: "내 원두" },
+  { key: "origin-region", label: "세부 산지" },
   { key: "history", label: "추출 기록" },
   { key: "grind", label: "분쇄도 변환" },
 ] as const;
@@ -212,6 +214,22 @@ export default function MobileCoffeeNav() {
                 <strong className="block text-sm">분쇄도 변환</strong>
                 <span className="mt-1 block text-xs leading-5 text-[#687168]">
                   목표 대표 입도를 K-Ultra 또는 Encore 설정으로 변환합니다.
+                </span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openLauncher("origin-region")}
+              className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-[#d7ded4] bg-white p-4 text-left shadow-sm"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#edf3ee] text-[#2f6f5f]">
+                <MapPinned aria-hidden="true" size={21} />
+              </span>
+              <span>
+                <strong className="block text-sm">세부 산지</strong>
+                <span className="mt-1 block text-xs leading-5 text-[#687168]">
+                  저장 원두에 지역·주·구역 정보를 추가하거나 수정합니다.
                 </span>
               </span>
             </button>
