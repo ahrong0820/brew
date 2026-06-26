@@ -1,10 +1,13 @@
+import { expertVideoProvenance } from "../data/evidence/expertVideoProvenance.ts";
 import { evidenceObservations } from "../data/evidence/observations.ts";
 import { evidenceSources } from "../data/evidence/sources.ts";
+import { checkExpertVideoProvenance } from "../lib/evidence/expertVideoQuality.ts";
 import { checkObservationTextQuality } from "../lib/evidence/observationTextQuality.ts";
 import { checkEvidenceSourceQuality } from "../lib/evidence/sourceQuality.ts";
 
 const issues = [
   ...checkEvidenceSourceQuality(evidenceSources),
+  ...checkExpertVideoProvenance(evidenceSources, expertVideoProvenance),
   ...checkObservationTextQuality(evidenceObservations),
 ];
 
