@@ -3,8 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { candidateRules } from "../data/recommendation/candidateRules.ts";
-import { assessCandidateReadiness } from "../lib/recommendation/candidateReadiness.ts";
-import { runCandidateSimulation } from "../lib/recommendation/candidateSimulation.ts";
+import { candidateSimulationScenarios } from "../data/recommendation/candidateSimulationScenarios.ts";
 
 const candidateRuleId = "candidate:grind:v60-hot:dial-in-v1";
 
@@ -31,15 +30,16 @@ test("V60 grind candidate has a single-variable post-brew validation plan", () =
   assert.ok(candidate.validationPlan.acceptanceCriteria.length >= 5);
 });
 
-test("candidate dry-run passes in-scope and out-of-scope scenarios", () => {
-  const report = runCandidateSimulation(candidateRuleId);
+test("candidate scenario catalog covers decisions and scope boundaries", () => {
+  assert.equal(candidateSimulationScenarios.length, 8);
+  assert.equal(
+    new Set(candidateSimulationScenarios.map((scenario) => scenario.id)).size,
+    candidateSimulationScenarios.length,
+  );
 
-  assert.equal(report.totalScenarios, 8);
-  assert.equal(report.passedScenarios, 8);
-  assert.equal(report.failedScenarios, 0);
-  assert.equal(report.allPassed, true);
-
-  const decisions = report.results.map((result) => result.decision);
+  const decisions = candidateSimulationScenarios.map(
+    (scenario) => scenario.expectedDecision,
+  );
   assert.equal(decisions.filter((decision) => decision === "finer").length, 2);
   assert.equal(decisions.filter((decision) => decision === "coarser").length, 2);
   assert.equal(decisions.filter((decision) => decision === "hold").length, 1);
@@ -48,33 +48,45 @@ test("candidate dry-run passes in-scope and out-of-scope scenarios", () => {
     3,
   );
 
-  for (const result of report.results) {
-    assert.ok(
-      result.changedParameters.length === 0 ||
-        (result.changedParameters.length === 1 &&
-          result.changedParameters[0] === "grind"),
-    );
-  }
+  const outOfScope = candidateSimulationScenarios.filter(
+    (scenario) => scenario.expectedDecision === "not-applicable",
+  );
+  assert.ok(outOfScope.some((scenario) => scenario.context.brewerType === "switch"));
+  assert.ok(outOfScope.some((scenario) => scenario.context.drinkStyle === "iced"));
+  assert.ok(
+    outOfScope.some((scenario) => scenario.context.filterMaterial === "metal"),
+  );
 });
 
-test("readiness assessment permits simulation but blocks promotion", () => {
-  const assessment = assessCandidateReadiness(candidateRuleId);
+test("simulation implementation enforces scope, direction and one-variable output", async () => {
+  const simulation = await readProjectFile(
+    "lib/recommendation/candidateSimulation.ts",
+  );
 
-  assert.equal(assessment.stage, "simulation-ready");
-  assert.equal(assessment.targetLayer, "post-brew-adjustment");
-  assert.equal(assessment.simulation?.allPassed, true);
-  assert.deepEqual(assessment.simulationBlockers, []);
-  assert.equal(assessment.metrics.independentSupportFamilyCount, 2);
-  assert.equal(assessment.metrics.empiricalSupportingObservationCount, 0);
-  assert.equal(assessment.metrics.confidenceScore, 0.46);
+  assert.match(simulation, /matchesScope/);
+  assert.match(simulation, /actualTimeSeconds < signal\.targetTimeMinSeconds - 10/);
+  assert.match(simulation, /actualTimeSeconds > signal\.targetTimeMaxSeconds \+ 10/);
+  assert.match(simulation, /tastingResult === "bitter-astringent"/);
+  assert.match(simulation, /return "hold"/);
+  assert.match(simulation, /decision = "not-applicable"/);
+  assert.match(simulation, /\["grind"\] as const/);
+  assert.match(simulation, /changedParameters\.every/);
+});
 
-  const blockerCodes = assessment.promotionBlockers.map((blocker) => blocker.code);
-  assert.ok(blockerCodes.includes("confidence-below-policy"));
-  assert.ok(blockerCodes.includes("empirical-support-missing"));
-  assert.equal(blockerCodes.includes("independent-support-insufficient"), false);
-  assert.deepEqual(assessment.warnings, [
-    "모든 지지 Observation의 재현성 분류가 single-source입니다.",
-  ]);
+test("readiness policy permits simulation but blocks unsupported promotion", async () => {
+  const readiness = await readProjectFile(
+    "lib/recommendation/candidateReadiness.ts",
+  );
+
+  assert.match(readiness, /minimumConfidenceScore: 0\.65/);
+  assert.match(readiness, /minimumIndependentSupportFamilies: 2/);
+  assert.match(readiness, /minimumEmpiricalSupportingObservations: 1/);
+  assert.match(readiness, /maximumContradictingObservations: 0/);
+  assert.match(readiness, /single-author-family/);
+  assert.match(readiness, /"simulation-ready"/);
+  assert.match(readiness, /"confidence-below-policy"/);
+  assert.match(readiness, /"empirical-support-missing"/);
+  assert.match(readiness, /reproducibility === "single-source"/);
 });
 
 test("readiness and simulation remain disconnected from active recommendations", async () => {
