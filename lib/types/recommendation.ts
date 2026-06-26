@@ -76,5 +76,6 @@ export interface BrewRecommendation {
   reasons: string[];
   confidence: RecommendationConfidence;
   confidenceReason: string;
-  appliedRules: AppliedRecommendationRule[];
+  /** Traceable rule metadata. Legacy or externally constructed values may omit it. */
+  appliedRules?: AppliedRecommendationRule[];
 }
