@@ -23,5 +23,5 @@ jobs:
           set +e
           pnpm test > test-output.log 2>&1
           status=$?
-          tail -n 65 test-output.log
+          tail -n 90 test-output.log
           exit $status
