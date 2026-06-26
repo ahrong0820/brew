@@ -4,101 +4,132 @@ import test from "node:test";
 
 import { candidateRules } from "../data/recommendation/candidateRules.ts";
 import { candidateSimulationScenarios } from "../data/recommendation/candidateSimulationScenarios.ts";
+import {
+  createV60FoundationSteps,
+  v60FoundationBloomWater,
+  v60FoundationTargetTime,
+} from "../lib/recommendation/v60Foundation.ts";
 
-const candidateRuleId = "candidate:grind:v60-hot:dial-in-v1";
+const grindCandidateId = "candidate:grind:v60-hot:dial-in-v1";
+const pourCandidateId = "candidate:pour:v60-hot:foundation-v1";
+const timeCandidateId = "candidate:time:v60-hot:foundation-v1";
 
 async function readProjectFile(path) {
   return readFile(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
-test("V60 grind candidate has a single-variable post-brew validation plan", () => {
-  const candidate = candidateRules.find((rule) => rule.id === candidateRuleId);
-  assert.ok(candidate);
-  assert.equal(candidate.validationPlan.targetLayer, "post-brew-adjustment");
-  assert.equal(
-    candidate.validationPlan.implementationKey,
-    "v60-hot-paper-grind-direction-v1",
+test("candidate catalog contains validated grind, pour and time rules", () => {
+  assert.equal(candidateRules.length, 3);
+  assert.deepEqual(
+    candidateRules.map((candidate) => candidate.id),
+    [grindCandidateId, pourCandidateId, timeCandidateId],
   );
-  assert.deepEqual(candidate.validationPlan.changedParameters, ["grind"]);
-  assert.deepEqual(candidate.validationPlan.heldConstantParameters, [
-    "dose",
-    "ratio",
-    "temperature",
-    "pour",
-  ]);
-  assert.equal(candidate.validationPlan.scenarioIds.length, 8);
-  assert.ok(candidate.validationPlan.acceptanceCriteria.length >= 5);
+  assert.ok(candidateRules.every((candidate) => candidate.status === "validated"));
+  assert.deepEqual(
+    candidateRules.map((candidate) => candidate.validationPlan.changedParameters[0]),
+    ["grind", "pour", "time"],
+  );
 });
 
-test("candidate scenario catalog covers decisions and scope boundaries", () => {
-  assert.equal(candidateSimulationScenarios.length, 8);
+test("candidate scenario catalog covers values and scope boundaries", () => {
+  assert.equal(candidateSimulationScenarios.length, 16);
   assert.equal(
     new Set(candidateSimulationScenarios.map((scenario) => scenario.id)).size,
     candidateSimulationScenarios.length,
   );
 
-  const decisions = candidateSimulationScenarios.map(
-    (scenario) => scenario.expectedDecision,
+  const foundationScenarios = candidateSimulationScenarios.filter(
+    (scenario) => scenario.candidateRuleId !== grindCandidateId,
   );
-  assert.equal(decisions.filter((decision) => decision === "finer").length, 2);
-  assert.equal(decisions.filter((decision) => decision === "coarser").length, 2);
-  assert.equal(decisions.filter((decision) => decision === "hold").length, 1);
+  assert.equal(foundationScenarios.length, 8);
   assert.equal(
-    decisions.filter((decision) => decision === "not-applicable").length,
-    3,
+    foundationScenarios.filter((scenario) => scenario.expectedDecision === "apply")
+      .length,
+    4,
   );
-
-  const outOfScope = candidateSimulationScenarios.filter(
-    (scenario) => scenario.expectedDecision === "not-applicable",
+  assert.equal(
+    foundationScenarios.filter(
+      (scenario) => scenario.expectedDecision === "not-applicable",
+    ).length,
+    4,
   );
-  assert.ok(outOfScope.some((scenario) => scenario.context.brewerType === "switch"));
-  assert.ok(outOfScope.some((scenario) => scenario.context.drinkStyle === "iced"));
   assert.ok(
-    outOfScope.some((scenario) => scenario.context.filterMaterial === "metal"),
+    foundationScenarios.some(
+      (scenario) => scenario.context.drinkStyle === "iced",
+    ),
+  );
+  assert.ok(
+    foundationScenarios.some(
+      (scenario) => scenario.context.brewerType === "switch",
+    ),
+  );
+  assert.ok(
+    foundationScenarios.some(
+      (scenario) => scenario.context.filterMaterial === "metal",
+    ),
   );
 });
 
-test("simulation implementation enforces scope, direction and one-variable output", async () => {
+test("HOT V60 foundation helper preserves normalized recipe values", () => {
+  assert.equal(v60FoundationBloomWater(15, 240), 45);
+  assert.equal(v60FoundationBloomWater(22, 352), 65);
+  assert.equal(v60FoundationBloomWater(20, 200), 50);
+  assert.deepEqual(v60FoundationTargetTime, { min: 150, max: 180 });
+
+  const steps = createV60FoundationSteps(15, 240);
+  assert.deepEqual(
+    steps.map((step) => ({
+      startSeconds: step.startSeconds,
+      targetWaterGrams: step.targetWaterGrams,
+    })),
+    [
+      { startSeconds: 0, targetWaterGrams: 45 },
+      { startSeconds: 30, targetWaterGrams: 240 },
+    ],
+  );
+  assert.match(steps[0].cue, /30초/);
+  assert.match(steps[1].cue, /종이 필터에 직접 붓지 않고/);
+});
+
+test("simulation implementation handles all promoted implementation keys", async () => {
   const simulation = await readProjectFile(
     "lib/recommendation/candidateSimulation.ts",
   );
 
-  assert.match(simulation, /matchesScope/);
-  assert.match(simulation, /actualTimeSeconds < signal\.targetTimeMinSeconds - 10/);
-  assert.match(simulation, /actualTimeSeconds > signal\.targetTimeMaxSeconds \+ 10/);
-  assert.match(simulation, /tastingResult === "bitter-astringent"/);
-  assert.match(simulation, /return "hold"/);
+  assert.match(simulation, /v60-hot-paper-grind-direction-v1/);
+  assert.match(simulation, /v60-hot-paper-foundation-pour-v1/);
+  assert.match(simulation, /v60-hot-paper-foundation-time-v1/);
+  assert.match(simulation, /v60FoundationBloomWater/);
+  assert.match(simulation, /v60FoundationTargetTime/);
   assert.match(simulation, /decision = "not-applicable"/);
-  assert.match(simulation, /\["grind"\] as const/);
-  assert.match(simulation, /changedParameters\.every/);
+  assert.match(simulation, /valuesMatch/);
 });
 
-test("readiness policy permits simulation but blocks unsupported promotion", async () => {
+test("initial recommendation candidates retain the stricter readiness policy", async () => {
   const readiness = await readProjectFile(
     "lib/recommendation/candidateReadiness.ts",
   );
 
+  assert.match(readiness, /"initial-recommendation"/);
   assert.match(readiness, /minimumConfidenceScore: 0\.65/);
   assert.match(readiness, /minimumIndependentSupportFamilies: 2/);
   assert.match(readiness, /minimumEmpiricalSupportingObservations: 1/);
   assert.match(readiness, /maximumContradictingObservations: 0/);
-  assert.match(readiness, /single-author-family/);
-  assert.match(readiness, /"simulation-ready"/);
-  assert.match(readiness, /"confidence-below-policy"/);
-  assert.match(readiness, /"empirical-support-missing"/);
-  assert.match(readiness, /reproducibility === "single-source"/);
+  assert.match(readiness, /runCandidateSimulation/);
 });
 
-test("readiness and simulation remain disconnected from active recommendations", async () => {
-  const [activeRules, engine, adjustment] = await Promise.all([
+test("active recommendation engine uses promoted ids, never candidate ids", async () => {
+  const [activeRules, engine] = await Promise.all([
     readProjectFile("data/recommendation/rules.ts"),
     readProjectFile("lib/recommendation/engine.ts"),
-    readProjectFile("lib/recommendation/adjustment.ts"),
   ]);
 
-  assert.equal(activeRules.includes(candidateRuleId), false);
+  for (const candidate of candidateRules) {
+    assert.equal(activeRules.includes(candidate.id), false);
+    assert.equal(activeRules.includes(candidate.promotion.ruleId), true);
+  }
+  assert.match(engine, /applyV60FoundationRecommendation/);
+  assert.match(engine, /v60FoundationRuleIds/);
   assert.equal(engine.includes("candidateReadiness"), false);
   assert.equal(engine.includes("candidateSimulation"), false);
-  assert.equal(adjustment.includes("candidateReadiness"), false);
-  assert.equal(adjustment.includes("candidateSimulation"), false);
 });
