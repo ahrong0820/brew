@@ -1,12 +1,17 @@
 import { advisorSourcesJamesHoffmann } from "../data/evidence/advisorSourcesJamesHoffmann.ts";
 import { expertVideoProvenance } from "../data/evidence/expertVideoProvenance.ts";
 import { evidenceObservations } from "../data/evidence/observations.ts";
+import { originVarietySources1 } from "../data/evidence/originVarietySources1.ts";
 import { evidenceSources } from "../data/evidence/sources.ts";
 import { checkExpertVideoProvenance } from "../lib/evidence/expertVideoQuality.ts";
 import { checkObservationTextQuality } from "../lib/evidence/observationTextQuality.ts";
 import { checkEvidenceSourceQuality } from "../lib/evidence/sourceQuality.ts";
 
-const sources = [...evidenceSources, ...advisorSourcesJamesHoffmann];
+const sources = [
+  ...evidenceSources,
+  ...advisorSourcesJamesHoffmann,
+  ...originVarietySources1,
+];
 const issues = [
   ...checkEvidenceSourceQuality(sources),
   ...checkExpertVideoProvenance(sources, expertVideoProvenance),
