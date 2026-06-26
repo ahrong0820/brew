@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdir, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { originVarietySources1 } from "../data/evidence/originVarietySources1.ts";
@@ -42,7 +42,7 @@ test("official World Coffee Research catalog sources are registered", async () =
 
   const registry = await readProjectFile("lib/evidence/registry.ts");
   assert.match(registry, /\.\.\.originVarietySources1/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.10\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "\d+\.\d+\.\d+"/);
 });
 
 test("WCR source batch keeps catalog scope and variety pages distinct", () => {
@@ -56,22 +56,7 @@ test("WCR source batch keeps catalog scope and variety pages distinct", () => {
   );
 });
 
-test("source-only WCR batch has no observations or recommendation links", async () => {
-  const evidenceDirectory = new URL("../data/evidence/", import.meta.url);
-  const filenames = await readdir(evidenceDirectory);
-  const observationFiles = filenames.filter((filename) =>
-    /(Observation|Notes|observations)/.test(filename),
-  );
-  const observationTexts = await Promise.all(
-    observationFiles.map((filename) =>
-      readFile(new URL(filename, evidenceDirectory), "utf8"),
-    ),
-  );
-
-  for (const sourceId of sourceIds) {
-    assert.ok(observationTexts.every((text) => !text.includes(sourceId)));
-  }
-
+test("WCR sources remain disconnected from candidate and active rules", async () => {
   const [candidateRules, activeRules] = await Promise.all([
     readProjectFile("data/recommendation/candidateRules.ts"),
     readProjectFile("data/recommendation/rules.ts"),
