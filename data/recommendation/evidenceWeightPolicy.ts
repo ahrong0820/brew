@@ -1,7 +1,7 @@
 import type { EvidenceWeightPolicy } from "@/lib/types/evidenceWeight";
 
 export const evidenceWeightPolicy = {
-  version: "1.0.0",
+  version: "1.1.0",
   sourceTypeWeights: {
     paper: 1,
     manufacturer: 0.9,
@@ -51,15 +51,16 @@ export const evidenceWeightPolicy = {
     repeated: 1,
   },
   conditionDimensionWeights: {
-    brewer: 0.18,
-    drinkStyle: 0.12,
-    roastLevel: 0.12,
-    process: 0.1,
-    doseRatio: 0.12,
-    grinderBurr: 0.12,
-    filter: 0.08,
-    water: 0.08,
-    tasteGoal: 0.08,
+    brewer: 0.16,
+    drinkStyle: 0.1,
+    origin: 0.11,
+    roastLevel: 0.11,
+    process: 0.09,
+    doseRatio: 0.11,
+    grinderBurr: 0.11,
+    filter: 0.07,
+    water: 0.07,
+    tasteGoal: 0.07,
   },
   conditionStateWeights: {
     match: 1,
