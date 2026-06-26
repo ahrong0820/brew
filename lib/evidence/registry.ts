@@ -1,3 +1,5 @@
+import { advisorNotesA } from "@/data/evidence/advisorNotesA";
+import { advisorSourceA } from "@/data/evidence/advisorSourceA";
 import { equipmentData1Sources } from "@/data/evidence/equipmentData1";
 import { equipmentNotes1 } from "@/data/evidence/equipmentNotes1";
 import { equipmentNotes2 } from "@/data/evidence/equipmentNotes2";
@@ -15,7 +17,7 @@ import type {
   EvidenceSource,
 } from "@/lib/types/evidence";
 
-export const evidenceRegistryVersion = "1.3.0";
+export const evidenceRegistryVersion = "1.4.0";
 
 export const evidenceRegistry: EvidenceRegistry = {
   version: evidenceRegistryVersion,
@@ -24,6 +26,7 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...researchBatch1Sources,
     ...eventBatch1Sources,
     ...equipmentData1Sources,
+    ...advisorSourceA,
   ],
   observations: [
     ...evidenceObservations,
@@ -32,6 +35,7 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...eventBatch1Observations,
     ...equipmentNotes1,
     ...equipmentNotes2,
+    ...advisorNotesA,
   ],
 };
 
