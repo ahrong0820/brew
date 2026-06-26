@@ -3,9 +3,7 @@ import {
   evidenceLineages,
   evidenceRegistry,
 } from "@/lib/evidence/registry";
-import {
-  getCandidateRule,
-} from "@/lib/recommendation/candidateRuleRegistry";
+import { getCandidateRule } from "@/lib/recommendation/candidateRuleRegistry";
 import { calculateEvidenceScore } from "@/lib/recommendation/evidenceWeightCore";
 import type { EvidenceContext } from "@/lib/types/evidence";
 import type {
@@ -43,7 +41,7 @@ function candidateObservationEntries(
 
 export function getEvidenceIndependenceKey(sourceId: string) {
   const lineage = evidenceLineages.find((candidate) =>
-    candidate.sourceIds.includes(sourceId),
+    (candidate.sourceIds as readonly string[]).includes(sourceId),
   );
   return lineage?.familyId ?? sourceId;
 }
