@@ -1,6 +1,7 @@
 import { advisorSourcesJamesHoffmann } from "../data/evidence/advisorSourcesJamesHoffmann.ts";
 import { expertVideoProvenance } from "../data/evidence/expertVideoProvenance.ts";
 import { evidenceObservations } from "../data/evidence/observations.ts";
+import { originVarietyObservations1 } from "../data/evidence/originVarietyObservations1.ts";
 import { originVarietySources1 } from "../data/evidence/originVarietySources1.ts";
 import { evidenceSources } from "../data/evidence/sources.ts";
 import { checkExpertVideoProvenance } from "../lib/evidence/expertVideoQuality.ts";
@@ -12,10 +13,11 @@ const sources = [
   ...advisorSourcesJamesHoffmann,
   ...originVarietySources1,
 ];
+const observations = [...evidenceObservations, ...originVarietyObservations1];
 const issues = [
   ...checkEvidenceSourceQuality(sources),
   ...checkExpertVideoProvenance(sources, expertVideoProvenance),
-  ...checkObservationTextQuality(evidenceObservations),
+  ...checkObservationTextQuality(observations),
 ];
 
 for (const issue of issues) {
@@ -28,5 +30,5 @@ if (errors.length > 0) {
 }
 
 console.log(
-  `Evidence validation passed: ${sources.length} sources, ${evidenceObservations.length} observations.`,
+  `Evidence validation passed: ${sources.length} sources, ${observations.length} observations.`,
 );
