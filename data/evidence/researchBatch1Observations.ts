@@ -6,10 +6,10 @@ export const researchBatch1Observations = [
     sourceId: "paper:scientific-reports:2020:16450",
     kind: "controlled-comparison",
     reviewStatus: "reviewed",
-    summary: "통제된 드립 온도 비교 관찰",
+    summary: "동일한 TDS와 추출 수율에서는 시험한 온도 범위의 전체 감각 차이가 작았습니다.",
     excerpt: {
       locator: { section: "Results" },
-      paraphrase: "온도 조건의 감각 차이를 비교했습니다.",
+      paraphrase: "훈련 패널의 다변량 분석에서 온도 주효과가 확인되지 않았습니다.",
     },
     context: {},
     variables: [],
