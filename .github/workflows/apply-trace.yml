@@ -1,0 +1,24 @@
+name: Apply trace integration
+
+on:
+  push:
+    branches:
+      - recommendation-trace-snapshot
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: recommendation-trace-snapshot
+      - run: node scripts/apply-recommendation-trace.mjs
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/recommendation/recommendationTrace.ts lib/recommendation/brewLaunch.ts lib/storage/guards.ts lib/storage/brewSessionGuard.ts test/recommendation-trace.test.mjs
+          git commit -m "feat: persist recommendation trace snapshots"
+          git push origin HEAD:recommendation-trace-snapshot
