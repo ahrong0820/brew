@@ -1,6 +1,10 @@
 import { advisorSourceA } from "../data/evidence/advisorSourceA.ts";
 import { advisorSourcesJamesHoffmann } from "../data/evidence/advisorSourcesJamesHoffmann.ts";
 import { advisorSourcesTetsuKasuya } from "../data/evidence/advisorSourcesTetsuKasuya.ts";
+import { equipmentData1Sources } from "../data/evidence/equipmentData1.ts";
+import { equipmentNotes1 } from "../data/evidence/equipmentNotes1.ts";
+import { equipmentNotes2 } from "../data/evidence/equipmentNotes2.ts";
+import { equipmentNotes3 } from "../data/evidence/equipmentNotes3.ts";
 import { expertVideoProvenance } from "../data/evidence/expertVideoProvenance.ts";
 import { evidenceObservations } from "../data/evidence/observations.ts";
 import { manufacturerSourcesHarioV60 } from "../data/evidence/manufacturerSourcesHarioV60.ts";
@@ -16,6 +20,7 @@ import { checkEvidenceSourceQuality } from "../lib/evidence/sourceQuality.ts";
 
 const sources = [
   ...evidenceSources,
+  ...equipmentData1Sources,
   ...manufacturerSourcesHarioV60,
   ...advisorSourceA,
   ...advisorSourcesJamesHoffmann,
@@ -25,6 +30,9 @@ const sources = [
 ];
 const observations = [
   ...evidenceObservations,
+  ...equipmentNotes1,
+  ...equipmentNotes2,
+  ...equipmentNotes3,
   ...v60FoundationObservations1,
   ...originVarietyObservations1,
   ...roastObservations1,
