@@ -76,12 +76,13 @@ export function simulateCandidateScenario(
     };
   }
 
+  const validationPlan = rule.validationPlan;
   if (
-    rule.validationPlan?.implementationKey !==
-    "v60-hot-paper-grind-direction-v1"
+    !validationPlan ||
+    validationPlan.implementationKey !== "v60-hot-paper-grind-direction-v1"
   ) {
     throw new Error(
-      `Unsupported candidate implementation: ${rule.validationPlan?.implementationKey ?? "missing"}`,
+      `Unsupported candidate implementation: ${validationPlan?.implementationKey ?? "missing"}`,
     );
   }
 
@@ -101,7 +102,7 @@ export function simulateCandidateScenario(
     passed:
       decision === scenario.expectedDecision &&
       changedParameters.every((parameter) =>
-        rule.validationPlan?.changedParameters.includes(parameter),
+        validationPlan.changedParameters.includes(parameter),
       ),
     reason:
       decision === "finer"
@@ -120,21 +121,21 @@ export function runCandidateSimulation(
     throw new Error(`Unknown candidate rule: ${candidateRuleId}`);
   }
 
-  const scenarioById = new Map(
+  const scenarioById = new Map<string, CandidateSimulationScenario>(
     candidateSimulationScenarios.map((scenario) => [scenario.id, scenario]),
   );
   const scenarioIds = rule.validationPlan?.scenarioIds ?? [];
 
-  const results = scenarioIds.map((scenarioId) => {
+  const results: CandidateSimulationResult[] = scenarioIds.map((scenarioId) => {
     const scenario = scenarioById.get(scenarioId);
     if (!scenario) {
       return {
         scenarioId,
         candidateRuleId,
         applies: false,
-        decision: "not-applicable" as const,
+        decision: "not-applicable",
         changedParameters: [],
-        expectedDecision: "not-applicable" as const,
+        expectedDecision: "not-applicable",
         passed: false,
         reason: "검증 계획이 존재하지 않는 시나리오 ID를 참조합니다.",
       };
