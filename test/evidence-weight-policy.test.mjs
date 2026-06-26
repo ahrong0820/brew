@@ -82,7 +82,7 @@ test("evidence score multiplies all documented components", () => {
   assert.equal(score.sourceTypeWeight, 0.6);
   assert.equal(score.methodologyWeight, 1);
   assert.equal(score.directnessWeight, 1);
-  assert.equal(score.conditionMatch.score, 1);
+  assert.ok(Math.abs(score.conditionMatch.score - 1) < 1e-12);
   assert.equal(score.independenceWeight, 1);
   assert.equal(score.reproducibilityWeight, 0.85);
   assert.equal(score.reviewTrustWeight, 0.9);
