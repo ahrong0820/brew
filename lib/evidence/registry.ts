@@ -4,6 +4,7 @@ import { advisorNotesScottRao } from "@/data/evidence/advisorNotesScottRao";
 import { advisorSourceA } from "@/data/evidence/advisorSourceA";
 import { advisorSourcesJamesHoffmann } from "@/data/evidence/advisorSourcesJamesHoffmann";
 import { advisorSourcesScottRao } from "@/data/evidence/advisorSourcesScottRao";
+import { advisorSourcesTetsuKasuya } from "@/data/evidence/advisorSourcesTetsuKasuya";
 import { equipmentData1Sources } from "@/data/evidence/equipmentData1";
 import { equipmentNotes1 } from "@/data/evidence/equipmentNotes1";
 import { equipmentNotes2 } from "@/data/evidence/equipmentNotes2";
@@ -31,7 +32,7 @@ import type {
   EvidenceSource,
 } from "@/lib/types/evidence";
 
-export const evidenceRegistryVersion = "1.13.0";
+export const evidenceRegistryVersion = "1.14.0";
 
 export const evidenceRegistry: EvidenceRegistry = {
   version: evidenceRegistryVersion,
@@ -46,6 +47,7 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...advisorSourceA,
     ...advisorSourcesJamesHoffmann,
     ...advisorSourcesScottRao,
+    ...advisorSourcesTetsuKasuya,
     ...originVarietySources1,
     ...roastSources1,
   ],
