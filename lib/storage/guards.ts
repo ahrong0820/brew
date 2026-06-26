@@ -271,6 +271,69 @@ export function isBeanBrewProfile(value: unknown): value is BeanBrewProfile {
   );
 }
 
+const recommendationTraceParameters = [
+  "dose",
+  "water",
+  "ratio",
+  "temperature",
+  "grind",
+  "time",
+  "pour",
+  "confidence",
+  "personalization",
+] as const;
+
+const recommendationTraceRoles = [
+  "supports",
+  "limits",
+  "contradicts",
+  "context",
+  "calibrates",
+] as const;
+
+const recommendationTraceApplicabilities = [
+  "direct",
+  "partial",
+  "extrapolated",
+] as const;
+
+function isRecommendationTraceEvidenceRef(value: unknown) {
+  return (
+    isRecord(value) &&
+    isString(value.sourceId) &&
+    (value.observationId === undefined || isString(value.observationId)) &&
+    (value.role === undefined || isOneOf(value.role, recommendationTraceRoles)) &&
+    (value.applicability === undefined ||
+      isOneOf(value.applicability, recommendationTraceApplicabilities))
+  );
+}
+
+function isAppliedRuleTrace(value: unknown) {
+  return (
+    isRecord(value) &&
+    isString(value.ruleId) &&
+    (value.ruleVersion === undefined ||
+      (isFiniteNumber(value.ruleVersion) &&
+        Number.isInteger(value.ruleVersion) &&
+        value.ruleVersion >= 1)) &&
+    isOneOf(value.parameter, recommendationTraceParameters) &&
+    Array.isArray(value.evidenceRefs) &&
+    value.evidenceRefs.every(isRecommendationTraceEvidenceRef)
+  );
+}
+
+function isRecommendationTrace(value: unknown) {
+  return (
+    isRecord(value) &&
+    isString(value.engineVersion) &&
+    isString(value.ruleRegistryVersion) &&
+    isString(value.evidenceRegistryVersion) &&
+    isString(value.generatedAt) &&
+    Array.isArray(value.appliedRules) &&
+    value.appliedRules.every(isAppliedRuleTrace)
+  );
+}
+
 function isRecipeStepSnapshot(value: unknown) {
   if (!isRecord(value)) {
     return false;
@@ -305,6 +368,8 @@ function isRecipeSnapshot(value: unknown) {
     isFiniteNumber(value.totalTimeSeconds) &&
     isFiniteNumber(value.targetTimeMinSeconds) &&
     isFiniteNumber(value.targetTimeMaxSeconds) &&
+    (value.recommendationTrace === undefined ||
+      isRecommendationTrace(value.recommendationTrace)) &&
     Array.isArray(value.steps) &&
     value.steps.every(isRecipeStepSnapshot)
   );

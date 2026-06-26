@@ -27,9 +27,80 @@ function isRecipeStep(value: unknown) {
   );
 }
 
+const recommendationTraceParameters = [
+  "dose",
+  "water",
+  "ratio",
+  "temperature",
+  "grind",
+  "time",
+  "pour",
+  "confidence",
+  "personalization",
+];
+
+const recommendationTraceRoles = [
+  "supports",
+  "limits",
+  "contradicts",
+  "context",
+  "calibrates",
+];
+
+const recommendationTraceApplicabilities = [
+  "direct",
+  "partial",
+  "extrapolated",
+];
+
+function isRecommendationTraceEvidenceRef(value: unknown) {
+  return (
+    isRecord(value) &&
+    isString(value.sourceId) &&
+    isOptionalString(value.observationId) &&
+    (value.role === undefined ||
+      recommendationTraceRoles.includes(String(value.role))) &&
+    (value.applicability === undefined ||
+      recommendationTraceApplicabilities.includes(String(value.applicability)))
+  );
+}
+
+function isAppliedRuleTrace(value: unknown) {
+  return (
+    isRecord(value) &&
+    isString(value.ruleId) &&
+    (value.ruleVersion === undefined ||
+      (isFiniteNumber(value.ruleVersion) &&
+        Number.isInteger(value.ruleVersion) &&
+        value.ruleVersion >= 1)) &&
+    recommendationTraceParameters.includes(String(value.parameter)) &&
+    Array.isArray(value.evidenceRefs) &&
+    value.evidenceRefs.every(isRecommendationTraceEvidenceRef)
+  );
+}
+
+function isRecommendationTrace(value: unknown) {
+  return (
+    isRecord(value) &&
+    isString(value.engineVersion) &&
+    isString(value.ruleRegistryVersion) &&
+    isString(value.evidenceRegistryVersion) &&
+    isString(value.generatedAt) &&
+    Array.isArray(value.appliedRules) &&
+    value.appliedRules.every(isAppliedRuleTrace)
+  );
+}
+
 function isRecipeSnapshot(value: unknown) {
   if (!isRecord(value)) {
     return false;
+  }
+
+  if (
+    value.recommendationTrace !== undefined &&
+    !isRecommendationTrace(value.recommendationTrace)
+  ) {
+    delete value.recommendationTrace;
   }
 
   const grinderModels = [
@@ -60,6 +131,8 @@ function isRecipeSnapshot(value: unknown) {
     isFiniteNumber(value.totalTimeSeconds) &&
     isFiniteNumber(value.targetTimeMinSeconds) &&
     isFiniteNumber(value.targetTimeMaxSeconds) &&
+    (value.recommendationTrace === undefined ||
+      isRecommendationTrace(value.recommendationTrace)) &&
     Array.isArray(value.steps) &&
     value.steps.every(isRecipeStep)
   );
