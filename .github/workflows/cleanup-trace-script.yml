@@ -1,0 +1,23 @@
+name: Cleanup trace integration
+
+on:
+  push:
+    branches:
+      - recommendation-trace-snapshot
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: recommendation-trace-snapshot
+      - run: |
+          git rm scripts/apply-recommendation-trace.mjs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: remove temporary trace script"
+          git push origin HEAD:recommendation-trace-snapshot
