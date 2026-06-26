@@ -53,11 +53,15 @@ export type RecommendationEvidenceKind =
 export interface RecommendationEvidenceReference {
   kind: RecommendationEvidenceKind;
   sourceId: string;
+  observationId?: string;
+  role?: "supports" | "limits" | "contradicts" | "context" | "calibrates";
+  applicability?: "direct" | "partial" | "extrapolated";
   note?: string;
 }
 
 export interface AppliedRecommendationRule {
   id: string;
+  version?: number;
   parameter: RecommendationRuleParameter;
   description: string;
   evidence: RecommendationEvidenceReference[];
