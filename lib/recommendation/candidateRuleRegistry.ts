@@ -7,7 +7,7 @@ import type {
   CandidateRuleRegistry,
 } from "@/lib/types/candidateRule";
 
-export const candidateRuleRegistryVersion = "1.1.0";
+export const candidateRuleRegistryVersion = "1.2.0";
 
 export const candidateRuleRegistry: CandidateRuleRegistry = {
   version: candidateRuleRegistryVersion,
@@ -260,47 +260,50 @@ export function listCandidateRules(options?: {
   );
 }
 
-export function groupCandidateEvidenceBySource(
-  candidateRuleId: string,
-): readonly CandidateEvidenceSourceGroup[] {
+export function groupCandidateEvidenceBySource(candidateRuleId: string) {
   const rule = getCandidateRule(candidateRuleId);
   if (!rule) {
-    throw new Error(`Unknown candidate rule: ${candidateRuleId}`);
+    return [];
   }
 
-  const groups = new Map<
-    string,
-    { observationIds: Set<string>; roles: Set<CandidateEvidenceRole> }
-  >();
-
+  const groups = new Map<string, CandidateEvidenceSourceGroup>();
   observationEntries(rule).forEach(({ observationId, role }) => {
     const observation = observationById.get(observationId);
     if (!observation) {
       return;
     }
 
-    const group = groups.get(observation.sourceId) ?? {
-      observationIds: new Set<string>(),
-      roles: new Set<CandidateEvidenceRole>(),
-    };
-    group.observationIds.add(observationId);
-    group.roles.add(role);
-    groups.set(observation.sourceId, group);
+    const current = groups.get(observation.sourceId);
+    groups.set(observation.sourceId, {
+      sourceId: observation.sourceId,
+      observationIds: [
+        ...(current?.observationIds ?? []),
+        observationId,
+      ],
+      roles: [...(current?.roles ?? []), role],
+    });
   });
 
-  return [...groups.entries()].map(([sourceId, group]) => ({
-    sourceId,
-    observationIds: [...group.observationIds],
-    roles: [...group.roles],
-  }));
+  return [...groups.values()];
 }
 
 export function summarizeCandidateEvidence(candidateRuleId: string) {
   const groups = groupCandidateEvidenceBySource(candidateRuleId);
   return {
     independentSourceCount: groups.length,
-    observationCount: groups.reduce(
-      (count, group) => count + group.observationIds.length,
+    supportObservationCount: groups.reduce(
+      (count, group) =>
+        count + group.roles.filter((role) => role === "supports").length,
+      0,
+    ),
+    limitingObservationCount: groups.reduce(
+      (count, group) =>
+        count + group.roles.filter((role) => role === "limits").length,
+      0,
+    ),
+    contradictionObservationCount: groups.reduce(
+      (count, group) =>
+        count + group.roles.filter((role) => role === "contradicts").length,
       0,
     ),
     sourceGroups: groups,

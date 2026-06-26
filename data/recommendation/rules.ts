@@ -73,6 +73,40 @@ const v60HotPaperGrindEvidence: readonly RuleEvidenceLink[] = [
   },
 ];
 
+const v60FoundationPourEvidence: readonly RuleEvidenceLink[] = [
+  {
+    sourceId: "manufacturer:hario:v60-dripper-manual-global",
+    observationId: "obs:manufacturer:hario-v60:bloom-circular-pour",
+    role: "supports",
+    applicability: "direct",
+    note: "HARIO 공식 설명서의 30초 블루밍과 중심-바깥 원형 주입 절차를 적용합니다.",
+  },
+  {
+    sourceId: "expert:coffee-ad-astra:v60-2018",
+    observationId: "obs:expert-data-1:v60-three-x-bloom-workflow",
+    role: "supports",
+    applicability: "direct",
+    note: "원두량의 3배 블루밍과 30초 본 추출 시작을 적용하되 고정되지 않은 두 번째 푸어 시각은 만들지 않습니다.",
+  },
+];
+
+const v60FoundationTimeEvidence: readonly RuleEvidenceLink[] = [
+  {
+    sourceId: "manufacturer:hario:v60-dripper-manual-global",
+    observationId: "obs:manufacturer:hario-v60:three-minute-ceiling",
+    role: "supports",
+    applicability: "direct",
+    note: "HARIO 공식 설명서의 총 3분 이내 지침을 상한으로 적용합니다.",
+  },
+  {
+    sourceId: "expert:coffee-ad-astra:v60-2018",
+    observationId: "obs:expert-data-1:v60-typical-contact-time",
+    role: "supports",
+    applicability: "direct",
+    note: "전문가 가이드의 일반적인 2분 30초~3분 30초 범위와 제조사 상한의 교집합을 사용합니다.",
+  },
+];
+
 const baseRules: RecommendationRuleDefinition[] = [
   {
     id: "dose.user-default.normalized.v1",
@@ -188,6 +222,45 @@ const timeRules: RecommendationRuleDefinition[] = brewers.map((brewer) => ({
   introducedAt,
 }));
 
+const validatedInitialRules: RecommendationRuleDefinition[] = [
+  {
+    id: "pour.v60-hot-paper.foundation.v1",
+    version: 1,
+    status: "active",
+    title: "HOT V60 종이필터 기준 푸어",
+    description: "원두량의 3배 이내 블루밍, 30초 대기 후 원형 본 주입 적용",
+    parameter: "pour",
+    implementationKey: "v60-hot-paper-foundation-pour",
+    scope: {
+      brew: {
+        brewerTypes: ["v60"],
+        drinkStyles: ["hot"],
+        filterMaterials: ["paper"],
+      },
+    },
+    evidenceLinks: v60FoundationPourEvidence,
+    introducedAt: promotedAt,
+  },
+  {
+    id: "time.v60-hot-paper.foundation.v1",
+    version: 1,
+    status: "active",
+    title: "HOT V60 종이필터 기준 시간",
+    description: "제조사 3분 상한과 전문가 일반 범위의 교집합인 2분 30초~3분 적용",
+    parameter: "time",
+    implementationKey: "v60-hot-paper-foundation-time",
+    scope: {
+      brew: {
+        brewerTypes: ["v60"],
+        drinkStyles: ["hot"],
+        filterMaterials: ["paper"],
+      },
+    },
+    evidenceLinks: v60FoundationTimeEvidence,
+    introducedAt: promotedAt,
+  },
+];
+
 const validatedAdjustmentRules: RecommendationRuleDefinition[] = [
   {
     id: "grind.v60-hot-paper.dial-in.v1",
@@ -251,6 +324,7 @@ export const recommendationRules = [
   ...grinderRules,
   ...pourRules,
   ...timeRules,
+  ...validatedInitialRules,
   ...validatedAdjustmentRules,
   ...personalRules,
 ] satisfies RecommendationRuleDefinition[];
