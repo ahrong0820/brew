@@ -11,7 +11,11 @@ import {
   createBrewSession,
   withUpdatedTimestamp,
 } from "@/lib/domain/factories";
+import { evidenceRegistryVersion } from "@/lib/evidence/registry";
 import { estimateMicronsForSetting } from "@/lib/grinder/micronReference";
+import { buildRecommendationTrace } from "@/lib/recommendation/recommendationTrace";
+import { recommendationRuleRegistryVersion } from "@/lib/recommendation/ruleRegistry";
+import { recommendationEngineVersion } from "@/lib/recommendation/version";
 import {
   beanBrewProfileStore,
   brewSessionStore,
@@ -167,6 +171,7 @@ function buildSnapshot(
   input: PrepareRecommendationBrewInput,
   totalTime: number,
   timerSteps: TimerBrewStep[],
+  timestamp: string,
 ): RecipeSnapshot {
   const grindLevel = numericGrindLevel(input.recommendation);
   const estimatedRepresentativeMicrons =
@@ -194,6 +199,13 @@ function buildSnapshot(
     totalTimeSeconds: totalTime,
     targetTimeMinSeconds: input.recommendation.targetTimeMinSeconds,
     targetTimeMaxSeconds: input.recommendation.targetTimeMaxSeconds,
+    recommendationTrace: buildRecommendationTrace(
+      input.recommendation,
+      timestamp,
+      recommendationEngineVersion,
+      recommendationRuleRegistryVersion,
+      evidenceRegistryVersion,
+    ),
     steps: timerSteps.map((step) => ({
       label: step.label,
       startSeconds: step.start,
@@ -262,7 +274,7 @@ export function prepareRecommendationBrew(
     (session) => session.profileId === profile.id,
   );
   const { steps, totalTime } = buildTimerSteps(input.recommendation);
-  const snapshot = buildSnapshot(input, totalTime, steps);
+  const snapshot = buildSnapshot(input, totalTime, steps, timestamp);
   const session = createBrewSession(
     {
       beanId: input.bean.id,
