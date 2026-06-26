@@ -2,6 +2,7 @@ import type { GrinderProfile, UserPreferences } from "@/lib/types/coffee";
 
 export const defaultGrinderProfileIds = {
   kUltraBurrNoRub: "grinder-k-ultra-burr-no-rub",
+  kUltraOfficialZero: "grinder-k-ultra-official-zero",
   holzklotzE80: "grinder-holzklotz-e80",
   baratzaEncore: "grinder-baratza-encore",
 } as const;
@@ -40,7 +41,29 @@ export function createDefaultGrinderProfiles(
       notes: [
         "버가 스치지 않기 시작하는 최초 지점을 0으로 맞춘 사용자 기준입니다.",
         "공식 20μm 조절 간격은 버 이동량이며 분쇄 입자의 평균 크기와 동일하지 않습니다.",
+        "제조사 공식 Pour Over 8.0~9.0 범위는 저항 시작 영점 기준이므로 이 프로필에 무보정으로 환산하지 않습니다.",
         "대표 입도 참고값은 실제 유속과 맛으로 보정합니다.",
+      ],
+      isBuiltIn: true,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    },
+    {
+      id: defaultGrinderProfileIds.kUltraOfficialZero,
+      model: "1zpresso-k-ultra",
+      displayName: "1Zpresso K-Ultra (공식 영점)",
+      calibrationProfile: "manufacturer-resistance-start-zero",
+      calibrationLabel: "제조사 저항 시작 영점",
+      calibrationStatus: "user-calibrated",
+      recommendationStatus: "primary",
+      displayUnit: "dial",
+      adjustmentDirection: "higher-is-coarser",
+      displayStep: 0.1,
+      personalOffset: 0,
+      notes: [
+        "핸들 회전에 저항이 생기기 시작하는 지점을 0으로 맞추는 1Zpresso 공식 기준입니다.",
+        "공식 K-Ultra 차트의 Siphon/Pour Over 8.0~9.0 범위를 초기 참고값으로 사용합니다.",
+        "8.0~9.0은 원두·도징·필터별 단일 정답이 아니며 목표 시간과 맛으로 다이얼인합니다.",
       ],
       isBuiltIn: true,
       createdAt: timestamp,
