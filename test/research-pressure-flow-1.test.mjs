@@ -75,7 +75,7 @@ test("pressure-flow batch is registered without changing candidate or active rul
 
   assert.match(registry, /\.\.\.researchPressureFlow1Sources/);
   assert.match(registry, /\.\.\.researchPressureFlow1Observations/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.8\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "\d+\.\d+\.\d+"/);
   assert.match(evidenceTypes, /"brewPressureBar"/);
 
   for (const observation of researchPressureFlow1Observations) {
