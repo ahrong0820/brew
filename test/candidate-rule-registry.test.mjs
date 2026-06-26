@@ -22,6 +22,8 @@ test("candidate rules remain separate from active recommendation rules", async (
   assert.equal(candidate.reviewedBy, "project-maintainer");
   assert.equal(candidate.reviewedAt, "2026-06-26");
   assert.equal(candidate.promotion, undefined);
+  assert.equal(candidate.validationPlan.targetLayer, "post-brew-adjustment");
+  assert.deepEqual(candidate.validationPlan.changedParameters, ["grind"]);
 
   const activeRules = await readProjectFile("data/recommendation/rules.ts");
   assert.equal(activeRules.includes(candidate.id), false);
@@ -60,11 +62,14 @@ test("candidate registry groups repeated observations by source", async () => {
   assert.match(types, /supportingObservationIds/);
   assert.match(types, /limitingObservationIds/);
   assert.match(types, /contradictingObservationIds/);
+  assert.match(types, /validationPlan\?: CandidateRuleValidationPlan/);
   assert.match(types, /promotion\?: CandidateRulePromotion/);
 
   assert.match(registry, /groupCandidateEvidenceBySource/);
   assert.match(registry, /groups\.get\(observation\.sourceId\)/);
   assert.match(registry, /independentSourceCount: groups\.length/);
   assert.match(registry, /personal-rule-without-personal-evidence/);
-  assert.match(registry, /candidateRuleRegistryVersion = "\d+\.\d+\.\d+"/);
+  assert.match(registry, /missing-validation-plan/);
+  assert.match(registry, /validation-plan-parameter-mismatch/);
+  assert.match(registry, /candidateRuleRegistryVersion = "1\.1\.0"/);
 });
