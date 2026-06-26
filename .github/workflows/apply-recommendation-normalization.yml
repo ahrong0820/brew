@@ -1,0 +1,36 @@
+name: Apply recommendation normalization
+
+on:
+  push:
+    branches:
+      - feat/normalize-recommendation-pipeline
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/normalize-recommendation-pipeline
+          fetch-depth: 0
+
+      - name: Apply integration
+        run: node scripts/apply-recommendation-normalization.mjs
+
+      - name: Remove one-time files
+        run: |
+          rm scripts/apply-recommendation-normalization.mjs
+          rm .github/workflows/apply-recommendation-normalization.yml
+
+      - name: Commit integrated changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/RecommendationDrawerV2.tsx lib/recommendation/baseEngine.ts lib/recommendation/brewLaunch.ts lib/recommendation/engine.ts lib/recommendation/personalized.ts lib/storage/brewSessionGuard.ts lib/storage/guards.ts lib/types/coffee.ts scripts/apply-recommendation-normalization.mjs .github/workflows/apply-recommendation-normalization.yml
+          git commit -m "refactor: unify recommendation normalization pipeline"
+          git push origin HEAD:feat/normalize-recommendation-pipeline
