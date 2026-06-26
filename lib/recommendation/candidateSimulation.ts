@@ -1,12 +1,18 @@
 import { candidateSimulationScenarios } from "@/data/recommendation/candidateSimulationScenarios";
 import { getCandidateRule } from "@/lib/recommendation/candidateRuleRegistry";
+import { decideDialIn } from "@/lib/recommendation/dialInDecision";
+import {
+  v60FoundationBloomWater,
+  v60FoundationTargetTime,
+} from "@/lib/recommendation/v60Foundation";
 import type { CandidateRule } from "@/lib/types/candidateRule";
 import type {
-  CandidateSimulationDecision,
+  CandidateSimulationExpectedValues,
   CandidateSimulationReport,
   CandidateSimulationResult,
   CandidateSimulationScenario,
 } from "@/lib/types/candidateSimulation";
+import type { RecommendationRuleParameter } from "@/lib/types/recommendation";
 
 function includesOrUnrestricted<T>(
   allowed: readonly T[] | undefined,
@@ -34,63 +40,54 @@ function matchesScope(
   );
 }
 
-function decideV60HotPaperGrindDirection(
-  scenario: CandidateSimulationScenario,
-): CandidateSimulationDecision {
-  const { signal } = scenario;
-
-  if (signal.actualTimeSeconds < signal.targetTimeMinSeconds - 10) {
-    return "finer";
+function valuesMatch(
+  actual: CandidateSimulationExpectedValues | undefined,
+  expected: CandidateSimulationExpectedValues | undefined,
+) {
+  if (!expected) {
+    return true;
   }
 
-  if (signal.actualTimeSeconds > signal.targetTimeMaxSeconds + 10) {
-    return "coarser";
-  }
-
-  if (signal.tastingResult === "bitter-astringent") {
-    return "coarser";
-  }
-
-  return "hold";
+  return Object.entries(expected).every(
+    ([key, value]) =>
+      actual?.[key as keyof CandidateSimulationExpectedValues] === value,
+  );
 }
 
-export function simulateCandidateScenario(
+function resultForOutOfScope(
+  rule: CandidateRule,
   scenario: CandidateSimulationScenario,
 ): CandidateSimulationResult {
-  const rule = getCandidateRule(scenario.candidateRuleId);
-  if (!rule) {
-    throw new Error(`Unknown candidate rule: ${scenario.candidateRuleId}`);
+  const decision = "not-applicable" as const;
+  return {
+    scenarioId: scenario.id,
+    candidateRuleId: rule.id,
+    applies: false,
+    decision,
+    changedParameters: [],
+    expectedDecision: scenario.expectedDecision,
+    expectedValues: scenario.expectedValues,
+    passed: decision === scenario.expectedDecision,
+    reason: "후보 규칙의 브루어·음료 스타일·필터 적용 범위 밖입니다.",
+  };
+}
+
+function simulateGrind(
+  rule: CandidateRule,
+  scenario: CandidateSimulationScenario,
+): CandidateSimulationResult {
+  if (!scenario.signal) {
+    throw new Error(`Missing grind signal: ${scenario.id}`);
   }
 
-  if (!matchesScope(rule, scenario)) {
-    const decision = "not-applicable" as const;
-    return {
-      scenarioId: scenario.id,
-      candidateRuleId: rule.id,
-      applies: false,
-      decision,
-      changedParameters: [],
-      expectedDecision: scenario.expectedDecision,
-      passed: decision === scenario.expectedDecision,
-      reason: "후보 규칙의 브루어·음료 스타일·필터 적용 범위 밖입니다.",
-    };
-  }
-
-  const validationPlan = rule.validationPlan;
-  if (
-    !validationPlan ||
-    validationPlan.implementationKey !== "v60-hot-paper-grind-direction-v1"
-  ) {
-    throw new Error(
-      `Unsupported candidate implementation: ${validationPlan?.implementationKey ?? "missing"}`,
-    );
-  }
-
-  const decision = decideV60HotPaperGrindDirection(scenario);
-  const changedParameters =
-    decision === "finer" || decision === "coarser"
-      ? (["grind"] as const)
-      : ([] as const);
+  const decision = decideDialIn({
+    actualSeconds: scenario.signal.actualTimeSeconds,
+    minimumSeconds: scenario.signal.targetTimeMinSeconds,
+    maximumSeconds: scenario.signal.targetTimeMaxSeconds,
+    tastingResult: scenario.signal.tastingResult,
+  });
+  const changedParameters: readonly RecommendationRuleParameter[] =
+    decision === "finer" || decision === "coarser" ? ["grind"] : [];
 
   return {
     scenarioId: scenario.id,
@@ -102,15 +99,104 @@ export function simulateCandidateScenario(
     passed:
       decision === scenario.expectedDecision &&
       changedParameters.every((parameter) =>
-        validationPlan.changedParameters.includes(parameter),
+        rule.validationPlan?.changedParameters.includes(parameter),
       ),
     reason:
       decision === "finer"
-        ? "목표 하한보다 빠른 추출이므로 다른 조건을 고정하고 분쇄도 미세화 방향을 검토합니다."
+        ? "목표 하한보다 빠른 추출이므로 다른 조건을 고정하고 분쇄도를 미세화합니다."
         : decision === "coarser"
-          ? "목표 상한보다 느리거나 떫은맛이 기록돼 분쇄도 굵게 조정 방향을 검토합니다."
-          : "목표 시간과 감각 결과가 후보의 조정 조건을 충족하지 않아 현재 분쇄도를 유지합니다.",
+          ? "목표 상한보다 느리거나 떫은맛이 기록돼 분쇄도를 굵게 조정합니다."
+          : "목표 시간과 감각 결과를 충족해 현재 분쇄도를 유지합니다.",
   };
+}
+
+function simulateFoundationPour(
+  rule: CandidateRule,
+  scenario: CandidateSimulationScenario,
+): CandidateSimulationResult {
+  if (!scenario.recipeInput) {
+    throw new Error(`Missing recipe input: ${scenario.id}`);
+  }
+
+  const actualValues = {
+    bloomWaterGrams: v60FoundationBloomWater(
+      scenario.recipeInput.doseGrams,
+      scenario.recipeInput.waterGrams,
+    ),
+    bloomTimeSeconds: 30,
+    mainPourStartSeconds: 30,
+  } as const;
+  const decision = "apply" as const;
+
+  return {
+    scenarioId: scenario.id,
+    candidateRuleId: rule.id,
+    applies: true,
+    decision,
+    changedParameters: ["pour"],
+    expectedDecision: scenario.expectedDecision,
+    actualValues,
+    expectedValues: scenario.expectedValues,
+    passed:
+      decision === scenario.expectedDecision &&
+      valuesMatch(actualValues, scenario.expectedValues),
+    reason:
+      "원두량의 3배를 5g 단위로 반올림하되 총 물량의 25%로 제한하고, 30초부터 원형 본 주입을 적용합니다.",
+  };
+}
+
+function simulateFoundationTime(
+  rule: CandidateRule,
+  scenario: CandidateSimulationScenario,
+): CandidateSimulationResult {
+  const actualValues = {
+    targetTimeMinSeconds: v60FoundationTargetTime.min,
+    targetTimeMaxSeconds: v60FoundationTargetTime.max,
+  } as const;
+  const decision = "apply" as const;
+
+  return {
+    scenarioId: scenario.id,
+    candidateRuleId: rule.id,
+    applies: true,
+    decision,
+    changedParameters: ["time"],
+    expectedDecision: scenario.expectedDecision,
+    actualValues,
+    expectedValues: scenario.expectedValues,
+    passed:
+      decision === scenario.expectedDecision &&
+      valuesMatch(actualValues, scenario.expectedValues),
+    reason:
+      "전문가 일반 범위의 2분 30초 하한과 제조사 3분 상한의 교집합을 적용합니다.",
+  };
+}
+
+export function simulateCandidateScenario(
+  scenario: CandidateSimulationScenario,
+): CandidateSimulationResult {
+  const rule = getCandidateRule(scenario.candidateRuleId);
+  if (!rule) {
+    throw new Error(`Unknown candidate rule: ${scenario.candidateRuleId}`);
+  }
+
+  if (!matchesScope(rule, scenario)) {
+    return resultForOutOfScope(rule, scenario);
+  }
+
+  const implementationKey = rule.validationPlan?.implementationKey;
+  switch (implementationKey) {
+    case "v60-hot-paper-grind-direction-v1":
+      return simulateGrind(rule, scenario);
+    case "v60-hot-paper-foundation-pour-v1":
+      return simulateFoundationPour(rule, scenario);
+    case "v60-hot-paper-foundation-time-v1":
+      return simulateFoundationTime(rule, scenario);
+    default:
+      throw new Error(
+        `Unsupported candidate implementation: ${implementationKey ?? "missing"}`,
+      );
+  }
 }
 
 export function runCandidateSimulation(
