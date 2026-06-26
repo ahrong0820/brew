@@ -1,5 +1,8 @@
 import { getEvidenceSource } from "@/lib/evidence/registry";
-import { requireRecommendationRule } from "@/lib/recommendation/ruleRegistry";
+import {
+  getRecommendationRule,
+  requireRecommendationRule,
+} from "@/lib/recommendation/ruleRegistry";
 import type {
   AppliedRecommendationRule,
   RecommendationEvidenceKind,
@@ -51,8 +54,8 @@ export function createAppliedRuleFromRegistry(
 }
 
 /**
- * Compatibility helper for callers that construct transient rules.
- * Registered recommendation rules should use createAppliedRuleFromRegistry.
+ * Compatibility helper. Registered IDs resolve from the rule registry so
+ * existing engine call sites cannot override canonical metadata.
  */
 export function createAppliedRule(input: {
   id: string;
@@ -62,6 +65,10 @@ export function createAppliedRule(input: {
   sourceId?: string;
   evidenceNote?: string;
 }): AppliedRecommendationRule {
+  if (getRecommendationRule(input.id)) {
+    return createAppliedRuleFromRegistry(input.id);
+  }
+
   return {
     id: input.id,
     parameter: input.parameter,
