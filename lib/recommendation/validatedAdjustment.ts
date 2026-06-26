@@ -6,6 +6,7 @@ import {
 import { decideDialIn } from "@/lib/recommendation/dialInDecision";
 import { createAppliedRuleFromRegistry } from "@/lib/recommendation/ruleEvidence";
 import { brewSessionStore, grinderProfileStore } from "@/lib/storage/coffeeData";
+import type { GrinderProfile } from "@/lib/types/coffee";
 import type { AppliedRecommendationRule } from "@/lib/types/recommendation";
 
 export type ValidatedAdjustmentSuggestion = BrewAdjustmentSuggestion & {
@@ -29,6 +30,19 @@ function decorate(
   };
 }
 
+function settingBounds(grinder: GrinderProfile) {
+  const points = grinder.micronReference?.points ?? [];
+  if (points.length > 0) {
+    return {
+      min: Math.min(...points.map((point) => point.step)) + grinder.personalOffset,
+      max: Math.max(...points.map((point) => point.step)) + grinder.personalOffset,
+    };
+  }
+  if (grinder.model === "1zpresso-k-ultra") return { min: 5.5, max: 8.5 };
+  if (grinder.model === "baratza-encore") return { min: 8, max: 32 };
+  return null;
+}
+
 function coarserForAstringency(
   sessionId: string,
   rule: AppliedRecommendationRule,
@@ -47,9 +61,14 @@ function coarserForAstringency(
       : grinder.model === "baratza-encore"
         ? 1
         : (grinder.displayStep ?? 1);
-  const delta =
+  const signedStep =
     grinder.adjustmentDirection === "higher-is-coarser" ? step : -step;
-  const next = current + delta;
+  const rawNext = current + signedStep;
+  const bounds = settingBounds(grinder);
+  const next = bounds
+    ? Math.min(bounds.max, Math.max(bounds.min, rawNext))
+    : rawNext;
+  const appliedDelta = next - current;
   const format = (value: number) =>
     grinder.displayUnit === "dial" ? value.toFixed(1) : String(Math.round(value));
   const unit =
@@ -63,13 +82,13 @@ function coarserForAstringency(
     sessionId,
     profileId: session.profileId,
     variable: "grind",
-    delta,
+    delta: appliedDelta,
     title: "분쇄도를 조금 더 굵게",
     currentValue: `${format(current)} ${unit}`,
     nextValue: `${format(next)} ${unit}`,
     reason: "목표 시간 안에서 떫은 감각이 기록되어 분쇄도를 굵게 되돌립니다.",
     instruction: "다른 조건은 고정하고 분쇄도만 바꿔 비교하세요.",
-    canApply: true,
+    canApply: Math.abs(appliedDelta) > 0.0001,
     appliedRule: rule,
   };
 }
