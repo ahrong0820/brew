@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdir, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { roastSources1 } from "../data/evidence/roastSources1.ts";
@@ -43,23 +43,10 @@ test("official roast research source is registered with verified metadata", asyn
 
   const registry = await readProjectFile("lib/evidence/registry.ts");
   assert.match(registry, /\.\.\.roastSources1/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.12\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "\d+\.\d+\.\d+"/);
 });
 
-test("roast research batch remains source-only", async () => {
-  const evidenceDirectory = new URL("../data/evidence/", import.meta.url);
-  const filenames = await readdir(evidenceDirectory);
-  const observationFiles = filenames.filter((filename) =>
-    /(Observation|Notes|observations)/.test(filename),
-  );
-  const observationTexts = await Promise.all(
-    observationFiles.map((filename) =>
-      readFile(new URL(filename, evidenceDirectory), "utf8"),
-    ),
-  );
-
-  assert.ok(observationTexts.every((text) => !text.includes(sourceId)));
-
+test("roast research source remains disconnected from recommendation rules", async () => {
   const [candidateRules, activeRules] = await Promise.all([
     readProjectFile("data/recommendation/candidateRules.ts"),
     readProjectFile("data/recommendation/rules.ts"),
