@@ -1,4 +1,5 @@
 import { advisorSourcesJamesHoffmann } from "../data/evidence/advisorSourcesJamesHoffmann.ts";
+import { advisorSourcesTetsuKasuya } from "../data/evidence/advisorSourcesTetsuKasuya.ts";
 import { expertVideoProvenance } from "../data/evidence/expertVideoProvenance.ts";
 import { evidenceObservations } from "../data/evidence/observations.ts";
 import { originVarietyObservations1 } from "../data/evidence/originVarietyObservations1.ts";
@@ -13,6 +14,7 @@ import { checkEvidenceSourceQuality } from "../lib/evidence/sourceQuality.ts";
 const sources = [
   ...evidenceSources,
   ...advisorSourcesJamesHoffmann,
+  ...advisorSourcesTetsuKasuya,
   ...originVarietySources1,
   ...roastSources1,
 ];
