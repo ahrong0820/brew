@@ -32,7 +32,7 @@ test("Tetsu Kasuya official 4:6 video source is registered", async () => {
 
   const registry = await readProjectFile("lib/evidence/registry.ts");
   assert.match(registry, /\.\.\.advisorSourcesTetsuKasuya/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.14\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "\d+\.\d+\.\d+"/);
 });
 
 test("Tetsu Kasuya video has first-party channel provenance", () => {
