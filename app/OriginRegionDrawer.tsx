@@ -92,7 +92,7 @@ export default function OriginRegionDrawer() {
       <button
         type="button"
         onClick={openDrawer}
-        className="fixed bottom-20 right-4 z-40 flex h-11 items-center gap-2 rounded-full border border-[#7b897c] bg-white px-4 text-sm font-semibold text-[#334138] shadow-lg transition hover:bg-[#f4f6f1] focus:outline-none focus:ring-2 focus:ring-[#2f6f5f] focus:ring-offset-2"
+        className="fixed bottom-[17rem] right-4 z-40 flex h-11 items-center gap-2 rounded-full border border-[#7b897c] bg-white px-4 text-sm font-semibold text-[#334138] shadow-lg transition hover:bg-[#f4f6f1] focus:outline-none focus:ring-2 focus:ring-[#2f6f5f] focus:ring-offset-2"
         aria-label="세부 산지 관리 열기"
       >
         <MapPinned aria-hidden="true" size={18} />
