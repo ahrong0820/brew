@@ -29,11 +29,11 @@ test("evidence status derives active recommendation rule counts", () => {
     rule.evidenceLinks.some((reference) => reference.sourceId.startsWith("expert:")),
   );
 
-  assert.equal(activeRules.length, 32);
+  assert.equal(activeRules.length, 34);
   assert.equal(heuristicRules.length, 28);
-  assert.equal(manufacturerRules.length, 1);
+  assert.equal(manufacturerRules.length, 3);
   assert.equal(personalRules.length, 3);
-  assert.equal(expertRules.length, 1);
+  assert.equal(expertRules.length, 3);
 });
 
 test("evidence status drawer shows active, candidate and source-only boundaries", async () => {
@@ -90,6 +90,8 @@ test("transparency UI does not connect candidates directly", async () => {
   assert.equal(engine.includes("candidateReadiness"), false);
   assert.equal(adjustment.includes("RecommendationEvidenceStatus"), false);
   assert.equal(adjustment.includes("candidateReadiness"), false);
-  assert.equal(activeRules.includes("candidate:grind:v60-hot:dial-in-v1"), false);
+  assert.equal(activeRules.includes("candidate:pour:v60-hot:foundation-v1"), false);
+  assert.equal(activeRules.includes("pour.v60-hot-paper.foundation.v1"), true);
+  assert.equal(activeRules.includes("time.v60-hot-paper.foundation.v1"), true);
   assert.equal(activeRules.includes("grind.v60-hot-paper.dial-in.v1"), true);
 });
