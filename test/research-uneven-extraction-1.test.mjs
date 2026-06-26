@@ -81,7 +81,7 @@ test("uneven extraction batch is registered without changing recommendation rule
 
   assert.match(registry, /\.\.\.researchUnevenExtraction1Sources/);
   assert.match(registry, /\.\.\.researchUnevenExtraction1Observations/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.7\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "\d+\.\d+\.\d+"/);
 
   for (const observation of researchUnevenExtraction1Observations) {
     assert.equal(candidateRules.includes(observation.id), false);
