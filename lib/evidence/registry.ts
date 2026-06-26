@@ -1,3 +1,4 @@
+import { eventBatch1Sources } from "@/data/evidence/eventBatch1";
 import { evidenceObservations } from "@/data/evidence/observations";
 import { researchBatch1Sources } from "@/data/evidence/researchBatch1";
 import { researchBatch1B } from "@/data/evidence/researchBatch1B";
@@ -10,11 +11,15 @@ import type {
   EvidenceSource,
 } from "@/lib/types/evidence";
 
-export const evidenceRegistryVersion = "1.1.0";
+export const evidenceRegistryVersion = "1.2.0";
 
 export const evidenceRegistry: EvidenceRegistry = {
   version: evidenceRegistryVersion,
-  sources: [...evidenceSources, ...researchBatch1Sources],
+  sources: [
+    ...evidenceSources,
+    ...researchBatch1Sources,
+    ...eventBatch1Sources,
+  ],
   observations: [
     ...evidenceObservations,
     ...researchBatch1Observations,
