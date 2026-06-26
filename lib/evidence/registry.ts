@@ -1,5 +1,8 @@
+import { advisorLineageScottRao } from "@/data/evidence/advisorLineageScottRao";
 import { advisorNotesA } from "@/data/evidence/advisorNotesA";
+import { advisorNotesScottRao } from "@/data/evidence/advisorNotesScottRao";
 import { advisorSourceA } from "@/data/evidence/advisorSourceA";
+import { advisorSourcesScottRao } from "@/data/evidence/advisorSourcesScottRao";
 import { equipmentData1Sources } from "@/data/evidence/equipmentData1";
 import { equipmentNotes1 } from "@/data/evidence/equipmentNotes1";
 import { equipmentNotes2 } from "@/data/evidence/equipmentNotes2";
@@ -17,7 +20,7 @@ import type {
   EvidenceSource,
 } from "@/lib/types/evidence";
 
-export const evidenceRegistryVersion = "1.4.0";
+export const evidenceRegistryVersion = "1.5.0";
 
 export const evidenceRegistry: EvidenceRegistry = {
   version: evidenceRegistryVersion,
@@ -27,6 +30,7 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...eventBatch1Sources,
     ...equipmentData1Sources,
     ...advisorSourceA,
+    ...advisorSourcesScottRao,
   ],
   observations: [
     ...evidenceObservations,
@@ -36,8 +40,11 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...equipmentNotes1,
     ...equipmentNotes2,
     ...advisorNotesA,
+    ...advisorNotesScottRao,
   ],
 };
+
+export const evidenceLineages = [...advisorLineageScottRao] as const;
 
 assertValidEvidenceRegistry(evidenceRegistry);
 
