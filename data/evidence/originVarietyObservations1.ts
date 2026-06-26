@@ -205,9 +205,6 @@ export const originVarietyObservations1 = [
     },
     context: {
       bean: {
-        originCountries: ["brazil", "central-america"],
-        originGroups: ["brazil", "latin-america"],
-        originRegions: ["Minas Gerais"],
         varieties: ["Caturra", "Bourbon"],
       },
     },
