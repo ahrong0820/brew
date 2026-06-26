@@ -31,6 +31,38 @@ export interface GrinderRecommendation {
   note: string;
 }
 
+export type RecommendationRuleParameter =
+  | "dose"
+  | "water"
+  | "ratio"
+  | "temperature"
+  | "grind"
+  | "time"
+  | "pour"
+  | "confidence"
+  | "personalization";
+
+export type RecommendationEvidenceKind =
+  | "published"
+  | "competition"
+  | "manufacturer"
+  | "expert"
+  | "heuristic"
+  | "personal";
+
+export interface RecommendationEvidenceReference {
+  kind: RecommendationEvidenceKind;
+  sourceId: string;
+  note?: string;
+}
+
+export interface AppliedRecommendationRule {
+  id: string;
+  parameter: RecommendationRuleParameter;
+  description: string;
+  evidence: RecommendationEvidenceReference[];
+}
+
 export interface BrewRecommendation {
   templateName: string;
   doseGrams: number;
@@ -44,4 +76,6 @@ export interface BrewRecommendation {
   reasons: string[];
   confidence: RecommendationConfidence;
   confidenceReason: string;
+  /** Traceable rule metadata. Legacy or externally constructed values may omit it. */
+  appliedRules?: AppliedRecommendationRule[];
 }
