@@ -1,6 +1,7 @@
 import type { GrinderProfile, TasteGoal } from "@/lib/types/coffee";
 import type {
   BrewRecommendation,
+  GrinderRecommendation,
   RecommendationStep,
 } from "@/lib/types/recommendation";
 
@@ -32,7 +33,8 @@ export function roundToStep(value: number, step: number) {
     return value;
   }
 
-  const precision = step < 1 ? 10 ** String(step).split(".")[1].length : 1;
+  const decimals = (String(step).split(".")[1] ?? "").length;
+  const precision = decimals > 0 ? 10 ** decimals : 1;
   return Math.round(Math.round(value / step) * step * precision) / precision;
 }
 
@@ -115,6 +117,50 @@ export function grinderDisplayRange(
   };
 }
 
+function grinderRangeWidth(grinder: GrinderProfile) {
+  if (grinder.model === "1zpresso-k-ultra") {
+    return 0.2;
+  }
+
+  if (grinder.model === "baratza-encore") {
+    return 2;
+  }
+
+  return (grinder.displayStep ?? 1) * 2;
+}
+
+function formatGrinderSetting(value: number, grinder: GrinderProfile) {
+  if (grinder.displayUnit === "dial") {
+    const decimals = (String(grinder.displayStep ?? 0.1).split(".")[1] ?? "").length;
+    return value.toFixed(Math.max(1, decimals));
+  }
+
+  return String(Math.round(value));
+}
+
+export function normalizeGrinderRecommendation(
+  recommendation: GrinderRecommendation,
+  grinder: GrinderProfile,
+): GrinderRecommendation {
+  if (!recommendation.isNumeric) {
+    return recommendation;
+  }
+
+  const rawValue = Number(recommendation.displayValue);
+  if (!Number.isFinite(rawValue)) {
+    return recommendation;
+  }
+
+  const value = normalizeGrinderSetting(rawValue, grinder);
+  const range = grinderDisplayRange(value, grinderRangeWidth(grinder), grinder);
+
+  return {
+    ...recommendation,
+    displayValue: formatGrinderSetting(value, grinder),
+    displayRange: `${formatGrinderSetting(range.min, grinder)}~${formatGrinderSetting(range.max, grinder)}`,
+  };
+}
+
 export function normalizeRecommendationSteps(
   steps: RecommendationStep[],
   totalWaterGrams: number,
@@ -181,6 +227,18 @@ export function normalizeRecommendation(
     targetTimeMinSeconds,
     targetTimeMaxSeconds,
     steps: normalizeRecommendationSteps(recommendation.steps, waterGrams),
+  };
+}
+
+export function normalizeRecommendationForGrinder(
+  recommendation: BrewRecommendation,
+  grinder: GrinderProfile,
+  options: NormalizeRecommendationOptions = {},
+) {
+  const normalized = normalizeRecommendation(recommendation, options);
+  return {
+    ...normalized,
+    grinder: normalizeGrinderRecommendation(normalized.grinder, grinder),
   };
 }
 
