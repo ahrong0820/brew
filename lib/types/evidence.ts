@@ -180,6 +180,7 @@ export type EvidenceVariableName =
   | "waterGrams"
   | "brewRatio"
   | "temperatureCelsius"
+  | "brewPressureBar"
   | "grinderSetting"
   | "representativeMicrons"
   | "pregrindWaterMicrolitersPerGram"
