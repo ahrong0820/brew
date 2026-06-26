@@ -64,8 +64,8 @@ export const evidenceWeightPolicy = {
   },
   conditionStateWeights: {
     match: 1,
-    partial: 0.75,
-    unknown: 0.85,
+    partial: 0.85,
+    unknown: 0.75,
     mismatch: 0.35,
     "not-applicable": 1,
   },
