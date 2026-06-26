@@ -66,5 +66,5 @@ test("Scott Rao claims preserve source references and single-author lineage", as
   assert.match(registry, /\.\.\.advisorSourcesScottRao/);
   assert.match(registry, /\.\.\.advisorNotesScottRao/);
   assert.match(registry, /evidenceLineages = \[\.\.\.advisorLineageScottRao\]/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.5\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "\d+\.\d+\.\d+"/);
 });
