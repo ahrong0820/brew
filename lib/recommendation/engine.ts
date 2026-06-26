@@ -11,6 +11,13 @@ import {
   personalHistorySourceId,
 } from "@/lib/recommendation/ruleEvidence";
 import {
+  v60FoundationRuleIds,
+} from "@/lib/recommendation/v60Foundation";
+import {
+  applyV60FoundationRecommendation,
+  appliesV60HotPaperFoundation,
+} from "@/lib/recommendation/v60FoundationRecommendation";
+import {
   beanBrewProfileStore,
   brewSessionStore,
 } from "@/lib/storage/coffeeData";
@@ -22,6 +29,7 @@ import type {
 
 function baseAppliedRules(input: RecommendationInput) {
   const brewer = input.preferences.defaultBrewer;
+  const usesV60Foundation = appliesV60HotPaperFoundation(input);
   const grinderEvidence =
     input.grinder.model === "holzklotz-e80"
       ? {
@@ -58,14 +66,22 @@ function baseAppliedRules(input: RecommendationInput) {
       ...grinderEvidence,
     }),
     createAppliedRule({
-      id: `pour.${brewer}.${input.tasteGoal}.v1`,
+      id: usesV60Foundation
+        ? v60FoundationRuleIds.pour
+        : `pour.${brewer}.${input.tasteGoal}.v1`,
       parameter: "pour",
-      description: "드리퍼와 맛 목표별 푸어 단계 및 누적 물량 적용",
+      description: usesV60Foundation
+        ? "HOT V60 종이필터에 30초 블루밍과 원형 본 주입 적용"
+        : "드리퍼와 맛 목표별 푸어 단계 및 누적 물량 적용",
     }),
     createAppliedRule({
-      id: `time.${brewer}.v1`,
+      id: usesV60Foundation
+        ? v60FoundationRuleIds.time
+        : `time.${brewer}.v1`,
       parameter: "time",
-      description: "드리퍼 유형별 목표 추출 시간 범위 적용",
+      description: usesV60Foundation
+        ? "HOT V60 종이필터 목표 시간을 2분 30초~3분으로 적용"
+        : "드리퍼 유형별 목표 추출 시간 범위 적용",
     }),
   ];
 }
@@ -130,6 +146,11 @@ export function createRecommendation(
     },
     input.grinder,
     { deriveWaterFromRatio: true },
+  );
+
+  recommendation = applyV60FoundationRecommendation(
+    recommendation,
+    recommendationInput,
   );
 
   if (!profile) {
