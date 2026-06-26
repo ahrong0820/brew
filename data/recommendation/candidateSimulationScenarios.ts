@@ -3,6 +3,8 @@ import type { CandidateSimulationScenario } from "@/lib/types/candidateSimulatio
 const grindCandidateRuleId = "candidate:grind:v60-hot:dial-in-v1";
 const pourCandidateRuleId = "candidate:pour:v60-hot:foundation-v1";
 const timeCandidateRuleId = "candidate:time:v60-hot:foundation-v1";
+const kUltraOfficialCandidateRuleId =
+  "candidate:grind:k-ultra-official-zero:pour-over-v1";
 
 export const candidateSimulationScenarios = [
   {
@@ -171,6 +173,120 @@ export const candidateSimulationScenarios = [
     id: "candidate-sim:v60-foundation-time:metal-out-of-scope",
     candidateRuleId: timeCandidateRuleId,
     context: { brewerType: "v60", drinkStyle: "hot", filterMaterial: "metal" },
+    expectedDecision: "not-applicable",
+  },
+  {
+    id: "candidate-sim:k-ultra-official:hot-v60-center",
+    candidateRuleId: kUltraOfficialCandidateRuleId,
+    context: {
+      brewerType: "v60",
+      drinkStyle: "hot",
+      filterMaterial: "paper",
+      grinderModel: "1zpresso-k-ultra",
+      grinderCalibrationProfile: "manufacturer-resistance-start-zero",
+    },
+    recipeInput: { doseGrams: 15, waterGrams: 240 },
+    expectedDecision: "apply",
+    expectedValues: {
+      grinderDisplayValue: 8.5,
+      grinderRangeMin: 8,
+      grinderRangeMax: 9,
+    },
+  },
+  {
+    id: "candidate-sim:k-ultra-official:positive-offset",
+    candidateRuleId: kUltraOfficialCandidateRuleId,
+    context: {
+      brewerType: "v60",
+      drinkStyle: "hot",
+      filterMaterial: "paper",
+      grinderModel: "1zpresso-k-ultra",
+      grinderCalibrationProfile: "manufacturer-resistance-start-zero",
+    },
+    recipeInput: {
+      doseGrams: 15,
+      waterGrams: 240,
+      grinderPersonalOffset: 0.2,
+    },
+    expectedDecision: "apply",
+    expectedValues: {
+      grinderDisplayValue: 8.7,
+      grinderRangeMin: 8,
+      grinderRangeMax: 9,
+    },
+  },
+  {
+    id: "candidate-sim:k-ultra-official:upper-clamp",
+    candidateRuleId: kUltraOfficialCandidateRuleId,
+    context: {
+      brewerType: "v60",
+      drinkStyle: "hot",
+      filterMaterial: "paper",
+      grinderModel: "1zpresso-k-ultra",
+      grinderCalibrationProfile: "manufacturer-resistance-start-zero",
+    },
+    recipeInput: {
+      doseGrams: 15,
+      waterGrams: 240,
+      grinderPersonalOffset: 1,
+    },
+    expectedDecision: "apply",
+    expectedValues: {
+      grinderDisplayValue: 9,
+      grinderRangeMin: 8,
+      grinderRangeMax: 9,
+    },
+  },
+  {
+    id: "candidate-sim:k-ultra-burr-no-rub:out-of-scope",
+    candidateRuleId: kUltraOfficialCandidateRuleId,
+    context: {
+      brewerType: "v60",
+      drinkStyle: "hot",
+      filterMaterial: "paper",
+      grinderModel: "1zpresso-k-ultra",
+      grinderCalibrationProfile: "burr-no-rub",
+    },
+    recipeInput: { doseGrams: 15, waterGrams: 240 },
+    expectedDecision: "not-applicable",
+  },
+  {
+    id: "candidate-sim:encore-official-profile:out-of-scope",
+    candidateRuleId: kUltraOfficialCandidateRuleId,
+    context: {
+      brewerType: "v60",
+      drinkStyle: "hot",
+      filterMaterial: "paper",
+      grinderModel: "baratza-encore",
+      grinderCalibrationProfile: "manufacturer-resistance-start-zero",
+    },
+    recipeInput: { doseGrams: 15, waterGrams: 240 },
+    expectedDecision: "not-applicable",
+  },
+  {
+    id: "candidate-sim:k-ultra-official:iced-out-of-scope",
+    candidateRuleId: kUltraOfficialCandidateRuleId,
+    context: {
+      brewerType: "v60",
+      drinkStyle: "iced",
+      filterMaterial: "paper",
+      grinderModel: "1zpresso-k-ultra",
+      grinderCalibrationProfile: "manufacturer-resistance-start-zero",
+    },
+    recipeInput: { doseGrams: 15, waterGrams: 240 },
+    expectedDecision: "not-applicable",
+  },
+  {
+    id: "candidate-sim:k-ultra-official:switch-out-of-scope",
+    candidateRuleId: kUltraOfficialCandidateRuleId,
+    context: {
+      brewerType: "switch",
+      drinkStyle: "hot",
+      filterMaterial: "paper",
+      grinderModel: "1zpresso-k-ultra",
+      grinderCalibrationProfile: "manufacturer-resistance-start-zero",
+    },
+    recipeInput: { doseGrams: 15, waterGrams: 240 },
     expectedDecision: "not-applicable",
   },
 ] as const satisfies readonly CandidateSimulationScenario[];
