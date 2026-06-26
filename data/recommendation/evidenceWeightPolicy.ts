@@ -1,7 +1,7 @@
 import type { EvidenceWeightPolicy } from "@/lib/types/evidenceWeight";
 
 export const evidenceWeightPolicy = {
-  version: "1.1.0",
+  version: "1.2.0",
   sourceTypeWeights: {
     paper: 1,
     manufacturer: 0.9,
