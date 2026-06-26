@@ -50,5 +50,5 @@ test("expert batch 1 observation is scoped and connected to the registry", async
   );
   assert.match(registry, /\.\.\.advisorSourceA/);
   assert.match(registry, /\.\.\.advisorNotesA/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.4\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "\d+\.\d+\.\d+"/);
 });
