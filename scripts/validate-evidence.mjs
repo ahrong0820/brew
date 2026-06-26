@@ -2,6 +2,7 @@ import { advisorSourcesJamesHoffmann } from "../data/evidence/advisorSourcesJame
 import { advisorSourcesTetsuKasuya } from "../data/evidence/advisorSourcesTetsuKasuya.ts";
 import { expertVideoProvenance } from "../data/evidence/expertVideoProvenance.ts";
 import { evidenceObservations } from "../data/evidence/observations.ts";
+import { manufacturerSourcesHarioV60 } from "../data/evidence/manufacturerSourcesHarioV60.ts";
 import { originVarietyObservations1 } from "../data/evidence/originVarietyObservations1.ts";
 import { originVarietySources1 } from "../data/evidence/originVarietySources1.ts";
 import { roastObservations1 } from "../data/evidence/roastObservations1.ts";
@@ -13,6 +14,7 @@ import { checkEvidenceSourceQuality } from "../lib/evidence/sourceQuality.ts";
 
 const sources = [
   ...evidenceSources,
+  ...manufacturerSourcesHarioV60,
   ...advisorSourcesJamesHoffmann,
   ...advisorSourcesTetsuKasuya,
   ...originVarietySources1,

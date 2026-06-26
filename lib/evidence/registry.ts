@@ -11,6 +11,7 @@ import { equipmentNotes2 } from "@/data/evidence/equipmentNotes2";
 import { eventBatch1Sources } from "@/data/evidence/eventBatch1";
 import { eventBatch1Observations } from "@/data/evidence/eventBatch1Observations";
 import { evidenceObservations } from "@/data/evidence/observations";
+import { manufacturerSourcesHarioV60 } from "@/data/evidence/manufacturerSourcesHarioV60";
 import { originVarietyObservations1 } from "@/data/evidence/originVarietyObservations1";
 import { originVarietySources1 } from "@/data/evidence/originVarietySources1";
 import { researchBatch1Sources } from "@/data/evidence/researchBatch1";
@@ -32,7 +33,7 @@ import type {
   EvidenceSource,
 } from "@/lib/types/evidence";
 
-export const evidenceRegistryVersion = "1.14.0";
+export const evidenceRegistryVersion = "1.15.0";
 
 export const evidenceRegistry: EvidenceRegistry = {
   version: evidenceRegistryVersion,
@@ -44,6 +45,7 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...researchPressureFlow1Sources,
     ...eventBatch1Sources,
     ...equipmentData1Sources,
+    ...manufacturerSourcesHarioV60,
     ...advisorSourceA,
     ...advisorSourcesJamesHoffmann,
     ...advisorSourcesScottRao,
