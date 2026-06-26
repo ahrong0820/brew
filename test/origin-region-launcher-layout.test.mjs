@@ -49,7 +49,8 @@ test("mobile navigation hides the origin launcher and exposes it in tools", asyn
   assert.match(navigation, /openLauncher\("origin-region"\)/);
   assert.match(navigation, /<MapPinned aria-hidden="true" size={21} \/>/);
   assert.match(navigation, /저장 원두에 지역·주·구역 정보를 추가하거나 수정합니다/);
-  assert.match(originDrawer, />\s*세부 산지\s*<\/button>/s);
+  assert.match(originDrawer, /aria-label="세부 산지 관리 열기"/);
+  assert.match(originDrawer, /세부 산지\s*<\/button>/s);
 });
 
 test("origin region launcher no longer shares the recommendation position", async () => {
