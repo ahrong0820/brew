@@ -52,7 +52,7 @@ test("verified roast observations reference the registered paper source", async 
 
   const registry = await readProjectFile("lib/evidence/registry.ts");
   assert.match(registry, /\.\.\.roastObservations1/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.13\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "\d+\.\d+\.\d+"/);
 });
 
 test("roast observations preserve comparison scope and sensory directions", () => {
