@@ -7,7 +7,7 @@ import type {
   CandidateRuleRegistry,
 } from "@/lib/types/candidateRule";
 
-export const candidateRuleRegistryVersion = "1.0.0";
+export const candidateRuleRegistryVersion = "1.1.0";
 
 export const candidateRuleRegistry: CandidateRuleRegistry = {
   version: candidateRuleRegistryVersion,
@@ -22,6 +22,9 @@ export type CandidateRuleValidationCode =
   | "duplicate-observation-role"
   | "missing-review-metadata"
   | "missing-rejection-reason"
+  | "missing-validation-plan"
+  | "invalid-validation-plan"
+  | "validation-plan-parameter-mismatch"
   | "invalid-promotion"
   | "personal-rule-without-personal-evidence";
 
@@ -46,6 +49,10 @@ function observationEntries(rule: CandidateRule) {
       role: "contradicts" as const,
     })),
   ];
+}
+
+function hasDuplicates(values: readonly string[]) {
+  return new Set(values).size !== values.length;
 }
 
 export function validateCandidateRuleRegistry(
@@ -109,6 +116,47 @@ export function validateCandidateRuleRegistry(
         path: `${path}.rejectionReason`,
         message: "거절된 후보 규칙에는 거절 사유가 필요합니다.",
       });
+    }
+
+    if (
+      (rule.status === "reviewed" || rule.status === "validated") &&
+      !rule.validationPlan
+    ) {
+      issues.push({
+        code: "missing-validation-plan",
+        path: `${path}.validationPlan`,
+        message: "reviewed 또는 validated 후보에는 검증 계획이 필요합니다.",
+      });
+    }
+
+    if (rule.validationPlan) {
+      const plan = rule.validationPlan;
+      const invalidPlan =
+        !plan.implementationKey.trim() ||
+        plan.changedParameters.length !== 1 ||
+        plan.scenarioIds.length === 0 ||
+        plan.acceptanceCriteria.length === 0 ||
+        hasDuplicates(plan.scenarioIds) ||
+        plan.heldConstantParameters.some((parameter) =>
+          plan.changedParameters.includes(parameter),
+        );
+
+      if (invalidPlan) {
+        issues.push({
+          code: "invalid-validation-plan",
+          path: `${path}.validationPlan`,
+          message:
+            "검증 계획은 구현 키, 단일 변경 변수, 중복 없는 시나리오와 수용 기준을 포함해야 하며 고정 변수와 변경 변수가 겹치면 안 됩니다.",
+        });
+      }
+
+      if (plan.changedParameters[0] !== rule.parameter) {
+        issues.push({
+          code: "validation-plan-parameter-mismatch",
+          path: `${path}.validationPlan.changedParameters`,
+          message: "검증 계획의 단일 변경 변수는 후보 규칙 parameter와 같아야 합니다.",
+        });
+      }
     }
 
     if (
