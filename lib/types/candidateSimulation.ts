@@ -6,10 +6,19 @@ import type {
 import type { RecommendationRuleParameter } from "@/lib/types/recommendation";
 
 export type CandidateSimulationDecision =
+  | "apply"
   | "finer"
   | "coarser"
   | "hold"
   | "not-applicable";
+
+export interface CandidateSimulationExpectedValues {
+  bloomWaterGrams?: number;
+  bloomTimeSeconds?: number;
+  mainPourStartSeconds?: number;
+  targetTimeMinSeconds?: number;
+  targetTimeMaxSeconds?: number;
+}
 
 export interface CandidateSimulationScenario {
   id: string;
@@ -19,13 +28,18 @@ export interface CandidateSimulationScenario {
     drinkStyle: DrinkStyle;
     filterMaterial: string;
   };
-  signal: {
+  signal?: {
     tastingResult: TastingResult;
     actualTimeSeconds: number;
     targetTimeMinSeconds: number;
     targetTimeMaxSeconds: number;
   };
+  recipeInput?: {
+    doseGrams: number;
+    waterGrams: number;
+  };
   expectedDecision: CandidateSimulationDecision;
+  expectedValues?: CandidateSimulationExpectedValues;
 }
 
 export interface CandidateSimulationResult {
@@ -35,6 +49,8 @@ export interface CandidateSimulationResult {
   decision: CandidateSimulationDecision;
   changedParameters: readonly RecommendationRuleParameter[];
   expectedDecision: CandidateSimulationDecision;
+  actualValues?: CandidateSimulationExpectedValues;
+  expectedValues?: CandidateSimulationExpectedValues;
   passed: boolean;
   reason: string;
 }
