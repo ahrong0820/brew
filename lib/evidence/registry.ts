@@ -21,6 +21,7 @@ import { researchPressureFlow1Sources } from "@/data/evidence/researchPressureFl
 import { researchPressureFlow1Observations } from "@/data/evidence/researchPressureFlow1Observations";
 import { researchUnevenExtraction1Sources } from "@/data/evidence/researchUnevenExtraction1";
 import { researchUnevenExtraction1Observations } from "@/data/evidence/researchUnevenExtraction1Observations";
+import { roastObservations1 } from "@/data/evidence/roastObservations1";
 import { roastSources1 } from "@/data/evidence/roastSources1";
 import { evidenceSources } from "@/data/evidence/sources";
 import { assertValidEvidenceRegistry } from "@/lib/evidence/validation";
@@ -30,7 +31,7 @@ import type {
   EvidenceSource,
 } from "@/lib/types/evidence";
 
-export const evidenceRegistryVersion = "1.12.0";
+export const evidenceRegistryVersion = "1.13.0";
 
 export const evidenceRegistry: EvidenceRegistry = {
   version: evidenceRegistryVersion,
@@ -61,6 +62,7 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...advisorNotesA,
     ...advisorNotesScottRao,
     ...originVarietyObservations1,
+    ...roastObservations1,
   ],
 };
 
