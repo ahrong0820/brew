@@ -17,7 +17,13 @@ export const researchBatch1Observations = [
         drinkStyles: ["hot"],
       },
     },
-    variables: [],
+    variables: [
+      {
+        name: "temperatureCelsius",
+        role: "condition",
+        value: { kind: "text", value: "87, 90, and 93 celsius" },
+      },
+    ],
     assessment: {
       extractionConfidence: "high",
       directness: "partially-applicable",
