@@ -86,6 +86,7 @@ export interface Bean {
   roaster?: string;
   originCountry: OriginCountry;
   originGroup: OriginGroup;
+  originRegions?: readonly string[];
   roastLevel: RoastLevel;
   process: ProcessMethod;
   roastDate?: string;
