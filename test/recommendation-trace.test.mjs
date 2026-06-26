@@ -52,6 +52,9 @@ test("trace snapshot preserves rule versions and evidence references", () => {
     "1.0.0",
   );
 
+  assert.equal(trace.engineVersion, "1.0.0");
+  assert.equal(trace.ruleRegistryVersion, "1.0.0");
+  assert.equal(trace.evidenceRegistryVersion, "1.0.0");
   assert.equal(trace.appliedRules.length, 1);
   assert.equal(trace.appliedRules[0].ruleId, "ratio.taste-goal.v1");
   assert.equal(trace.appliedRules[0].ruleVersion, 1);
