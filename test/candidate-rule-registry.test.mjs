@@ -8,25 +8,28 @@ async function readProjectFile(path) {
   return readFile(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
-test("candidate rules remain separate from active recommendation rules", async () => {
+test("validated candidate records its active rule promotion", async () => {
   assert.equal(candidateRules.length, 1);
 
   const candidate = candidateRules[0];
-  assert.equal(candidate.status, "reviewed");
+  assert.equal(candidate.status, "validated");
   assert.equal(candidate.audience, "global");
   assert.equal(candidate.parameter, "grind");
   assert.equal(candidate.scope.brew.brewerTypes[0], "v60");
   assert.equal(candidate.scope.brew.drinkStyles[0], "hot");
   assert.equal(candidate.scope.brew.filterMaterials[0], "paper");
-  assert.ok(candidate.confidenceScore >= 0 && candidate.confidenceScore <= 1);
+  assert.equal(candidate.confidenceScore, 0.46);
   assert.equal(candidate.reviewedBy, "project-maintainer");
-  assert.equal(candidate.reviewedAt, "2026-06-26");
-  assert.equal(candidate.promotion, undefined);
+  assert.equal(candidate.reviewedAt, "2026-06-27");
+  assert.equal(candidate.promotion.ruleId, "grind.v60-hot-paper.dial-in.v1");
+  assert.equal(candidate.promotion.ruleVersion, 1);
+  assert.equal(candidate.promotion.ruleRegistryVersion, "1.1.0");
   assert.equal(candidate.validationPlan.targetLayer, "post-brew-adjustment");
   assert.deepEqual(candidate.validationPlan.changedParameters, ["grind"]);
 
   const activeRules = await readProjectFile("data/recommendation/rules.ts");
   assert.equal(activeRules.includes(candidate.id), false);
+  assert.equal(activeRules.includes(candidate.promotion.ruleId), true);
 });
 
 test("candidate evidence separates support, limits and contradictions", async () => {
@@ -52,7 +55,7 @@ test("candidate evidence separates support, limits and contradictions", async ()
   }
 });
 
-test("candidate registry groups repeated observations by source", async () => {
+test("candidate registry validates evidence and promotion metadata", async () => {
   const [types, registry] = await Promise.all([
     readProjectFile("lib/types/candidateRule.ts"),
     readProjectFile("lib/recommendation/candidateRuleRegistry.ts"),
@@ -71,5 +74,5 @@ test("candidate registry groups repeated observations by source", async () => {
   assert.match(registry, /personal-rule-without-personal-evidence/);
   assert.match(registry, /missing-validation-plan/);
   assert.match(registry, /validation-plan-parameter-mismatch/);
-  assert.match(registry, /candidateRuleRegistryVersion = "1\.1\.0"/);
+  assert.match(registry, /invalid-promotion/);
 });
