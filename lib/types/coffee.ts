@@ -1,3 +1,5 @@
+import type { RecommendationTraceSnapshot } from "@/lib/types/recommendationTrace";
+
 export type OriginCountry =
   | "ethiopia"
   | "kenya"
@@ -168,6 +170,8 @@ export interface RecipeSnapshot {
   totalTimeSeconds: number;
   targetTimeMinSeconds: number;
   targetTimeMaxSeconds: number;
+  /** Legacy snapshots may omit trace metadata. */
+  recommendationTrace?: RecommendationTraceSnapshot;
   steps: RecipeStepSnapshot[];
 }
 
