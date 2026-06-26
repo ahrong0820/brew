@@ -1,5 +1,11 @@
-import { originVarietySources1 } from "@/data/evidence/originVarietySources1";
 import type { EvidenceObservation } from "@/lib/types/evidence";
+
+const sourceIds = {
+  about: "expert:world-coffee-research:varieties-catalog:about",
+  bourbon: "expert:world-coffee-research:varieties-catalog:bourbon",
+  sl28: "expert:world-coffee-research:varieties-catalog:sl28",
+  caturra: "expert:world-coffee-research:varieties-catalog:caturra",
+} as const;
 
 const reviewedAt = "2026-06-26";
 const timestamp = "2026-06-26T00:00:00Z";
@@ -7,7 +13,7 @@ const timestamp = "2026-06-26T00:00:00Z";
 export const originVarietyObservations1 = [
   {
     id: "obs:wcr-varieties-1:catalog-context-limitations",
-    sourceId: originVarietySources1[0].id,
+    sourceId: sourceIds.about,
     kind: "expert-guidance",
     reviewStatus: "reviewed",
     summary:
@@ -49,7 +55,7 @@ export const originVarietyObservations1 = [
   },
   {
     id: "obs:wcr-varieties-1:bourbon-altitude-quality",
-    sourceId: originVarietySources1[1].id,
+    sourceId: sourceIds.bourbon,
     kind: "expert-guidance",
     reviewStatus: "reviewed",
     summary:
@@ -95,7 +101,7 @@ export const originVarietyObservations1 = [
   },
   {
     id: "obs:wcr-varieties-1:sl28-altitude-quality-distribution",
-    sourceId: originVarietySources1[2].id,
+    sourceId: sourceIds.sl28,
     kind: "expert-guidance",
     reviewStatus: "reviewed",
     summary:
@@ -143,7 +149,7 @@ export const originVarietyObservations1 = [
   },
   {
     id: "obs:wcr-varieties-1:caturra-altitude-quality",
-    sourceId: originVarietySources1[3].id,
+    sourceId: sourceIds.caturra,
     kind: "expert-guidance",
     reviewStatus: "reviewed",
     summary:
@@ -189,7 +195,7 @@ export const originVarietyObservations1 = [
   },
   {
     id: "obs:wcr-varieties-1:caturra-lineage-origin-history",
-    sourceId: originVarietySources1[3].id,
+    sourceId: sourceIds.caturra,
     kind: "expert-guidance",
     reviewStatus: "reviewed",
     summary:
