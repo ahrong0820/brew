@@ -9,6 +9,20 @@ export type CandidateRuleStatus =
 
 export type CandidateRuleAudience = "global" | "personal";
 
+export type CandidateRuleTargetLayer =
+  | "initial-recommendation"
+  | "post-brew-adjustment"
+  | "informational";
+
+export interface CandidateRuleValidationPlan {
+  targetLayer: CandidateRuleTargetLayer;
+  implementationKey: string;
+  changedParameters: readonly RecommendationRuleParameter[];
+  heldConstantParameters: readonly RecommendationRuleParameter[];
+  scenarioIds: readonly string[];
+  acceptanceCriteria: readonly string[];
+}
+
 export interface CandidateRulePromotion {
   ruleId: string;
   ruleVersion: number;
@@ -28,6 +42,7 @@ export interface CandidateRule {
   contradictingObservationIds: readonly string[];
   status: CandidateRuleStatus;
   confidenceScore: number;
+  validationPlan?: CandidateRuleValidationPlan;
   reviewedBy?: string;
   reviewedAt?: string;
   rejectionReason?: string;
