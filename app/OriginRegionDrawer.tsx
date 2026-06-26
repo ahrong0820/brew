@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import {
   formatOriginRegionInput,
   parseOriginRegionInput,
-} from "@/lib/domain/originRegionInput";
+} from "@/lib/domain/originRegions";
 import { withUpdatedTimestamp } from "@/lib/domain/factories";
 import {
   beanStore,
