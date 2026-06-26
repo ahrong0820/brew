@@ -6,10 +6,10 @@ import {
   clearedCurrentBestSessionId,
   listExplicitlyClearedProfileIds,
 } from "@/lib/brew/currentBestState";
+import { isCompatibleBean } from "@/lib/storage/beanGuard";
 import { isCompatibleBrewSession } from "@/lib/storage/brewSessionGuard";
 import { createCollectionStore } from "@/lib/storage/collectionStore";
 import {
-  isBean,
   isBeanBrewProfile,
   isGrinderProfile,
   isUserPreferences,
@@ -30,7 +30,7 @@ import type {
 
 export const beanStore = createCollectionStore<Bean>(
   storageKeys.beans,
-  isBean,
+  isCompatibleBean,
 );
 
 export const grinderProfileStore = createCollectionStore<GrinderProfile>(

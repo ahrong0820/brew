@@ -140,6 +140,7 @@ export interface EvidenceContext {
   bean?: {
     originCountries?: readonly OriginCountry[];
     originGroups?: readonly OriginGroup[];
+    originRegions?: readonly string[];
     roastLevels?: readonly RoastLevel[];
     processes?: readonly ProcessMethod[];
     varieties?: readonly string[];
