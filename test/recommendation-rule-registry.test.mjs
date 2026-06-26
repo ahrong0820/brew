@@ -1,19 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { evidenceObservations } from "../data/evidence/observations.ts";
+import { evidenceSources } from "../data/evidence/sources.ts";
 import { recommendationRules } from "../data/recommendation/rules.ts";
-import {
-  createAppliedRule,
-  createAppliedRuleFromRegistry,
-} from "../lib/recommendation/ruleEvidence.ts";
-import {
-  validateRecommendationRuleRegistry,
-} from "../lib/recommendation/ruleRegistry.ts";
-
-const registry = {
-  version: "1.0.0",
-  rules: recommendationRules,
-};
 
 const grinders = [
   "1zpresso-k-ultra",
@@ -39,41 +29,75 @@ const expectedRuleIds = new Set([
   "personalization.success-history.repeat.v1",
 ]);
 
-test("current recommendation rules form a valid registry", () => {
-  assert.deepEqual(validateRecommendationRuleRegistry(registry), []);
-});
-
 test("registry covers every rule id the engine can emit", () => {
   const actualIds = new Set(recommendationRules.map((rule) => rule.id));
   assert.deepEqual(actualIds, expectedRuleIds);
 });
 
-test("registered metadata is canonical", () => {
-  const applied = createAppliedRule({
-    id: "ratio.taste-goal.v1",
-    parameter: "temperature",
-    description: "compatibility placeholder",
-  });
+test("rule ids are unique and versions are positive integers", () => {
+  const ids = recommendationRules.map((rule) => rule.id);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.ok(
+    recommendationRules.every(
+      (rule) => Number.isInteger(rule.version) && rule.version >= 1,
+    ),
+  );
+});
 
-  assert.equal(applied.version, 1);
-  assert.equal(applied.parameter, "ratio");
-  assert.equal(applied.description, "맛 목표별 초기 추출 비율 적용");
-  assert.equal(applied.evidence[0].sourceId, "internal:initial-rule-set:v1");
+test("all rule evidence references resolve to registered sources and observations", () => {
+  const sourceById = new Map(
+    evidenceSources.map((source) => [source.id, source]),
+  );
+  const observationById = new Map(
+    evidenceObservations.map((observation) => [observation.id, observation]),
+  );
+
+  for (const rule of recommendationRules) {
+    for (const link of rule.evidenceLinks) {
+      assert.ok(sourceById.has(link.sourceId), `${rule.id}: ${link.sourceId}`);
+
+      if (!link.observationId) {
+        continue;
+      }
+
+      const observation = observationById.get(link.observationId);
+      assert.ok(observation, `${rule.id}: ${link.observationId}`);
+      assert.equal(observation.sourceId, link.sourceId);
+
+      if (
+        rule.status === "active" &&
+        (link.role === "supports" || link.role === "calibrates")
+      ) {
+        assert.equal(observation.reviewStatus, "reviewed");
+      }
+    }
+  }
+});
+
+test("canonical ratio rule metadata is stored in the registry", () => {
+  const rule = recommendationRules.find(
+    (candidate) => candidate.id === "ratio.taste-goal.v1",
+  );
+
+  assert.equal(rule.version, 1);
+  assert.equal(rule.parameter, "ratio");
+  assert.equal(rule.description, "맛 목표별 초기 추출 비율 적용");
   assert.equal(
-    applied.evidence[0].observationId,
+    rule.evidenceLinks[0].observationId,
     "obs:internal:initial-rule-set:baseline-v1",
   );
 });
 
 test("E80 rule includes manufacturer calibration evidence", () => {
-  const applied = createAppliedRuleFromRegistry("grind.holzklotz-e80.v1");
+  const rule = recommendationRules.find(
+    (candidate) => candidate.id === "grind.holzklotz-e80.v1",
+  );
 
-  assert.equal(applied.version, 1);
   assert.ok(
-    applied.evidence.some(
-      (evidence) =>
-        evidence.kind === "manufacturer" &&
-        evidence.observationId ===
+    rule.evidenceLinks.some(
+      (link) =>
+        link.role === "calibrates" &&
+        link.observationId ===
           "obs:manufacturer:holzklotz-e80:step-micron-table-v1",
     ),
   );
