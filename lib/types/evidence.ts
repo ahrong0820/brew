@@ -47,15 +47,15 @@ export interface EvidenceSourceBase {
   id: string;
   type: EvidenceSourceType;
   title: string;
-  authors: EvidenceAuthor[];
+  authors: readonly EvidenceAuthor[];
   publisher?: string;
   publishedAt?: string;
   accessedAt: string;
   language?: string;
   canonicalUrl?: string;
-  identifiers: EvidenceIdentifier[];
+  identifiers: readonly EvidenceIdentifier[];
   status: EvidenceSourceStatus;
-  notes?: string[];
+  notes?: readonly string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -83,8 +83,8 @@ export interface ExpertEvidenceSource extends EvidenceSourceBase {
   type: "expert";
   medium: "video" | "article" | "book" | "interview" | "course" | "social-post";
   expertProfile?: {
-    credentials?: string[];
-    competitionHistory?: string[];
+    credentials?: readonly string[];
+    competitionHistory?: readonly string[];
     organization?: string;
   };
 }
@@ -138,19 +138,19 @@ export interface NumericRange {
 
 export interface EvidenceContext {
   bean?: {
-    originCountries?: OriginCountry[];
-    originGroups?: OriginGroup[];
-    roastLevels?: RoastLevel[];
-    processes?: ProcessMethod[];
-    varieties?: string[];
+    originCountries?: readonly OriginCountry[];
+    originGroups?: readonly OriginGroup[];
+    roastLevels?: readonly RoastLevel[];
+    processes?: readonly ProcessMethod[];
+    varieties?: readonly string[];
     altitudeMeters?: NumericRange;
     roastAgeDays?: NumericRange;
   };
   brew?: {
-    brewerTypes?: BrewerType[];
-    drinkStyles?: DrinkStyle[];
-    tasteGoals?: TasteGoal[];
-    filterMaterials?: string[];
+    brewerTypes?: readonly BrewerType[];
+    drinkStyles?: readonly DrinkStyle[];
+    tasteGoals?: readonly TasteGoal[];
+    filterMaterials?: readonly string[];
     doseGrams?: NumericRange;
     ratio?: NumericRange;
     waterGrams?: NumericRange;
@@ -158,8 +158,8 @@ export interface EvidenceContext {
     targetTimeSeconds?: NumericRange;
   };
   grinder?: {
-    models?: GrinderModel[];
-    burrTypes?: string[];
+    models?: readonly GrinderModel[];
+    burrTypes?: readonly string[];
     settingRange?: NumericRange;
     representativeMicrons?: NumericRange;
   };
@@ -247,7 +247,7 @@ export interface EvidenceAssessment {
     | "heuristic"
     | "unknown";
   reproducibility: "single-source" | "multiple-sources" | "replicated" | "unknown";
-  limitations: string[];
+  limitations: readonly string[];
   reviewedBy?: string;
   reviewedAt?: string;
 }
@@ -271,10 +271,10 @@ export interface EvidenceObservation {
   summary: string;
   excerpt: EvidenceExcerpt;
   context: EvidenceContext;
-  variables: ObservationVariable[];
+  variables: readonly ObservationVariable[];
   outcome?: ObservationOutcome;
   assessment: EvidenceAssessment;
-  tags: string[];
+  tags: readonly string[];
   createdAt: string;
   updatedAt: string;
 }
