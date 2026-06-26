@@ -1,5 +1,6 @@
 import { evidenceObservations } from "@/data/evidence/observations";
 import { researchBatch1Sources } from "@/data/evidence/researchBatch1";
+import { researchBatch1B } from "@/data/evidence/researchBatch1B";
 import { researchBatch1Observations } from "@/data/evidence/researchBatch1Observations";
 import { evidenceSources } from "@/data/evidence/sources";
 import { assertValidEvidenceRegistry } from "@/lib/evidence/validation";
@@ -14,7 +15,11 @@ export const evidenceRegistryVersion = "1.1.0";
 export const evidenceRegistry: EvidenceRegistry = {
   version: evidenceRegistryVersion,
   sources: [...evidenceSources, ...researchBatch1Sources],
-  observations: [...evidenceObservations, ...researchBatch1Observations],
+  observations: [
+    ...evidenceObservations,
+    ...researchBatch1Observations,
+    ...researchBatch1B,
+  ],
 };
 
 assertValidEvidenceRegistry(evidenceRegistry);
