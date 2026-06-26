@@ -21,7 +21,7 @@ export const researchGrindStatic1Sources = [
     journal: "Preprint",
     peerReviewStatus: "preprint",
     notes: [
-      "arXiv v3 PDF의 9-10쪽 Figure 4-5와 해당 본문을 페이지 렌더링으로 직접 검수했습니다.",
+      "arXiv v3 PDF의 9-11쪽 Figure 4-5와 해당 본문을 페이지 렌더링으로 직접 검수했습니다.",
       "EK43 stock 98 mm burrs, 세 원두, light/dark roast, Mastersizer 2000 입도 분석과 반복 측정을 사용했습니다.",
       "추출 결과는 다크 로스트 에스프레소 조건에서 측정됐으며 V60 또는 종이 필터 추출을 직접 시험하지 않았습니다.",
       "논문 결론의 pour-over 막힘 언급은 저자의 외삽이므로 Observation으로 등록하지 않습니다.",
