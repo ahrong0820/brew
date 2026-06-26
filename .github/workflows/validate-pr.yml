@@ -11,14 +11,19 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      - name: Locate fixed evidence registry assertions
+      - name: Capture failing test output
         env:
           HEAD_REF: ${{ github.head_ref }}
         run: |
           curl -fsSL "https://codeload.github.com/${GITHUB_REPOSITORY}/zip/refs/heads/${HEAD_REF}" -o repo.zip
           unzip -q repo.zip
           cd "${GITHUB_REPOSITORY#*/}-${HEAD_REF}"
-          grep -RInE 'evidenceRegistryVersion|1\.14\.0|1\.15\.0' test || true
-          exit 1
+          corepack enable
+          pnpm install --frozen-lockfile >/dev/null
+          set +e
+          pnpm test > test-output.log 2>&1
+          status=$?
+          tail -n 65 test-output.log
+          exit $status
