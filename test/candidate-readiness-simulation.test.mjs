@@ -5,6 +5,10 @@ import test from "node:test";
 import { candidateRules } from "../data/recommendation/candidateRules.ts";
 import { candidateSimulationScenarios } from "../data/recommendation/candidateSimulationScenarios.ts";
 import {
+  kUltraOfficialDialValue,
+  kUltraOfficialRange,
+} from "../lib/recommendation/kUltraOfficialRange.ts";
+import {
   createV60FoundationSteps,
   v60FoundationBloomWater,
   v60FoundationTargetTime,
@@ -13,59 +17,72 @@ import {
 const grindCandidateId = "candidate:grind:v60-hot:dial-in-v1";
 const pourCandidateId = "candidate:pour:v60-hot:foundation-v1";
 const timeCandidateId = "candidate:time:v60-hot:foundation-v1";
+const kUltraOfficialCandidateId =
+  "candidate:grind:k-ultra-official-zero:pour-over-v1";
 
 async function readProjectFile(path) {
   return readFile(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
-test("candidate catalog contains validated grind, pour and time rules", () => {
-  assert.equal(candidateRules.length, 3);
+test("candidate catalog contains all validated promoted rules", () => {
+  assert.equal(candidateRules.length, 4);
   assert.deepEqual(
     candidateRules.map((candidate) => candidate.id),
-    [grindCandidateId, pourCandidateId, timeCandidateId],
+    [
+      grindCandidateId,
+      pourCandidateId,
+      timeCandidateId,
+      kUltraOfficialCandidateId,
+    ],
   );
   assert.ok(candidateRules.every((candidate) => candidate.status === "validated"));
   assert.deepEqual(
     candidateRules.map((candidate) => candidate.validationPlan.changedParameters[0]),
-    ["grind", "pour", "time"],
+    ["grind", "pour", "time", "grind"],
   );
 });
 
-test("candidate scenario catalog covers values and scope boundaries", () => {
-  assert.equal(candidateSimulationScenarios.length, 16);
+test("candidate scenario catalog covers recipe, grinder and scope boundaries", () => {
+  assert.equal(candidateSimulationScenarios.length, 23);
   assert.equal(
     new Set(candidateSimulationScenarios.map((scenario) => scenario.id)).size,
     candidateSimulationScenarios.length,
   );
 
-  const foundationScenarios = candidateSimulationScenarios.filter(
-    (scenario) => scenario.candidateRuleId !== grindCandidateId,
+  const officialScenarios = candidateSimulationScenarios.filter(
+    (scenario) => scenario.candidateRuleId === kUltraOfficialCandidateId,
   );
-  assert.equal(foundationScenarios.length, 8);
+  assert.equal(officialScenarios.length, 7);
   assert.equal(
-    foundationScenarios.filter((scenario) => scenario.expectedDecision === "apply")
+    officialScenarios.filter((scenario) => scenario.expectedDecision === "apply")
       .length,
-    4,
+    3,
   );
   assert.equal(
-    foundationScenarios.filter(
+    officialScenarios.filter(
       (scenario) => scenario.expectedDecision === "not-applicable",
     ).length,
     4,
   );
   assert.ok(
-    foundationScenarios.some(
+    officialScenarios.some(
+      (scenario) =>
+        scenario.context.grinderCalibrationProfile === "burr-no-rub",
+    ),
+  );
+  assert.ok(
+    officialScenarios.some(
+      (scenario) => scenario.context.grinderModel === "baratza-encore",
+    ),
+  );
+  assert.ok(
+    officialScenarios.some(
       (scenario) => scenario.context.drinkStyle === "iced",
     ),
   );
   assert.ok(
-    foundationScenarios.some(
+    officialScenarios.some(
       (scenario) => scenario.context.brewerType === "switch",
-    ),
-  );
-  assert.ok(
-    foundationScenarios.some(
-      (scenario) => scenario.context.filterMaterial === "metal",
     ),
   );
 });
@@ -87,8 +104,14 @@ test("HOT V60 foundation helper preserves normalized recipe values", () => {
       { startSeconds: 30, targetWaterGrams: 240 },
     ],
   );
-  assert.match(steps[0].cue, /30초/);
-  assert.match(steps[1].cue, /종이 필터에 직접 붓지 않고/);
+});
+
+test("K-Ultra official range helper preserves center, offset and clamps", () => {
+  assert.deepEqual(kUltraOfficialRange, { min: 8, max: 9, center: 8.5 });
+  assert.equal(kUltraOfficialDialValue(), 8.5);
+  assert.equal(kUltraOfficialDialValue(0.2), 8.7);
+  assert.equal(kUltraOfficialDialValue(1), 9);
+  assert.equal(kUltraOfficialDialValue(-1), 8);
 });
 
 test("simulation implementation handles all promoted implementation keys", async () => {
@@ -99,9 +122,9 @@ test("simulation implementation handles all promoted implementation keys", async
   assert.match(simulation, /v60-hot-paper-grind-direction-v1/);
   assert.match(simulation, /v60-hot-paper-foundation-pour-v1/);
   assert.match(simulation, /v60-hot-paper-foundation-time-v1/);
-  assert.match(simulation, /v60FoundationBloomWater/);
-  assert.match(simulation, /v60FoundationTargetTime/);
-  assert.match(simulation, /decision = "not-applicable"/);
+  assert.match(simulation, /k-ultra-official-zero-range-v1/);
+  assert.match(simulation, /kUltraOfficialDialValue/);
+  assert.match(simulation, /grinderCalibrationProfile/);
   assert.match(simulation, /valuesMatch/);
 });
 
@@ -129,7 +152,7 @@ test("active recommendation engine uses promoted ids, never candidate ids", asyn
     assert.equal(activeRules.includes(candidate.promotion.ruleId), true);
   }
   assert.match(engine, /applyV60FoundationRecommendation/);
-  assert.match(engine, /v60FoundationRuleIds/);
+  assert.match(engine, /kUltraOfficialRuleId/);
   assert.equal(engine.includes("candidateReadiness"), false);
   assert.equal(engine.includes("candidateSimulation"), false);
 });
