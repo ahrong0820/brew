@@ -1,3 +1,4 @@
+import { advisorNotesA } from "@/data/evidence/advisorNotesA";
 import { advisorSourceA } from "@/data/evidence/advisorSourceA";
 import { equipmentData1Sources } from "@/data/evidence/equipmentData1";
 import { equipmentNotes1 } from "@/data/evidence/equipmentNotes1";
@@ -34,6 +35,7 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...eventBatch1Observations,
     ...equipmentNotes1,
     ...equipmentNotes2,
+    ...advisorNotesA,
   ],
 };
 
