@@ -7,7 +7,7 @@ import type {
   CandidateRuleRegistry,
 } from "@/lib/types/candidateRule";
 
-export const candidateRuleRegistryVersion = "1.2.0";
+export const candidateRuleRegistryVersion = "1.3.0";
 
 export const candidateRuleRegistry: CandidateRuleRegistry = {
   version: candidateRuleRegistryVersion,
