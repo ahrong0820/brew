@@ -1,7 +1,8 @@
 import { eventBatch1Sources } from "@/data/evidence/eventBatch1";
+import { eventBatch1B } from "@/data/evidence/eventBatch1B";
 import type { EvidenceObservation } from "@/lib/types/evidence";
 
-export const eventBatch1Observations = [
+const frameworkObservations = [
   {
     id: "obs:event-batch-1:framework",
     sourceId: eventBatch1Sources[0].id,
@@ -33,3 +34,8 @@ export const eventBatch1Observations = [
     updatedAt: "2026-06-26T00:00:00Z",
   },
 ] as const satisfies readonly EvidenceObservation[];
+
+export const eventBatch1Observations = [
+  ...frameworkObservations,
+  ...eventBatch1B,
+] satisfies EvidenceObservation[];
