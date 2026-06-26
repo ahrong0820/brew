@@ -17,6 +17,7 @@ export type ConditionMatchState =
 export type ConditionMatchDimension =
   | "brewer"
   | "drinkStyle"
+  | "origin"
   | "roastLevel"
   | "process"
   | "doseRatio"
