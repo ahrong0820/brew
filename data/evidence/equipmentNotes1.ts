@@ -7,23 +7,35 @@ export const equipmentNotes1 = [
     sourceId: equipmentData1Sources[0].id,
     kind: "calibration",
     reviewStatus: "reviewed",
-    summary: "공식 조절 구조 관찰",
+    summary:
+      "K-Ultra는 숫자가 높아질수록 굵어지고, 한 바퀴는 100클릭이며 클릭당 버 이동량은 0.02mm입니다.",
     excerpt: {
-      locator: { section: "User Instructions" },
-      paraphrase: "설정 숫자와 조절 방향을 기록했습니다.",
+      locator: { section: "User Instructions", paragraph: "1-3" },
+      paraphrase:
+        "공식 매뉴얼은 높은 숫자가 더 굵은 방향이고 클릭당 버 이동량이 20µm라고 설명합니다.",
     },
-    context: {},
-    variables: [],
+    context: {
+      grinder: { models: ["1zpresso-k-ultra"] },
+    },
+    variables: [
+      {
+        name: "grinderSetting",
+        role: "condition",
+        value: { kind: "text", value: "100 clicks per rotation" },
+      },
+    ],
     assessment: {
       extractionConfidence: "high",
       directness: "direct",
       methodologicalStrength: "manufacturer-specification",
       reproducibility: "single-source",
-      limitations: ["장비 교정 자료입니다."],
+      limitations: [
+        "20µm는 버 이동량이며 실제 입자의 평균 크기나 분포 폭을 뜻하지 않습니다.",
+      ],
       reviewedBy: "project-maintainer",
       reviewedAt: "2026-06-26",
     },
-    tags: ["equipment"],
+    tags: ["equipment", "k-ultra", "adjustment"],
     createdAt: "2026-06-26T00:00:00Z",
     updatedAt: "2026-06-26T00:00:00Z",
   },
