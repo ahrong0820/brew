@@ -1,4 +1,5 @@
 import { eventBatch1Sources } from "@/data/evidence/eventBatch1";
+import { eventBatch1Observations } from "@/data/evidence/eventBatch1Observations";
 import { evidenceObservations } from "@/data/evidence/observations";
 import { researchBatch1Sources } from "@/data/evidence/researchBatch1";
 import { researchBatch1B } from "@/data/evidence/researchBatch1B";
@@ -24,6 +25,7 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...evidenceObservations,
     ...researchBatch1Observations,
     ...researchBatch1B,
+    ...eventBatch1Observations,
   ],
 };
 
