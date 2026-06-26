@@ -9,6 +9,7 @@ import type {
 } from "@/lib/types/recommendationRule";
 
 const introducedAt = "2026-06-26";
+const promotedAt = "2026-06-27";
 const heuristicObservationId = "obs:internal:initial-rule-set:baseline-v1";
 const heuristicSourceId = "internal:initial-rule-set:v1";
 const personalSourceId = "local:user-brew-history";
@@ -31,6 +32,44 @@ const personalEvidence: readonly RuleEvidenceLink[] = [
     role: "supports",
     applicability: "direct",
     note: "실제 관찰값은 BrewSession에서 런타임에 파생합니다.",
+  },
+];
+
+const v60HotPaperGrindEvidence: readonly RuleEvidenceLink[] = [
+  {
+    sourceId: "expert:coffee-ad-astra:v60-2018",
+    observationId: "obs:expert-data-1:v60-grind-sensitivity",
+    role: "supports",
+    applicability: "direct",
+    note: "HOT V60에서 미세화가 유속을 늦추고 추출 방향을 높일 수 있다는 직접 범위 근거입니다.",
+  },
+  {
+    sourceId: "expert:scott-rao:brewing-different-coffees-2024",
+    observationId: "obs:expert-data-2:foundational-recipe-grind-first",
+    role: "supports",
+    applicability: "partial",
+    note: "도징·비율·온도를 고정하고 분쇄도 한 변수부터 조정하는 다이얼인 원칙입니다.",
+  },
+  {
+    sourceId: "expert:scott-rao:brewing-different-coffees-2024",
+    observationId: "obs:expert-data-2:target-time-over-nominal-setting",
+    role: "supports",
+    applicability: "partial",
+    note: "그라인더 숫자보다 레시피별 목표 시간과 감각 결과를 우선하는 원칙입니다.",
+  },
+  {
+    sourceId: "expert:scott-rao:choose-grind-setting-2026",
+    observationId: "obs:expert-data-2:grind-setting-context-dependence",
+    role: "limits",
+    applicability: "direct",
+    note: "절대 다이얼값을 보편화하지 않고 그라인더·도징·미분량 차이를 제한 조건으로 유지합니다.",
+  },
+  {
+    sourceId: "expert:scott-rao:choose-grind-setting-2026",
+    observationId: "obs:expert-data-2:coarse-first-recovery",
+    role: "limits",
+    applicability: "direct",
+    note: "막힘·채널링·떫은맛이 증가하면 굵게 되돌리는 안전 조건입니다.",
   },
 ];
 
@@ -149,6 +188,28 @@ const timeRules: RecommendationRuleDefinition[] = brewers.map((brewer) => ({
   introducedAt,
 }));
 
+const validatedAdjustmentRules: RecommendationRuleDefinition[] = [
+  {
+    id: "grind.v60-hot-paper.dial-in.v1",
+    version: 1,
+    status: "active",
+    title: "HOT V60 종이필터 분쇄도 다이얼인",
+    description:
+      "목표 하한보다 빠르면 분쇄도를 곱게, 목표 상한보다 느리거나 떫으면 굵게, 좋은 맛이면 유지",
+    parameter: "grind",
+    implementationKey: "v60-hot-paper-grind-direction",
+    scope: {
+      brew: {
+        brewerTypes: ["v60"],
+        drinkStyles: ["hot"],
+        filterMaterials: ["paper"],
+      },
+    },
+    evidenceLinks: v60HotPaperGrindEvidence,
+    introducedAt: promotedAt,
+  },
+];
+
 const personalRules: RecommendationRuleDefinition[] = [
   {
     id: "personalization.profile-offset.v1",
@@ -190,5 +251,6 @@ export const recommendationRules = [
   ...grinderRules,
   ...pourRules,
   ...timeRules,
+  ...validatedAdjustmentRules,
   ...personalRules,
 ] satisfies RecommendationRuleDefinition[];
