@@ -15,6 +15,7 @@ export type RecommendationRuleImplementationKey =
   | "grinder-model-setting"
   | "brewer-taste-pour"
   | "brewer-target-time"
+  | "v60-hot-paper-grind-direction"
   | "personal-profile-offset"
   | "personal-success-history";
 

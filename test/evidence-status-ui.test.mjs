@@ -25,11 +25,15 @@ test("evidence status derives active recommendation rule counts", () => {
   const personalRules = activeRules.filter((rule) =>
     rule.evidenceLinks.some((reference) => reference.sourceId.startsWith("local:")),
   );
+  const expertRules = activeRules.filter((rule) =>
+    rule.evidenceLinks.some((reference) => reference.sourceId.startsWith("expert:")),
+  );
 
-  assert.equal(activeRules.length, 31);
+  assert.equal(activeRules.length, 32);
   assert.equal(heuristicRules.length, 28);
   assert.equal(manufacturerRules.length, 1);
   assert.equal(personalRules.length, 3);
+  assert.equal(expertRules.length, 1);
 });
 
 test("evidence status drawer shows active, candidate and source-only boundaries", async () => {
@@ -75,7 +79,7 @@ test("evidence status is mounted globally and available from mobile tools", asyn
   assert.match(mobileNav, /max-h-\[88dvh\]/);
 });
 
-test("transparency UI does not connect candidates to recommendation calculations", async () => {
+test("transparency UI does not connect candidates directly", async () => {
   const [engine, adjustment, activeRules] = await Promise.all([
     readProjectFile("lib/recommendation/engine.ts"),
     readProjectFile("lib/recommendation/adjustment.ts"),
@@ -87,4 +91,5 @@ test("transparency UI does not connect candidates to recommendation calculations
   assert.equal(adjustment.includes("RecommendationEvidenceStatus"), false);
   assert.equal(adjustment.includes("candidateReadiness"), false);
   assert.equal(activeRules.includes("candidate:grind:v60-hot:dial-in-v1"), false);
+  assert.equal(activeRules.includes("grind.v60-hot-paper.dial-in.v1"), true);
 });

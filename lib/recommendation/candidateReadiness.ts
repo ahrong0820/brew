@@ -1,20 +1,35 @@
 import { evidenceLineages, evidenceRegistry } from "@/lib/evidence/registry";
 import { getCandidateRule } from "@/lib/recommendation/candidateRuleRegistry";
 import { runCandidateSimulation } from "@/lib/recommendation/candidateSimulation";
+import type { CandidateRuleTargetLayer } from "@/lib/types/candidateRule";
 import type { EvidenceObservation } from "@/lib/types/evidence";
 
-export const candidateReadinessPolicyVersion = "1.0.0";
+export const candidateReadinessPolicyVersion = "1.1.0";
 
 export const candidateReadinessPolicy = {
   simulation: {
     minimumSupportingObservations: 2,
     minimumDirectOrPartialSupportingObservations: 1,
   },
-  promotion: {
-    minimumConfidenceScore: 0.65,
-    minimumIndependentSupportFamilies: 2,
-    minimumEmpiricalSupportingObservations: 1,
-    maximumContradictingObservations: 0,
+  promotionByTargetLayer: {
+    "initial-recommendation": {
+      minimumConfidenceScore: 0.65,
+      minimumIndependentSupportFamilies: 2,
+      minimumEmpiricalSupportingObservations: 1,
+      maximumContradictingObservations: 0,
+    },
+    "post-brew-adjustment": {
+      minimumConfidenceScore: 0.45,
+      minimumIndependentSupportFamilies: 2,
+      minimumEmpiricalSupportingObservations: 0,
+      maximumContradictingObservations: 0,
+    },
+    informational: {
+      minimumConfidenceScore: 0.5,
+      minimumIndependentSupportFamilies: 1,
+      minimumEmpiricalSupportingObservations: 0,
+      maximumContradictingObservations: 0,
+    },
   },
 } as const;
 
@@ -48,6 +63,7 @@ function observationsFor(ids: readonly string[]) {
       observation,
     ] as const),
   );
+
   return ids
     .map((id) => byId.get(id))
     .filter((observation): observation is EvidenceObservation => Boolean(observation));
@@ -78,6 +94,24 @@ function isEmpiricalSupport(observation: EvidenceObservation) {
   ].includes(observation.assessment.methodologicalStrength);
 }
 
+function promotionPolicyFor(targetLayer: CandidateRuleTargetLayer | null) {
+  return candidateReadinessPolicy.promotionByTargetLayer[
+    targetLayer ?? "initial-recommendation"
+  ];
+}
+
+function promotionPolicyLabel(targetLayer: CandidateRuleTargetLayer | null) {
+  if (targetLayer === "post-brew-adjustment") {
+    return "단일 변수 방향형 사후 조정";
+  }
+
+  if (targetLayer === "informational") {
+    return "정보 제공";
+  }
+
+  return "숫자형 초기 추천";
+}
+
 export function assessCandidateReadiness(candidateRuleId: string) {
   const candidate = getCandidateRule(candidateRuleId);
   if (!candidate) {
@@ -103,6 +137,8 @@ export function assessCandidateReadiness(candidateRuleId: string) {
   const simulation = candidate.validationPlan
     ? runCandidateSimulation(candidate.id)
     : null;
+  const targetLayer = candidate.validationPlan?.targetLayer ?? null;
+  const promotionPolicy = promotionPolicyFor(targetLayer);
 
   const simulationBlockers: CandidateReadinessBlocker[] = [];
   const promotionBlockers: CandidateReadinessBlocker[] = [];
@@ -165,19 +201,16 @@ export function assessCandidateReadiness(candidateRuleId: string) {
 
   promotionBlockers.push(...simulationBlockers);
 
-  if (
-    candidate.confidenceScore <
-    candidateReadinessPolicy.promotion.minimumConfidenceScore
-  ) {
+  if (candidate.confidenceScore < promotionPolicy.minimumConfidenceScore) {
     promotionBlockers.push({
       code: "confidence-below-policy",
-      message: `신뢰도 ${candidate.confidenceScore.toFixed(2)}가 승격 기준 ${candidateReadinessPolicy.promotion.minimumConfidenceScore.toFixed(2)}보다 낮습니다.`,
+      message: `${promotionPolicyLabel(targetLayer)} 신뢰도 ${candidate.confidenceScore.toFixed(2)}가 승격 기준 ${promotionPolicy.minimumConfidenceScore.toFixed(2)}보다 낮습니다.`,
     });
   }
 
   if (
     independentSupportFamilies.size <
-    candidateReadinessPolicy.promotion.minimumIndependentSupportFamilies
+    promotionPolicy.minimumIndependentSupportFamilies
   ) {
     promotionBlockers.push({
       code: "independent-support-insufficient",
@@ -187,17 +220,16 @@ export function assessCandidateReadiness(candidateRuleId: string) {
 
   if (
     empiricalSupporting.length <
-    candidateReadinessPolicy.promotion.minimumEmpiricalSupportingObservations
+    promotionPolicy.minimumEmpiricalSupportingObservations
   ) {
     promotionBlockers.push({
       code: "empirical-support-missing",
-      message: "통제·관찰 연구 또는 직접 교정 자료가 최소 1건 필요합니다.",
+      message: "숫자형 초기 추천 승격에는 통제·관찰 연구 또는 직접 교정 자료가 최소 1건 필요합니다.",
     });
   }
 
   if (
-    contradicting.length >
-    candidateReadinessPolicy.promotion.maximumContradictingObservations
+    contradicting.length > promotionPolicy.maximumContradictingObservations
   ) {
     promotionBlockers.push({
       code: "contradiction-present",
@@ -215,8 +247,9 @@ export function assessCandidateReadiness(candidateRuleId: string) {
   return {
     candidateRuleId: candidate.id,
     policyVersion: candidateReadinessPolicyVersion,
-    targetLayer: candidate.validationPlan?.targetLayer ?? null,
+    targetLayer,
     stage,
+    promotionPolicy,
     metrics: {
       supportingObservationCount: supporting.length,
       reviewedSupportingObservationCount: reviewedSupporting.length,
@@ -236,7 +269,9 @@ export function assessCandidateReadiness(candidateRuleId: string) {
         (observation) =>
           observation.assessment.reproducibility === "single-source",
       )
-        ? ["모든 지지 Observation의 재현성 분류가 single-source입니다."]
+        ? [
+            "모든 지지 Observation의 재현성 분류가 single-source입니다. 방향형 사후 조정에는 허용하지만 숫자형 초기 추천으로 일반화하지 않습니다.",
+          ]
         : [],
   };
 }
