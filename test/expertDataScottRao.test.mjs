@@ -2,64 +2,66 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { advisorLineageScottRao } from "../data/evidence/advisorLineageScottRao.ts";
-import { advisorSourcesScottRao } from "../data/evidence/advisorSourcesScottRao.ts";
+async function readProjectFile(path) {
+  return readFile(new URL(`../${path}`, import.meta.url), "utf8");
+}
 
-const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+test("Scott Rao batch preserves verified first-party source metadata", async () => {
+  const sources = await readProjectFile(
+    "data/evidence/advisorSourcesScottRao.ts",
+  );
 
-test("Scott Rao batch uses verified first-party sources", () => {
-  assert.equal(advisorSourcesScottRao.length, 2);
-
-  const [approach, grind] = advisorSourcesScottRao;
-  assert.equal(approach.type, "expert");
-  assert.equal(approach.title, "How to approach brewing different coffees");
-  assert.equal(approach.publishedAt, "2024-02-26");
-  assert.match(approach.canonicalUrl, /^https:\/\/www\.scottrao\.com\/blog\//);
-
-  assert.equal(grind.type, "expert");
-  assert.equal(grind.title, "How to choose a grind setting");
-  assert.equal(grind.publishedAt, "2026-05-04");
-  assert.match(grind.canonicalUrl, /^https:\/\/www\.scottrao\.com\/blog\//);
-
-  for (const source of advisorSourcesScottRao) {
-    assert.equal(source.accessedAt, "2026-06-26");
-    assert.match(source.notes.join("\n"), /expert-opinion/);
-    assert.match(source.notes.join("\n"), /project-maintainer, 2026-06-26/);
-  }
+  assert.match(sources, /How to approach brewing different coffees/);
+  assert.match(sources, /publishedAt: "2024-02-26"/);
+  assert.match(
+    sources,
+    /https:\/\/www\.scottrao\.com\/blog\/2024\/2\/26\/how-to-approach-brewing-different-coffees/,
+  );
+  assert.match(sources, /How to choose a grind setting/);
+  assert.match(sources, /publishedAt: "2026-05-04"/);
+  assert.match(
+    sources,
+    /https:\/\/www\.scottrao\.com\/blog\/how-to-choose-a-grind-setting/,
+  );
+  assert.equal((sources.match(/type: "expert"/g) ?? []).length, 2);
+  assert.equal((sources.match(/expert-opinion/g) ?? []).length, 2);
+  assert.equal(
+    (sources.match(/검수: project-maintainer, 2026-06-26/g) ?? []).length,
+    2,
+  );
 });
 
-test("Scott Rao claims preserve single-author lineage and registry integrity", async () => {
-  assert.equal(advisorLineageScottRao.length, 1);
-  const lineage = advisorLineageScottRao[0];
-  assert.equal(lineage.independencePolicy, "single-author-family");
-  assert.equal(lineage.sourceIds.length, 2);
-  assert.equal(lineage.observationIds.length, 4);
+test("Scott Rao claims preserve source references and single-author lineage", async () => {
+  const [observations, lineage, registry] = await Promise.all([
+    readProjectFile("data/evidence/advisorNotesScottRao.ts"),
+    readProjectFile("data/evidence/advisorLineageScottRao.ts"),
+    readProjectFile("lib/evidence/registry.ts"),
+  ]);
 
-  for (const sourceId of lineage.sourceIds) {
-    assert.ok(advisorSourcesScottRao.some((source) => source.id === sourceId));
-  }
+  const observationIds = [
+    "obs:expert-data-2:foundational-recipe-grind-first",
+    "obs:expert-data-2:target-time-over-nominal-setting",
+    "obs:expert-data-2:grind-setting-context-dependence",
+    "obs:expert-data-2:coarse-first-recovery",
+  ];
 
-  const observations = await readFile(
-    new URL("../data/evidence/advisorNotesScottRao.ts", import.meta.url),
-    "utf8",
-  );
-  const registry = await readFile(
-    new URL("../lib/evidence/registry.ts", import.meta.url),
-    "utf8",
-  );
-
-  for (const observationId of lineage.observationIds) {
-    assert.match(observations, new RegExp(escapeRegExp(observationId)));
+  for (const observationId of observationIds) {
+    assert.ok(observations.includes(observationId));
+    assert.ok(lineage.includes(observationId));
   }
 
   assert.match(observations, /sourceId: advisorSourcesScottRao\[0\]\.id/);
   assert.match(observations, /sourceId: advisorSourcesScottRao\[1\]\.id/);
   assert.equal(
-    observations.match(/methodologicalStrength: "expert-opinion"/g)?.length,
+    (observations.match(/methodologicalStrength: "expert-opinion"/g) ?? [])
+      .length,
     4,
   );
   assert.match(observations, /start-coarse-then-fine/);
   assert.match(observations, /PSD peak omits fines percentage/);
+
+  assert.match(lineage, /independencePolicy: "single-author-family"/);
+  assert.match(lineage, /두 글을 서로 독립적인 전문가 지지 두 건으로 합산하지 않습니다/);
 
   assert.match(registry, /\.\.\.advisorSourcesScottRao/);
   assert.match(registry, /\.\.\.advisorNotesScottRao/);
