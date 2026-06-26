@@ -53,11 +53,15 @@ function observationsFor(ids: readonly string[]) {
     .filter((observation): observation is EvidenceObservation => Boolean(observation));
 }
 
+function includesString(values: readonly string[], value: string) {
+  return values.includes(value);
+}
+
 function independenceFamilyId(observation: EvidenceObservation) {
   const lineage = evidenceLineages.find(
     (record) =>
-      record.observationIds.includes(observation.id) ||
-      record.sourceIds.includes(observation.sourceId),
+      includesString(record.observationIds, observation.id) ||
+      includesString(record.sourceIds, observation.sourceId),
   );
 
   return lineage?.independencePolicy === "single-author-family"
