@@ -13,10 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
       - name: Locate fixed evidence registry assertions
+        env:
+          HEAD_REF: ${{ github.head_ref }}
         run: |
+          curl -fsSL "https://codeload.github.com/${GITHUB_REPOSITORY}/zip/refs/heads/${HEAD_REF}" -o repo.zip
+          unzip -q repo.zip
+          cd "${GITHUB_REPOSITORY#*/}-${HEAD_REF}"
           grep -RInE 'evidenceRegistryVersion|1\.14\.0|1\.15\.0' test || true
           exit 1
