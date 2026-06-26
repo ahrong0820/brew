@@ -12,6 +12,8 @@ import { evidenceObservations } from "@/data/evidence/observations";
 import { researchBatch1Sources } from "@/data/evidence/researchBatch1";
 import { researchBatch1B } from "@/data/evidence/researchBatch1B";
 import { researchBatch1Observations } from "@/data/evidence/researchBatch1Observations";
+import { researchGrindStatic1Sources } from "@/data/evidence/researchGrindStatic1";
+import { researchGrindStatic1Observations } from "@/data/evidence/researchGrindStatic1Observations";
 import { evidenceSources } from "@/data/evidence/sources";
 import { assertValidEvidenceRegistry } from "@/lib/evidence/validation";
 import type {
@@ -20,13 +22,14 @@ import type {
   EvidenceSource,
 } from "@/lib/types/evidence";
 
-export const evidenceRegistryVersion = "1.5.0";
+export const evidenceRegistryVersion = "1.6.0";
 
 export const evidenceRegistry: EvidenceRegistry = {
   version: evidenceRegistryVersion,
   sources: [
     ...evidenceSources,
     ...researchBatch1Sources,
+    ...researchGrindStatic1Sources,
     ...eventBatch1Sources,
     ...equipmentData1Sources,
     ...advisorSourceA,
@@ -36,6 +39,7 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...evidenceObservations,
     ...researchBatch1Observations,
     ...researchBatch1B,
+    ...researchGrindStatic1Observations,
     ...eventBatch1Observations,
     ...equipmentNotes1,
     ...equipmentNotes2,
