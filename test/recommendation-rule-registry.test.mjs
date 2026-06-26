@@ -18,9 +18,34 @@ test("registry contains baseline, foundation and adjustment rules", () => {
   assert.ok(ids.has("dose.user-default.normalized.v1"));
   assert.ok(ids.has("grind.holzklotz-e80.v1"));
   assert.ok(ids.has("personalization.profile-offset.v1"));
+  assert.ok(ids.has("grind.1zpresso-k-ultra.official-zero.v1"));
   assert.ok(ids.has("pour.v60-hot-paper.foundation.v1"));
   assert.ok(ids.has("time.v60-hot-paper.foundation.v1"));
   assert.ok(ids.has("grind.v60-hot-paper.dial-in.v1"));
+});
+
+test("K-Ultra official range rule retains chart and calibration evidence", () => {
+  const rule = recommendationRules.find(
+    (candidate) =>
+      candidate.id === "grind.1zpresso-k-ultra.official-zero.v1",
+  );
+
+  assert.equal(rule.status, "active");
+  assert.equal(rule.parameter, "grind");
+  assert.equal(rule.implementationKey, "k-ultra-official-zero-range");
+  assert.equal(rule.evidenceLinks.length, 3);
+  assert.equal(
+    new Set(rule.evidenceLinks.map((link) => link.sourceId)).size,
+    2,
+  );
+  assert.equal(
+    rule.evidenceLinks.filter((link) => link.role === "supports").length,
+    1,
+  );
+  assert.equal(
+    rule.evidenceLinks.filter((link) => link.role === "calibrates").length,
+    2,
+  );
 });
 
 test("promoted HOT V60 foundation rules retain independent evidence", () => {
