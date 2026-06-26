@@ -8,6 +8,7 @@ import MobileRecipeEnhancer from "./MobileRecipeEnhancer";
 import NextBrewAdjustmentDrawer from "./NextBrewAdjustmentDrawer";
 import OriginRegionDrawer from "./OriginRegionDrawer";
 import RecommendationDrawer from "./RecommendationDrawerV2";
+import RecommendationEvidenceStatus from "./RecommendationEvidenceStatus";
 import "./globals.css";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -37,6 +38,7 @@ export default function RootLayout({
         <GrindMicronDrawer />
         <BrewHistoryDrawer />
         <RecommendationDrawer />
+        <RecommendationEvidenceStatus />
         <BeanLibraryDrawer />
         <OriginRegionDrawer />
         <BrewSessionFeedbackTracker />
