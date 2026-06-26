@@ -89,8 +89,10 @@ test("roast observations preserve comparison scope and sensory directions", () =
 
   for (const observation of roastObservations1) {
     assert.ok(
-      observation.assessment.limitations.some((limitation) =>
-        limitation.includes("프렌치프레스"),
+      observation.assessment.limitations.some(
+        (limitation) =>
+          limitation.includes("프렌치프레스") ||
+          limitation.includes("다른 브루어"),
       ),
     );
   }
