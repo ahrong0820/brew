@@ -8,6 +8,7 @@ import { advisorSourcesTetsuKasuya } from "@/data/evidence/advisorSourcesTetsuKa
 import { equipmentData1Sources } from "@/data/evidence/equipmentData1";
 import { equipmentNotes1 } from "@/data/evidence/equipmentNotes1";
 import { equipmentNotes2 } from "@/data/evidence/equipmentNotes2";
+import { equipmentNotes3 } from "@/data/evidence/equipmentNotes3";
 import { eventBatch1Sources } from "@/data/evidence/eventBatch1";
 import { eventBatch1Observations } from "@/data/evidence/eventBatch1Observations";
 import { evidenceObservations } from "@/data/evidence/observations";
@@ -34,7 +35,7 @@ import type {
   EvidenceSource,
 } from "@/lib/types/evidence";
 
-export const evidenceRegistryVersion = "1.17.0";
+export const evidenceRegistryVersion = "1.18.0";
 
 export const evidenceRegistry: EvidenceRegistry = {
   version: evidenceRegistryVersion,
@@ -64,6 +65,7 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...eventBatch1Observations,
     ...equipmentNotes1,
     ...equipmentNotes2,
+    ...equipmentNotes3,
     ...advisorNotesA,
     ...advisorNotesScottRao,
     ...v60FoundationObservations1,
