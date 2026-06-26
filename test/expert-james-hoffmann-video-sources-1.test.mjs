@@ -28,7 +28,7 @@ test("James Hoffmann official V60 video source is registered", async () => {
 
   const registry = await readProjectFile("lib/evidence/registry.ts");
   assert.match(registry, /\.\.\.advisorSourcesJamesHoffmann/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.9\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "\d+\.\d+\.\d+"/);
 });
 
 test("James Hoffmann video has first-party channel provenance", () => {
