@@ -10,6 +10,7 @@ import { equipmentNotes2 } from "@/data/evidence/equipmentNotes2";
 import { eventBatch1Sources } from "@/data/evidence/eventBatch1";
 import { eventBatch1Observations } from "@/data/evidence/eventBatch1Observations";
 import { evidenceObservations } from "@/data/evidence/observations";
+import { originVarietyObservations1 } from "@/data/evidence/originVarietyObservations1";
 import { originVarietySources1 } from "@/data/evidence/originVarietySources1";
 import { researchBatch1Sources } from "@/data/evidence/researchBatch1";
 import { researchBatch1B } from "@/data/evidence/researchBatch1B";
@@ -28,7 +29,7 @@ import type {
   EvidenceSource,
 } from "@/lib/types/evidence";
 
-export const evidenceRegistryVersion = "1.10.0";
+export const evidenceRegistryVersion = "1.11.0";
 
 export const evidenceRegistry: EvidenceRegistry = {
   version: evidenceRegistryVersion,
@@ -57,6 +58,7 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...equipmentNotes2,
     ...advisorNotesA,
     ...advisorNotesScottRao,
+    ...originVarietyObservations1,
   ],
 };
 
