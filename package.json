@@ -16,7 +16,7 @@
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit --pretty false",
-    "test": "node --experimental-strip-types --test test/evidence-registry.test.mjs test/evidence-source-quality.test.mjs test/researchBatch1.test.mjs test/eventData1.test.mjs test/equipmentData1.test.mjs test/expertData1.test.mjs test/expertDataScottRao.test.mjs",
+    "test": "node --experimental-strip-types --test",
     "validate:static-export": "node scripts/validate-static-export.mjs",
     "db:generate": "drizzle-kit generate"
   },
