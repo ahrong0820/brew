@@ -1,7 +1,6 @@
-import { researchUnevenExtraction1Sources } from "@/data/evidence/researchUnevenExtraction1";
 import type { EvidenceObservation } from "@/lib/types/evidence";
 
-const sourceId = researchUnevenExtraction1Sources[0].id;
+const sourceId = "paper:physics-of-fluids:2023:5.0138998";
 
 export const researchUnevenExtraction1Observations = [
   {
