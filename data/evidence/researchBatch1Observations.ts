@@ -11,7 +11,12 @@ export const researchBatch1Observations = [
       locator: { section: "Results" },
       paraphrase: "훈련 패널의 다변량 분석에서 온도 주효과가 확인되지 않았습니다.",
     },
-    context: {},
+    context: {
+      brew: {
+        brewerTypes: ["other"],
+        drinkStyles: ["hot"],
+      },
+    },
     variables: [],
     assessment: {
       extractionConfidence: "high",
