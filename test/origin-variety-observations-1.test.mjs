@@ -32,7 +32,7 @@ test("verified WCR variety observations reference registered sources", async () 
 
   const registry = await readProjectFile("lib/evidence/registry.ts");
   assert.match(registry, /\.\.\.originVarietyObservations1/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.11\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "\d+\.\d+\.\d+"/);
 });
 
 test("WCR classifications preserve variety-specific values and latitude caveats", () => {

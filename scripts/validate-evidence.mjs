@@ -3,6 +3,7 @@ import { expertVideoProvenance } from "../data/evidence/expertVideoProvenance.ts
 import { evidenceObservations } from "../data/evidence/observations.ts";
 import { originVarietyObservations1 } from "../data/evidence/originVarietyObservations1.ts";
 import { originVarietySources1 } from "../data/evidence/originVarietySources1.ts";
+import { roastSources1 } from "../data/evidence/roastSources1.ts";
 import { evidenceSources } from "../data/evidence/sources.ts";
 import { checkExpertVideoProvenance } from "../lib/evidence/expertVideoQuality.ts";
 import { checkObservationTextQuality } from "../lib/evidence/observationTextQuality.ts";
@@ -12,6 +13,7 @@ const sources = [
   ...evidenceSources,
   ...advisorSourcesJamesHoffmann,
   ...originVarietySources1,
+  ...roastSources1,
 ];
 const observations = [...evidenceObservations, ...originVarietyObservations1];
 const issues = [
