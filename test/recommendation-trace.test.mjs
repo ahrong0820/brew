@@ -73,8 +73,7 @@ function sessionWithTrace(recommendationTrace) {
       sourceTemplateId: "recommendation-hot-v60-balanced",
       sourceTemplateName: "test",
       brewerType: "v60",
-      drink
-Style: "hot",
+      drinkStyle: "hot",
       doseGrams: 15,
       waterGrams: 240,
       ratio: 16,
