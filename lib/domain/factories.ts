@@ -1,3 +1,4 @@
+import { normalizeOriginRegions } from "@/lib/domain/originRegions";
 import { createLocalId } from "@/lib/storage/ids";
 import type {
   Bean,
@@ -24,6 +25,7 @@ export function createBean(
     id: createLocalId("bean"),
     name: input.name.trim(),
     roaster: input.roaster?.trim() || undefined,
+    originRegions: normalizeOriginRegions(input.originRegions),
     variety: input.variety?.trim() || undefined,
     memo: input.memo?.trim() || undefined,
     flavorNotes: input.flavorNotes
