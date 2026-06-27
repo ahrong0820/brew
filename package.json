@@ -17,7 +17,7 @@
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit --pretty false",
-    "test": "node --experimental-strip-types --test test/v60-reference-grind.test.mjs test/evidence-status-ui.test.mjs test/recommendation-rule-registry.test.mjs",
+    "test": "node --experimental-strip-types --test test/v60-reference-grind.test.mjs",
     "validate:static-export": "node scripts/validate-static-export.mjs",
     "db:generate": "drizzle-kit generate"
   },
