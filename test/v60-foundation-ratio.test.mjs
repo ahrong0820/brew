@@ -149,7 +149,7 @@ test("active rule and engine use the promoted ID", async () => {
   assert.match(engine, /v60FoundationRatio/);
   assert.match(personalized, /applyV60FoundationRatio/);
   assert.equal(engine.includes(candidateId), false);
-  assert.match(ruleRegistry, /recommendationRuleRegistryVersion = "1\.5\.0"/);
+  assert.match(ruleRegistry, /recommendationRuleRegistryVersion = "1\.6\.0"/);
   assert.match(candidateRegistry, /candidateRuleRegistryVersion = "1\.5\.0"/);
   assert.match(simulation, /v60-hot-paper-foundation-ratio-16-v1/);
 });
