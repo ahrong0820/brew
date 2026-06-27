@@ -30,11 +30,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Capture failing tests
+      - name: Capture concise failing tests
         run: |
           set +e
           pnpm test > test-output.log 2>&1
           status=$?
-          grep -nE 'not ok|AssertionError|ERR_|error:|expected:|actual:' test-output.log || true
-          tail -n 120 test-output.log
+          grep -nE 'not ok|AssertionError|ERR_|error:|expected:|actual:|operator:' test-output.log | head -n 100 || true
           exit $status
