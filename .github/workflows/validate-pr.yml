@@ -11,17 +11,54 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
-      - name: Capture concise failing tests
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run lint
+        run: pnpm lint
+
+      - name: Run type check
+        run: pnpm typecheck
+
+      - name: Run automated tests
+        run: pnpm test
+
+      - name: Write deployment metadata
         run: |
-          curl -fsSL "https://codeload.github.com/${GITHUB_REPOSITORY}/zip/${GITHUB_SHA}" -o repo.zip
-          unzip -q repo.zip
-          cd "$(find . -maxdepth 1 -type d -name 'brew-*' | head -n 1)"
-          corepack enable
-          pnpm install --frozen-lockfile >/dev/null
-          set +e
-          pnpm test > test-output.log 2>&1
-          status=$?
-          grep -nE 'not ok|AssertionError|ERR_|error:|expected:|actual:|operator:' test-output.log | head -n 120 || true
-          exit $status
+          mkdir -p public/deployments
+          cat > public/deployment.json <<EOF
+          {
+            "repository": "${GITHUB_REPOSITORY}",
+            "sha": "${GITHUB_SHA}",
+            "runId": "${GITHUB_RUN_ID}",
+            "runNumber": "${GITHUB_RUN_NUMBER}",
+            "builtAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+          cp public/deployment.json "public/deployments/${GITHUB_SHA}.json"
+
+      - name: Build GitHub Pages
+        run: pnpm build:github
+        env:
+          GITHUB_PAGES: "true"
+          NEXT_PUBLIC_BASE_PATH: /brew
+          NEXT_PUBLIC_DEPLOYMENT_SHA: ${{ github.sha }}
+
+      - name: Validate static export
+        run: pnpm run validate:static-export out "$GITHUB_SHA"
