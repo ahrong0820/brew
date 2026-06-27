@@ -6,10 +6,18 @@ export interface BrewProfileIdentity {
   grinderProfileId: string;
   tasteGoal: string;
   drinkStyle?: BrewProfileDrinkStyle;
+  /** Legacy profiles without this field remain in an isolated default scope. */
+  sourceRecipeId?: string;
 }
 
 export function normalizeDrinkStyle(value: unknown): BrewProfileDrinkStyle {
   return value === "iced" ? "iced" : "hot";
+}
+
+export function normalizeSourceRecipeId(value: unknown) {
+  return typeof value === "string" && value.trim()
+    ? value.trim()
+    : "legacy-default";
 }
 
 export function drinkStyleLabel(value: unknown) {
@@ -23,6 +31,7 @@ export function brewProfileIdentityKey(identity: BrewProfileIdentity) {
     identity.grinderProfileId,
     identity.tasteGoal,
     normalizeDrinkStyle(identity.drinkStyle),
+    normalizeSourceRecipeId(identity.sourceRecipeId),
   ].join("|");
 }
 

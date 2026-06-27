@@ -5,6 +5,7 @@ import {
   brewProfileIdentityKey,
   matchesBrewProfileIdentity,
   normalizeDrinkStyle,
+  normalizeSourceRecipeId,
 } from "../lib/brew/profileIdentity.ts";
 
 const baseIdentity = {
@@ -30,4 +31,38 @@ test("HOT and ICED use distinct personalization identities", () => {
   assert.notEqual(brewProfileIdentityKey(hot), brewProfileIdentityKey(iced));
   assert.equal(matchesBrewProfileIdentity(hot, iced), false);
   assert.equal(matchesBrewProfileIdentity(iced, { ...iced }), true);
+});
+
+test("legacy profiles remain in a separate recipe scope", () => {
+  assert.equal(normalizeSourceRecipeId(undefined), "legacy-default");
+  assert.equal(normalizeSourceRecipeId(""), "legacy-default");
+  assert.equal(normalizeSourceRecipeId(" jis-4666 "), "jis-4666");
+
+  const legacy = { ...baseIdentity, drinkStyle: "hot" };
+  const selectedRecipe = {
+    ...legacy,
+    sourceRecipeId: "jis-4666",
+  };
+
+  assert.notEqual(
+    brewProfileIdentityKey(legacy),
+    brewProfileIdentityKey(selectedRecipe),
+  );
+  assert.equal(matchesBrewProfileIdentity(legacy, selectedRecipe), false);
+});
+
+test("different barista recipes do not share personalization profiles", () => {
+  const recipeA = {
+    ...baseIdentity,
+    drinkStyle: "hot",
+    sourceRecipeId: "jis-4666",
+  };
+  const recipeB = {
+    ...baseIdentity,
+    drinkStyle: "hot",
+    sourceRecipeId: "tetsu-46",
+  };
+
+  assert.equal(matchesBrewProfileIdentity(recipeA, recipeB), false);
+  assert.equal(matchesBrewProfileIdentity(recipeA, { ...recipeA }), true);
 });

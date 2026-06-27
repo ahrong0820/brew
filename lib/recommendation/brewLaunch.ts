@@ -87,6 +87,7 @@ function recommendationFingerprint(input: PrepareRecommendationBrewInput) {
     brewerType: input.brewerType,
     drinkStyle: input.drinkStyle,
     tasteGoal: input.tasteGoal,
+    sourceRecipeId: input.recommendation.sourceRecipeId,
     dose: input.recommendation.doseGrams,
     water: input.recommendation.waterGrams,
     ratio: input.recommendation.ratio,
@@ -123,6 +124,7 @@ function findBrewProfile(
   grinderProfileId: string,
   tasteGoal: TasteGoal,
   drinkStyle: DrinkStyle,
+  sourceRecipeId?: string,
 ) {
   return beanBrewProfileStore.list().find((profile) =>
     matchesBrewProfileIdentity(profile, {
@@ -131,6 +133,7 @@ function findBrewProfile(
       grinderProfileId,
       tasteGoal,
       drinkStyle,
+      sourceRecipeId,
     }),
   );
 }
@@ -145,6 +148,7 @@ function createOrGetBrewProfile(
     input.grinder.id,
     input.tasteGoal,
     input.drinkStyle,
+    input.recommendation.sourceRecipeId,
   );
 
   if (existing) {
@@ -159,6 +163,7 @@ function createOrGetBrewProfile(
         drinkStyle: input.drinkStyle,
         grinderProfileId: input.grinder.id,
         tasteGoal: input.tasteGoal,
+        sourceRecipeId: input.recommendation.sourceRecipeId,
         recommendationOffset: {},
       },
       timestamp,
@@ -180,7 +185,9 @@ function buildSnapshot(
       : (estimateMicronsForSetting(input.grinder, grindLevel) ?? undefined);
 
   return {
-    sourceTemplateId: `recommendation-${input.drinkStyle}-${input.brewerType}-${input.tasteGoal}`,
+    sourceTemplateId:
+      input.recommendation.sourceRecipeId ??
+      `recommendation-${input.drinkStyle}-${input.brewerType}-${input.tasteGoal}`,
     sourceTemplateName: input.recommendation.templateName,
     brewerType: input.brewerType,
     drinkStyle: input.drinkStyle,
