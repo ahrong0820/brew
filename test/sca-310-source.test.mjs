@@ -32,7 +32,7 @@ test("source stays separate from its reviewed Observation batch", async () => {
   assert.match(registry, /import \{ standardsBrewing1Observations \}/);
   assert.match(registry, /\.\.\.standardsBrewing1Sources/);
   assert.match(registry, /\.\.\.standardsBrewing1Observations/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.20\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "1\.21\.0"/);
   assert.match(validation, /\.\.\.standardsBrewing1Sources/);
   assert.match(validation, /\.\.\.standardsBrewing1Observations/);
   assert.equal(sourceFile.includes("EvidenceObservation"), false);
