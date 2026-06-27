@@ -71,6 +71,8 @@ export type BrewSessionStatus =
   | "current-best"
   | "archived";
 
+export type BrewPaceAssessment = "fast" | "in-range" | "slow";
+
 export type TastingResult =
   | "too-sour"
   | "not-sweet-enough"
@@ -206,7 +208,10 @@ export interface BrewSession {
   tasteGoal: TasteGoal;
   recommendationConfidence: RecommendationConfidence;
   recipeSnapshot: RecipeSnapshot;
+  /** Timer value is retained for the record but is not used for dial-in diagnosis. */
   actualTimeSeconds?: number;
+  /** User judgement of whether the drawdown felt fast, on target, or slow. */
+  brewPaceAssessment?: BrewPaceAssessment;
   tastingResult?: TastingResult;
   note?: string;
   status: BrewSessionStatus;
