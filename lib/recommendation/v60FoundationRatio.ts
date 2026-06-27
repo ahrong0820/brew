@@ -1,3 +1,4 @@
+import { recommendedWaterGrams } from "@/lib/recommendation/normalization";
 import type {
   BrewRecommendation,
   RecommendationInput,
@@ -40,6 +41,10 @@ export function applyV60FoundationRatio(
   return {
     ...recommendation,
     ratio: v60FoundationRatio,
+    waterGrams: recommendedWaterGrams(
+      recommendation.doseGrams,
+      v60FoundationRatio,
+    ),
     reasons,
   };
 }
