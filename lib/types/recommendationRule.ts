@@ -1,15 +1,12 @@
 import type { EvidenceContext } from "@/lib/types/evidence";
 import type { RecommendationRuleParameter } from "@/lib/types/recommendation";
 
-export type RecommendationRuleStatus =
-  | "draft"
-  | "active"
-  | "deprecated"
-  | "disabled";
+export type RecommendationRuleStatus = "draft" | "active" | "deprecated" | "disabled";
 
 export type RecommendationRuleImplementationKey =
   | "normalize-dose"
   | "taste-goal-ratio"
+  | "v60-hot-paper-foundation-ratio"
   | "dose-ratio-water"
   | "roast-process-taste-temperature"
   | "v60-hot-paper-roast-only-temperature"
@@ -23,17 +20,8 @@ export type RecommendationRuleImplementationKey =
   | "personal-profile-offset"
   | "personal-success-history";
 
-export type RuleEvidenceRole =
-  | "supports"
-  | "limits"
-  | "contradicts"
-  | "context"
-  | "calibrates";
-
-export type RuleEvidenceApplicability =
-  | "direct"
-  | "partial"
-  | "extrapolated";
+export type RuleEvidenceRole = "supports" | "limits" | "contradicts" | "context" | "calibrates";
+export type RuleEvidenceApplicability = "direct" | "partial" | "extrapolated";
 
 export interface RuleEvidenceLink {
   sourceId: string;
@@ -56,10 +44,7 @@ export interface RecommendationRuleDefinition {
   introducedAt: string;
   deprecatedAt?: string;
   deprecationReason?: string;
-  supersedes?: {
-    ruleId: string;
-    version: number;
-  };
+  supersedes?: { ruleId: string; version: number };
 }
 
 export interface RecommendationRuleRegistry {
