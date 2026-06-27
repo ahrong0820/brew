@@ -1,4 +1,7 @@
-import type { TastingResult } from "@/lib/types/coffee";
+import type {
+  BrewPaceAssessment,
+  TastingResult,
+} from "@/lib/types/coffee";
 
 export type AdjustmentAction =
   | "hold"
@@ -10,58 +13,37 @@ export type AdjustmentAction =
   | "more-water";
 
 export interface AdjustmentPolicyInput {
-  actualSeconds: number;
-  minimumSeconds: number;
-  maximumSeconds: number;
+  brewPaceAssessment?: BrewPaceAssessment;
   tastingResult: TastingResult;
 }
-
-const timeToleranceSeconds = 10;
-const largeDeviationSeconds = 30;
 
 export function decideAdjustmentAction(
   input: AdjustmentPolicyInput,
 ): AdjustmentAction {
-  if (input.tastingResult === "good") return "hold";
-  if (input.tastingResult === "too-weak") return "less-water";
-  if (input.tastingResult === "too-strong") return "more-water";
+  const pace = input.brewPaceAssessment;
+  const taste = input.tastingResult;
 
-  const fasterBy = input.minimumSeconds - input.actualSeconds;
-  const slowerBy = input.actualSeconds - input.maximumSeconds;
-  const clearlyFast = fasterBy > timeToleranceSeconds;
-  const clearlySlow = slowerBy > timeToleranceSeconds;
-  const veryFast = fasterBy >= largeDeviationSeconds;
-  const verySlow = slowerBy >= largeDeviationSeconds;
+  if (taste === "good") return "hold";
+  if (taste === "too-weak") return "less-water";
+  if (taste === "too-strong") return "more-water";
 
-  if (clearlyFast) {
-    if (input.tastingResult === "bitter-astringent") return "cooler";
-    if (input.tastingResult === "aroma-muted") {
-      return veryFast ? "finer" : "hotter";
-    }
-    return veryFast ? "finer" : "hotter";
+  if (pace === "fast") {
+    if (taste === "bitter-astringent") return "cooler";
+    return "finer";
   }
 
-  if (clearlySlow) {
-    if (
-      input.tastingResult === "too-sour" ||
-      input.tastingResult === "not-sweet-enough"
-    ) {
+  if (pace === "slow") {
+    if (taste === "too-sour" || taste === "not-sweet-enough") {
       return "hotter";
     }
-    if (input.tastingResult === "aroma-muted") return "coarser";
-    if (input.tastingResult === "bitter-astringent") {
-      return verySlow ? "coarser" : "cooler";
-    }
+    return "coarser";
   }
 
-  if (
-    input.tastingResult === "too-sour" ||
-    input.tastingResult === "not-sweet-enough"
-  ) {
+  if (taste === "too-sour" || taste === "not-sweet-enough") {
     return "hotter";
   }
-  if (input.tastingResult === "bitter-astringent") return "cooler";
-  if (input.tastingResult === "aroma-muted") return "coarser";
+  if (taste === "bitter-astringent") return "cooler";
+  if (taste === "aroma-muted") return "coarser";
 
   return "hold";
 }
