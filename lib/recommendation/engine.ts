@@ -25,6 +25,10 @@ import {
   v60FoundationRatioRuleId,
 } from "@/lib/recommendation/v60FoundationRatio";
 import {
+  appliesV60ReferenceGrind,
+  v60ReferenceGrindRuleId,
+} from "@/lib/recommendation/v60ReferenceGrind";
+import {
   appliesV60RoastOnlyTemperature,
   v60RoastOnlyTemperatureRuleId,
 } from "@/lib/recommendation/v60RoastOnlyTemperature";
@@ -43,6 +47,7 @@ function baseAppliedRules(input: RecommendationInput) {
   const usesV60Foundation = appliesV60HotPaperFoundation(input);
   const usesV60Ratio = appliesV60FoundationRatio(input);
   const usesV60Temperature = appliesV60RoastOnlyTemperature(input);
+  const usesV60ReferenceGrind = appliesV60ReferenceGrind(input);
   const usesKUltraOfficialRange =
     isKUltraOfficialProfile(input.grinder) &&
     brewer === "v60" &&
@@ -56,7 +61,9 @@ function baseAppliedRules(input: RecommendationInput) {
       : {};
   const grinderRuleId = usesKUltraOfficialRange
     ? kUltraOfficialRuleId
-    : `grind.${input.grinder.model}.v1`;
+    : usesV60ReferenceGrind
+      ? v60ReferenceGrindRuleId
+      : `grind.${input.grinder.model}.v1`;
   const ratioRuleId = usesV60Ratio
     ? v60FoundationRatioRuleId
     : "ratio.taste-goal.v1";
@@ -94,7 +101,9 @@ function baseAppliedRules(input: RecommendationInput) {
       parameter: "grind",
       description: usesKUltraOfficialRange
         ? "K-Ultra 공식 저항 시작 영점과 Pour Over 8.0~9.0 범위 적용"
-        : "그라인더 모델과 영점 기준의 초기 분쇄도 및 지원 범위 적용",
+        : usesV60ReferenceGrind
+          ? "HOT V60에서 모델별 기존 기준점을 유지하고 원두 속성별 미검증 분쇄도 오프셋 제외"
+          : "그라인더 모델과 영점 기준의 초기 분쇄도 및 지원 범위 적용",
       ...grinderEvidence,
     }),
     createAppliedRule({
