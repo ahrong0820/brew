@@ -42,7 +42,7 @@ test("registry and evidence validation include the K-Ultra observation", async (
 
   assert.match(registry, /import \{ equipmentNotes3 \}/);
   assert.match(registry, /\.\.\.equipmentNotes3/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.18\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "1\.19\.0"/);
   assert.match(validation, /import \{ equipmentNotes3 \}/);
   assert.match(validation, /\.\.\.equipmentNotes3/);
 });
