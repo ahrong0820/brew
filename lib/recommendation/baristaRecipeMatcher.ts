@@ -125,7 +125,9 @@ export function rankBaristaRecipes(
     .filter(
       (recipe) =>
         recipe.brewerType === input.brewerType &&
-        recipe.drinkStyle === input.drinkStyle,
+        recipe.drinkStyle === input.drinkStyle &&
+        input.doseGrams >= recipe.supportedDoseGrams.min &&
+        input.doseGrams <= recipe.supportedDoseGrams.max,
     )
     .map((recipe) => scoreRecipe(recipe, input))
     .sort(
