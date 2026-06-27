@@ -1,4 +1,5 @@
 import { baristaRecipes } from "#barista-recipes";
+import { rankingBoost } from "@/lib/recommendation/rankingBoost";
 import type {
   BaristaRecipe,
   BaristaRecipeMatch,
@@ -63,38 +64,34 @@ function scoreRecipe(
   input: BaristaRecipeMatchInput,
 ): BaristaRecipeMatch {
   const reasons: string[] = [];
-  let score = recipe.tasteProfile[input.tasteGoal] * 12;
+  let score = recipe.tasteProfile[input.tasteGoal] * 10;
 
   reasons.push(
-    `원하는 ${tasteGoalLabels[input.tasteGoal]} 방향과 레시피 컵 프로필의 적합도가 ${recipe.tasteProfile[input.tasteGoal]}/5입니다.`,
+    `[맛 목표] ${tasteGoalLabels[input.tasteGoal]} 적합도 ${recipe.tasteProfile[input.tasteGoal]}/5`,
   );
 
   if (input.roastLevel === "unknown") {
-    score += 5;
-    reasons.push("배전도 미입력 상태에서도 사용할 수 있는 참고 후보입니다.");
+    score += 4;
+    reasons.push("[원두 적합] 배전도 미입력 상태의 참고 후보입니다.");
   } else if (includesValue(recipe.suitableRoasts, input.roastLevel)) {
     score += 18;
-    reasons.push(`${roastLabels[input.roastLevel]} 적용 범위에 포함됩니다.`);
+    reasons.push(`[원두 적합] ${roastLabels[input.roastLevel]} 적용 범위입니다.`);
   }
 
   if (input.process === "unknown") {
     score += 2;
   } else if (includesValue(recipe.suitableProcesses, input.process)) {
     score += 10;
-    reasons.push(`${processLabels[input.process]} 원두에 적용 가능한 레시피입니다.`);
+    reasons.push(`[원두 적합] ${processLabels[input.process]} 가공에 맞습니다.`);
   }
 
   const doseDifference = Math.abs(recipe.doseGrams - input.doseGrams);
   if (doseDifference <= 2) {
-    score += 6;
-    reasons.push(
-      `사용 원두량 ${input.doseGrams}g이 원본 ${recipe.doseGrams}g과 가까워 변환 폭이 작습니다.`,
-    );
+    score += 8;
+    reasons.push(`[용량 적합] 원본 ${recipe.doseGrams}g과 변환 폭이 작습니다.`);
   } else if (doseDifference <= 5) {
-    score += 3;
-    reasons.push(
-      `원본 ${recipe.doseGrams}g을 ${input.doseGrams}g으로 비례 조정할 수 있습니다.`,
-    );
+    score += 4;
+    reasons.push(`[용량 적합] ${input.doseGrams}g으로 비례 조정합니다.`);
   }
 
   const flavorMatches = matchingFlavorKeywords(
@@ -102,11 +99,23 @@ function scoreRecipe(
     input.flavorNotes ?? [],
   );
   if (flavorMatches.length > 0) {
-    score += Math.min(6, flavorMatches.length * 2);
+    score += Math.min(8, flavorMatches.length * 2);
     reasons.push(
-      `입력한 향미와 ${flavorMatches.slice(0, 3).join(", ")} 특성이 연결됩니다.`,
+      `[향미 연결] ${flavorMatches.slice(0, 3).join(", ")} 특성과 연결됩니다.`,
     );
   }
+
+  const personalScore = rankingBoost(recipe.id, input);
+  if (personalScore === 20) {
+    reasons.push("[개인 성공] 재현된 안정 설정을 우선 반영합니다.");
+  } else if (personalScore === 10) {
+    reasons.push("[개인 성공] 성공 1회의 잠정 설정을 반영합니다.");
+  }
+  score += personalScore;
+
+  reasons.push(
+    `[난이도] ${recipe.difficulty === "easy" ? "쉬움" : recipe.difficulty === "medium" ? "보통" : "고급"}`,
+  );
 
   return {
     recipe,
