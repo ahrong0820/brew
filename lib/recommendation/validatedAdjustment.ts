@@ -11,7 +11,7 @@ export type ValidatedAdjustmentSuggestion = BrewAdjustmentSuggestion & {
   appliedRule?: AppliedRecommendationRule;
 };
 
-const ruleId = "grind.v60-hot-paper.dial-in.v2";
+const ruleId = "grind.v60-hot-paper.dial-in.v1";
 
 function decorate(
   suggestion: BrewAdjustmentSuggestion,
@@ -19,7 +19,7 @@ function decorate(
 ): ValidatedAdjustmentSuggestion {
   return {
     ...suggestion,
-    reason: `${suggestion.reason} 시간 편차와 맛 신호가 같은 방향이라 검증된 HOT V60 분쇄도 규칙을 적용했습니다.`,
+    reason: `${suggestion.reason} 사용자가 평가한 추출 속도와 맛 신호가 같은 방향이라 검증된 HOT V60 분쇄도 규칙을 적용했습니다.`,
     instruction: "온도, 비율과 푸어 구조는 고정하고 분쇄도만 바꿔 비교하세요.",
     appliedRule: rule,
   };
