@@ -30,13 +30,13 @@ test("observations preserve the directly verified numeric boundaries", () => {
   assert.match(text, /three-minute-ceiling/);
 });
 
-test("registry and validation script include the new observations", async () => {
+test("registry and validation script include the observations", async () => {
   const [registry, validation] = await Promise.all([
     readProjectFile("lib/evidence/registry.ts"),
     readProjectFile("scripts/validate-evidence.mjs"),
   ]);
 
   assert.match(registry, /\.\.\.v60FoundationObservations1/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.20\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "1\.21\.0"/);
   assert.match(validation, /\.\.\.v60FoundationObservations1/);
 });
