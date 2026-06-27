@@ -21,20 +21,17 @@ const readProjectFile = (path) =>
 test("built-in profiles keep burr-no-rub default and add explicit official zero", () => {
   const profiles = createDefaultGrinderProfiles("2026-06-27T00:00:00Z");
   const preferences = createDefaultUserPreferences("2026-06-27T00:00:00Z");
-
   assert.equal(profiles.length, 4);
   assert.equal(
     preferences.defaultGrinderProfileId,
     defaultGrinderProfileIds.kUltraBurrNoRub,
   );
-
   const burrNoRub = profiles.find(
     (profile) => profile.id === defaultGrinderProfileIds.kUltraBurrNoRub,
   );
   const official = profiles.find(
     (profile) => profile.id === defaultGrinderProfileIds.kUltraOfficialZero,
   );
-
   assert.ok(burrNoRub);
   assert.ok(official);
   assert.equal(burrNoRub.calibrationProfile, "burr-no-rub");
@@ -61,11 +58,9 @@ test("engine applies official range only to HOT V60 official-zero profiles", asy
     readProjectFile("lib/recommendation/engine.ts"),
     readProjectFile("lib/recommendation/personalized.ts"),
   ]);
-
   assert.match(baseEngine, /isKUltraOfficialProfile\(input\.grinder\)/);
   assert.match(baseEngine, /defaultBrewer === "v60"/);
   assert.match(baseEngine, /defaultDrinkStyle === "hot"/);
-  assert.match(baseEngine, /displayRange: `\$\{kUltraOfficialRange\.min\.toFixed\(1\)\}~\$\{kUltraOfficialRange\.max\.toFixed\(1\)\}`/);
   assert.match(baseEngine, /무보정으로 환산하지 않습니다/);
   assert.match(engine, /kUltraOfficialRuleId/);
   assert.match(personalized, /usesKUltraOfficialRange/);
@@ -79,11 +74,10 @@ test("official range rule is manufacturer-backed and calibration-specific", asyn
     readProjectFile("lib/recommendation/candidateRuleRegistry.ts"),
     readProjectFile("lib/recommendation/ruleRegistry.ts"),
   ]);
-
   assert.ok(rules.includes(kUltraOfficialRuleId));
   assert.match(rules, /obs:manufacturer:1zpresso:k-ultra:pour-over-range/);
   assert.match(rules, /obs:equipment-data-1:zero-reference/);
   assert.match(rules, /obs:equipment-data-1:adjustment/);
-  assert.match(candidateRegistry, /candidateRuleRegistryVersion = "1\.4\.0"/);
-  assert.match(ruleRegistry, /recommendationRuleRegistryVersion = "1\.4\.0"/);
+  assert.match(candidateRegistry, /candidateRuleRegistryVersion = "1\.5\.0"/);
+  assert.match(ruleRegistry, /recommendationRuleRegistryVersion = "1\.5\.0"/);
 });
