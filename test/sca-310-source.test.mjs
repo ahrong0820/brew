@@ -21,17 +21,19 @@ test("SCA 310 source records the official standard and scope boundary", () => {
   assert.ok(source.notes.some((note) => note.includes("90~96°C")));
 });
 
-test("registry and validation include the SCA source without observations", async () => {
-  const [registry, validation, observationFiles] = await Promise.all([
+test("source stays separate from its reviewed Observation batch", async () => {
+  const [registry, validation, sourceFile] = await Promise.all([
     readProjectFile("lib/evidence/registry.ts"),
     readProjectFile("scripts/validate-evidence.mjs"),
     readProjectFile("data/evidence/standardsBrewing1.ts"),
   ]);
 
   assert.match(registry, /import \{ standardsBrewing1Sources \}/);
+  assert.match(registry, /import \{ standardsBrewing1Observations \}/);
   assert.match(registry, /\.\.\.standardsBrewing1Sources/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.19\.0"/);
+  assert.match(registry, /\.\.\.standardsBrewing1Observations/);
+  assert.match(registry, /evidenceRegistryVersion = "1\.20\.0"/);
   assert.match(validation, /\.\.\.standardsBrewing1Sources/);
-  assert.equal(observationFiles.includes("EvidenceObservation"), false);
-  assert.equal(registry.includes("standardsBrewing1Observations"), false);
+  assert.match(validation, /\.\.\.standardsBrewing1Observations/);
+  assert.equal(sourceFile.includes("EvidenceObservation"), false);
 });

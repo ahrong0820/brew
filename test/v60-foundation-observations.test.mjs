@@ -37,6 +37,6 @@ test("registry and validation script include the new observations", async () => 
   ]);
 
   assert.match(registry, /\.\.\.v60FoundationObservations1/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.19\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "1\.20\.0"/);
   assert.match(validation, /\.\.\.v60FoundationObservations1/);
 });

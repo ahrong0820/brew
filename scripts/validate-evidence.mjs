@@ -10,10 +10,12 @@ import { evidenceObservations } from "../data/evidence/observations.ts";
 import { manufacturerSourcesHarioV60 } from "../data/evidence/manufacturerSourcesHarioV60.ts";
 import { originVarietyObservations1 } from "../data/evidence/originVarietyObservations1.ts";
 import { originVarietySources1 } from "../data/evidence/originVarietySources1.ts";
+import { researchBatch1Observations } from "../data/evidence/researchBatch1Observations.ts";
 import { roastObservations1 } from "../data/evidence/roastObservations1.ts";
 import { roastSources1 } from "../data/evidence/roastSources1.ts";
 import { evidenceSources } from "../data/evidence/sources.ts";
 import { standardsBrewing1Sources } from "../data/evidence/standardsBrewing1.ts";
+import { standardsBrewing1Observations } from "../data/evidence/standardsBrewing1Observations.ts";
 import { v60FoundationObservations1 } from "../data/evidence/v60FoundationObservations1.ts";
 import { checkExpertVideoProvenance } from "../lib/evidence/expertVideoQuality.ts";
 import { checkObservationTextQuality } from "../lib/evidence/observationTextQuality.ts";
@@ -32,10 +34,12 @@ const sources = [
 ];
 const observations = [
   ...evidenceObservations,
+  ...researchBatch1Observations,
   ...equipmentNotes1,
   ...equipmentNotes2,
   ...equipmentNotes3,
   ...v60FoundationObservations1,
+  ...standardsBrewing1Observations,
   ...originVarietyObservations1,
   ...roastObservations1,
 ];
