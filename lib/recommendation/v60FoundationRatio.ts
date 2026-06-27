@@ -1,4 +1,3 @@
-import { recommendedWaterGrams } from "@/lib/recommendation/normalization";
 import type {
   BrewRecommendation,
   RecommendationInput,
@@ -7,6 +6,10 @@ import type {
 export const v60FoundationRatio = 16;
 export const v60FoundationRatioRuleId =
   "ratio.v60-hot-paper.foundation-16.v1";
+
+function waterForRatio(doseGrams: number, ratio: number) {
+  return Math.round((doseGrams * ratio) / 5) * 5;
+}
 
 export function appliesV60FoundationRatio(input: RecommendationInput) {
   return (
@@ -41,10 +44,7 @@ export function applyV60FoundationRatio(
   return {
     ...recommendation,
     ratio: v60FoundationRatio,
-    waterGrams: recommendedWaterGrams(
-      recommendation.doseGrams,
-      v60FoundationRatio,
-    ),
+    waterGrams: waterForRatio(recommendation.doseGrams, v60FoundationRatio),
     reasons,
   };
 }
