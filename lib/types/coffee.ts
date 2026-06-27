@@ -82,6 +82,37 @@ export type TastingResult =
   | "aroma-muted"
   | "good";
 
+export type BrewAdjustmentVariable =
+  | "grind"
+  | "temperature"
+  | "ratio"
+  | "none";
+
+export type BrewAdjustmentAction =
+  | "hold"
+  | "finer"
+  | "coarser"
+  | "hotter"
+  | "cooler"
+  | "less-water"
+  | "more-water";
+
+export type BrewAdjustmentOutcome = "improved" | "same" | "worse";
+
+export interface BrewAdjustmentTrial {
+  id: string;
+  sourceSessionId: string;
+  resultSessionId?: string;
+  variable: Exclude<BrewAdjustmentVariable, "none">;
+  action: Exclude<BrewAdjustmentAction, "hold">;
+  delta: number;
+  currentValue: string;
+  nextValue: string;
+  outcome?: BrewAdjustmentOutcome;
+  appliedAt: string;
+  evaluatedAt?: string;
+}
+
 export interface Bean {
   id: string;
   name: string;
@@ -195,6 +226,10 @@ export interface BeanBrewProfile {
     temperature?: number;
     ratio?: number;
   };
+  /** Bounded history of applied one-variable dial-in trials. */
+  adjustmentHistory?: BrewAdjustmentTrial[];
+  /** Trial that must be evaluated by the next completed brew. */
+  pendingAdjustmentId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -213,6 +248,12 @@ export interface BrewSession {
   /** User judgement of whether the drawdown felt fast, on target, or slow. */
   brewPaceAssessment?: BrewPaceAssessment;
   tastingResult?: TastingResult;
+  /** Adjustment applied to this brew, if any. */
+  appliedAdjustmentId?: string;
+  /** Session used as the comparison baseline for the applied adjustment. */
+  comparedToSessionId?: string;
+  /** User judgement of the applied adjustment versus the comparison brew. */
+  adjustmentOutcome?: BrewAdjustmentOutcome;
   note?: string;
   status: BrewSessionStatus;
   createdAt: string;
