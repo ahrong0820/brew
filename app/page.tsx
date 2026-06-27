@@ -1112,6 +1112,21 @@ export default function Home() {
 
   function selectRecipe(recipe: Recipe) {
     const current = readBrewSessionClock();
+    const sameTrackedRecipe = Boolean(
+      current?.sessionId &&
+        current.status !== "completed" &&
+        current.recipe?.id === recipe.id,
+    );
+
+    if (sameTrackedRecipe) {
+      setTimerNotice(null);
+      document.getElementById("brew-timer-panel")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+
     if (isDifferentTrackedRecipe(current, recipe)) {
       setTimerNotice("진행 중인 추천 추출을 완료한 뒤 다른 레시피를 선택해 주세요.");
       document.getElementById("brew-timer-panel")?.scrollIntoView({
@@ -1235,13 +1250,36 @@ export default function Home() {
   }
 
   function deleteCustomRecipe(recipeId: string) {
+    const activeClock = readBrewSessionClock();
+    const deletingActiveRecipe = Boolean(
+      activeClock?.sessionId &&
+        activeClock.status !== "completed" &&
+        activeClock.recipe?.id === recipeId,
+    );
+
+    if (deletingActiveRecipe) {
+      setTimerNotice(
+        "진행 중인 사용자 레시피는 타이머를 완료하거나 초기화한 뒤 삭제해 주세요.",
+      );
+      document.getElementById("brew-timer-panel")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      return;
+    }
+
     setCustomRecipes((currentRecipes) =>
       currentRecipes.filter((recipe) => recipe.id !== recipeId),
     );
     setFavoriteIds((currentIds) => currentIds.filter((id) => id !== recipeId));
 
     if (selectedId === recipeId) {
-      selectRecipe(recipes[0]);
+      clearBrewSessionClock();
+      setSelectedId(recipes[0].id);
+      setDose(recipes[0].dose);
+      setTimerNotice(null);
+      completionPlayedRef.current = false;
+      previousElapsedRef.current = 0;
     }
   }
 
@@ -1368,6 +1406,7 @@ export default function Home() {
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
+                aria-label="레시피 검색"
                 placeholder="원두, 도구, 향미 검색"
                 className="h-11 w-full rounded-md border border-[#d7ded4] bg-[#f8faf6] py-2 pl-10 pr-3 text-sm outline-none transition focus:border-[#2f6f5f] focus:bg-white focus:ring-2 focus:ring-[#2f6f5f]/20"
               />
@@ -1379,6 +1418,7 @@ export default function Home() {
                   key={option}
                   type="button"
                   onClick={() => setFilter(option)}
+                  aria-pressed={filter === option}
                   className={`h-9 shrink-0 rounded-md px-3 text-sm font-medium transition ${
                     filter === option
                       ? "bg-[#2f6f5f] text-white shadow-sm"
@@ -1401,6 +1441,7 @@ export default function Home() {
                   key={recipe.id}
                   type="button"
                   onClick={() => selectRecipe(recipe)}
+                  aria-pressed={selected}
                   className={`min-w-0 rounded-lg border bg-white p-5 text-left shadow-sm shadow-black/5 transition hover:-translate-y-0.5 hover:border-[#2f6f5f] hover:shadow-md ${
                     selected
                       ? "border-[#2f6f5f] ring-2 ring-[#2f6f5f]/18"
@@ -1465,6 +1506,15 @@ export default function Home() {
               );
             })}
           </div>
+
+          {filteredRecipes.length === 0 ? (
+            <p
+              role="status"
+              className="rounded-lg border border-dashed border-[#bfc9bd] bg-white px-5 py-8 text-center text-sm text-[#607064]"
+            >
+              검색 조건에 맞는 레시피가 없습니다.
+            </p>
+          ) : null}
 
           <section className="rounded-lg border border-[#d7ded4] bg-white p-5 shadow-sm shadow-black/5">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -1756,7 +1806,11 @@ export default function Home() {
                 </button>
               </div>
               {timerNotice && (
-                <p className="mt-3 rounded-md bg-[#fff3df] px-3 py-2 text-xs leading-5 text-[#805526]">
+                <p
+                  role="status"
+                  aria-live="polite"
+                  className="mt-3 rounded-md bg-[#fff3df] px-3 py-2 text-xs leading-5 text-[#805526]"
+                >
                   {timerNotice}
                 </p>
               )}
@@ -1766,6 +1820,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => setAlertsEnabled((current) => !current)}
+                aria-pressed={alertsEnabled}
                 className={`flex h-10 items-center justify-center gap-2 rounded-md border text-sm font-medium transition ${
                   alertsEnabled
                     ? "border-[#2f6f5f] bg-[#eef5ef] text-[#2f6f5f]"
@@ -1778,6 +1833,7 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => toggleFavorite(selectedRecipe.id)}
+                aria-pressed={selectedIsFavorite}
                 className={`flex h-10 items-center justify-center gap-2 rounded-md border text-sm font-medium transition ${
                   selectedIsFavorite
                     ? "border-[#c95b3d] bg-[#fff0eb] text-[#c95b3d]"
@@ -1810,7 +1866,12 @@ export default function Home() {
                     max="40"
                     step="1"
                     value={dose}
-                    onChange={(event) => setDose(Number(event.target.value))}
+                    onChange={(event) => {
+                      const nextDose = Number(event.target.value);
+                      if (Number.isFinite(nextDose)) {
+                        setDose(clampNumber(nextDose, 8, 40));
+                      }
+                    }}
                     className="h-10 w-full rounded-md border border-[#d7ded4] bg-white px-3 text-lg font-semibold outline-none focus:border-[#2f6f5f] focus:ring-2 focus:ring-[#2f6f5f]/20"
                   />
                   <span className="text-sm font-semibold text-[#607064]">g</span>
@@ -1901,7 +1962,7 @@ export default function Home() {
 
                 return (
                   <button
-                    key={`${selectedRecipe.id}-${step.label}`}
+                    key={`${selectedRecipe.id}-${index}-${step.label}`}
                     type="button"
                     onClick={() => updateElapsed(step.start)}
                     className={`grid w-full grid-cols-[58px_1fr_62px] items-center gap-3 rounded-lg border p-3 text-left transition ${
