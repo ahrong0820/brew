@@ -6,6 +6,7 @@ import { advisorSourcesJamesHoffmann } from "../data/evidence/advisorSourcesJame
 import { advisorSourcesTetsuKasuya } from "../data/evidence/advisorSourcesTetsuKasuya.ts";
 import { recommendationRules } from "../data/recommendation/rules.ts";
 import { v60RatioRules } from "../data/recommendation/v60RatioRules.ts";
+import { v60ReferenceGrindRules } from "../data/recommendation/v60ReferenceGrindRules.ts";
 import { v60TemperatureRules } from "../data/recommendation/v60TemperatureRules.ts";
 
 async function readProjectFile(path) {
@@ -16,6 +17,7 @@ const allRules = [
   ...recommendationRules,
   ...v60TemperatureRules,
   ...v60RatioRules,
+  ...v60ReferenceGrindRules,
 ];
 
 test("evidence status derives complete active recommendation rule counts", () => {
@@ -33,11 +35,11 @@ test("evidence status derives complete active recommendation rule counts", () =>
     rule.evidenceLinks.some((reference) => reference.sourceId.startsWith("expert:")),
   );
 
-  assert.equal(activeRules.length, 37);
-  assert.equal(heuristicRules.length, 30);
+  assert.equal(activeRules.length, 38);
+  assert.equal(heuristicRules.length, 31);
   assert.equal(manufacturerRules.length, 5);
   assert.equal(personalRules.length, 3);
-  assert.equal(expertRules.length, 5);
+  assert.equal(expertRules.length, 6);
 });
 
 test("evidence status drawer shows active, candidate and source-only boundaries", async () => {
@@ -78,21 +80,38 @@ test("evidence status is mounted globally and available from mobile tools", asyn
 });
 
 test("transparency UI does not connect candidates directly", async () => {
-  const [engine, adjustment, baseRules, temperatureRules, ratioRules] =
-    await Promise.all([
-      readProjectFile("lib/recommendation/engine.ts"),
-      readProjectFile("lib/recommendation/adjustment.ts"),
-      readProjectFile("data/recommendation/rules.ts"),
-      readProjectFile("data/recommendation/v60TemperatureRules.ts"),
-      readProjectFile("data/recommendation/v60RatioRules.ts"),
-    ]);
-  const activeRules = `${baseRules}\n${temperatureRules}\n${ratioRules}`;
+  const [
+    engine,
+    adjustment,
+    baseRules,
+    temperatureRules,
+    ratioRules,
+    referenceGrindRules,
+  ] = await Promise.all([
+    readProjectFile("lib/recommendation/engine.ts"),
+    readProjectFile("lib/recommendation/adjustment.ts"),
+    readProjectFile("data/recommendation/rules.ts"),
+    readProjectFile("data/recommendation/v60TemperatureRules.ts"),
+    readProjectFile("data/recommendation/v60RatioRules.ts"),
+    readProjectFile("data/recommendation/v60ReferenceGrindRules.ts"),
+  ]);
+  const activeRules = `${baseRules}\n${temperatureRules}\n${ratioRules}\n${referenceGrindRules}`;
   assert.equal(engine.includes("RecommendationEvidenceStatus"), false);
   assert.equal(engine.includes("candidateReadiness"), false);
   assert.equal(adjustment.includes("RecommendationEvidenceStatus"), false);
   assert.equal(adjustment.includes("candidateReadiness"), false);
   assert.equal(activeRules.includes("candidate:ratio:v60-hot:foundation-16-v1"), false);
+  assert.equal(
+    activeRules.includes("candidate:grind:v60-hot:reference-start-no-bean-offsets"),
+    false,
+  );
   assert.equal(activeRules.includes("ratio.v60-hot-paper.foundation-16.v1"), true);
+  assert.equal(
+    activeRules.includes(
+      "grind.v60-hot-paper.reference-start-no-bean-offsets.v1",
+    ),
+    true,
+  );
   assert.equal(activeRules.includes("temperature.v60-hot-paper.roast-only.v1"), true);
   assert.equal(activeRules.includes("grind.1zpresso-k-ultra.official-zero.v1"), true);
   assert.equal(activeRules.includes("pour.v60-hot-paper.foundation.v1"), true);
