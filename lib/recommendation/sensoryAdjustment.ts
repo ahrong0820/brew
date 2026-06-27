@@ -1,19 +1,25 @@
-import {
-  createBrewAdjustmentSuggestion,
-  type BrewAdjustmentSuggestion,
-} from "@/lib/recommendation/adjustment";
+import type { BrewAdjustmentSuggestion } from "@/lib/recommendation/adjustment";
 import { decideAdjustmentAction } from "@/lib/recommendation/adjustmentPolicy";
-import { brewSessionStore } from "@/lib/storage/coffeeData";
-import type { BrewSession, TastingResult } from "@/lib/types/coffee";
+import {
+  brewSessionStore,
+  grinderProfileStore,
+} from "@/lib/storage/coffeeData";
+import type {
+  BrewPaceAssessment,
+  BrewSession,
+  GrinderProfile,
+  TastingResult,
+} from "@/lib/types/coffee";
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function formatTime(seconds: number) {
-  const minutes = Math.floor(seconds / 60);
-  const remainder = seconds % 60;
-  return `${minutes}:${remainder.toString().padStart(2, "0")}`;
+function paceLabel(pace: BrewPaceAssessment | undefined) {
+  if (pace === "fast") return "사용자가 추출이 빠르다고 평가했습니다.";
+  if (pace === "slow") return "사용자가 추출이 느리다고 평가했습니다.";
+  if (pace === "in-range") return "사용자가 추출 속도가 적정하다고 평가했습니다.";
+  return "추출 속도 평가는 기록되지 않았습니다.";
 }
 
 function tastingReason(result: TastingResult) {
@@ -30,20 +36,78 @@ function tastingReason(result: TastingResult) {
 }
 
 function diagnosticReason(session: BrewSession) {
-  const result = session.tastingResult;
-  if (!result) return "맛 평가가 없습니다.";
-  const actual = session.actualTimeSeconds;
-  const minimum = session.recipeSnapshot.targetTimeMinSeconds;
-  const maximum = session.recipeSnapshot.targetTimeMaxSeconds;
+  if (!session.tastingResult) return paceLabel(session.brewPaceAssessment);
+  return `${paceLabel(session.brewPaceAssessment)} ${tastingReason(session.tastingResult)}`;
+}
 
-  if (actual === undefined) return tastingReason(result);
-  if (actual < minimum - 10) {
-    return `${tastingReason(result)} 실제 시간 ${formatTime(actual)}은 목표 하한 ${formatTime(minimum)}보다 빠르지만 맛 신호와 함께 판단했습니다.`;
+function grinderUnit(profile: GrinderProfile) {
+  if (profile.displayUnit === "dial") return "다이얼";
+  if (profile.displayUnit === "click") return "클릭";
+  return "Step";
+}
+
+function formatSetting(profile: GrinderProfile, value: number) {
+  return profile.displayUnit === "dial" ? value.toFixed(1) : String(Math.round(value));
+}
+
+function grindStep(profile: GrinderProfile) {
+  if (profile.model === "1zpresso-k-ultra") return 0.1;
+  if (profile.model === "baratza-encore") return 1;
+  return profile.displayStep ?? 1;
+}
+
+function settingBounds(profile: GrinderProfile) {
+  const points = profile.micronReference?.points ?? [];
+  if (points.length > 0) {
+    return {
+      min: Math.min(...points.map((point) => point.step)) + profile.personalOffset,
+      max: Math.max(...points.map((point) => point.step)) + profile.personalOffset,
+    };
   }
-  if (actual > maximum + 10) {
-    return `${tastingReason(result)} 실제 시간 ${formatTime(actual)}은 목표 상한 ${formatTime(maximum)}보다 느리지만 맛 신호와 함께 판단했습니다.`;
-  }
-  return `${tastingReason(result)} 실제 추출 시간은 목표 범위와 크게 벗어나지 않았습니다.`;
+  if (profile.model === "1zpresso-k-ultra") return { min: 5.5, max: 8.5 };
+  if (profile.model === "baratza-encore") return { min: 8, max: 32 };
+  return null;
+}
+
+function grindSuggestion(
+  session: BrewSession,
+  direction: "finer" | "coarser",
+): BrewAdjustmentSuggestion | null {
+  const grinderId = session.recipeSnapshot.grinderProfileId;
+  const current = session.recipeSnapshot.grindLevel;
+  if (!grinderId || current === undefined) return null;
+  const grinder = grinderProfileStore.getById(grinderId);
+  if (!grinder || grinder.adjustmentDirection === "unknown") return null;
+
+  const movement = grindStep(grinder);
+  const higherIsCoarser = grinder.adjustmentDirection === "higher-is-coarser";
+  const signedDelta =
+    direction === "coarser"
+      ? higherIsCoarser
+        ? movement
+        : -movement
+      : higherIsCoarser
+        ? -movement
+        : movement;
+  const bounds = settingBounds(grinder);
+  const next = bounds
+    ? clamp(current + signedDelta, bounds.min, bounds.max)
+    : current + signedDelta;
+  const appliedDelta = next - current;
+  const unit = grinderUnit(grinder);
+
+  return {
+    sessionId: session.id,
+    profileId: session.profileId,
+    variable: "grind",
+    delta: appliedDelta,
+    title: direction === "finer" ? "분쇄도를 조금 더 곱게" : "분쇄도를 조금 더 굵게",
+    currentValue: `${formatSetting(grinder, current)} ${unit}`,
+    nextValue: `${formatSetting(grinder, next)} ${unit}`,
+    reason: diagnosticReason(session),
+    instruction: "온도, 비율과 푸어 구조는 그대로 유지하고 분쇄도만 바꿔 비교하세요.",
+    canApply: Math.abs(appliedDelta) > 0.0001,
+  };
 }
 
 function temperatureSuggestion(
@@ -90,25 +154,41 @@ function ratioSuggestion(
   };
 }
 
+function keepSuggestion(session: BrewSession): BrewAdjustmentSuggestion {
+  return {
+    sessionId: session.id,
+    profileId: session.profileId,
+    variable: "none",
+    delta: 0,
+    title: "현재 조건 유지",
+    currentValue: "변경 없음",
+    nextValue: "같은 조건으로 한 번 더 재현",
+    reason: diagnosticReason(session),
+    instruction: "좋은 맛이 재현되는지 같은 조건으로 한 번 더 확인하세요.",
+    canApply: false,
+  };
+}
+
 export function createSensoryAdjustmentSuggestion(
   sessionId: string,
 ): BrewAdjustmentSuggestion | null {
-  const baseline = createBrewAdjustmentSuggestion(sessionId);
   const session = brewSessionStore.getById(sessionId);
-  if (!baseline || !session?.tastingResult) return baseline;
-  if (session.actualTimeSeconds === undefined) return baseline;
+  if (!session?.tastingResult) return null;
 
   const action = decideAdjustmentAction({
-    actualSeconds: session.actualTimeSeconds,
-    minimumSeconds: session.recipeSnapshot.targetTimeMinSeconds,
-    maximumSeconds: session.recipeSnapshot.targetTimeMaxSeconds,
+    brewPaceAssessment: session.brewPaceAssessment,
     tastingResult: session.tastingResult,
   });
 
+  if (action === "finer") {
+    return grindSuggestion(session, "finer") ?? temperatureSuggestion(session, 1);
+  }
+  if (action === "coarser") {
+    return grindSuggestion(session, "coarser") ?? temperatureSuggestion(session, -1);
+  }
   if (action === "hotter") return temperatureSuggestion(session, 1);
   if (action === "cooler") return temperatureSuggestion(session, -1);
   if (action === "less-water") return ratioSuggestion(session, -0.5);
   if (action === "more-water") return ratioSuggestion(session, 0.5);
-
-  return baseline;
+  return keepSuggestion(session);
 }
