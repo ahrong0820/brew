@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AdjustmentOutcomeSelector from "@/app/AdjustmentOutcomeSelector";
+import { syncSuccessfulRecipe } from "@/lib/brew/successRecipe";
 import { brewFeedbackSavedEvent, saveBrewFeedback } from "@/lib/brew/sessionFeedback";
 import { beanBrewProfileStore, brewSessionStore } from "@/lib/storage/coffeeData";
 import type { BrewAdjustmentOutcome, BrewAdjustmentTrial } from "@/lib/types/coffee";
@@ -17,7 +18,9 @@ export default function AdjustmentOutcomeTracker() {
       const sessionId = (event as CustomEvent<{ sessionId: string }>).detail.sessionId;
       window.setTimeout(() => {
         const session = brewSessionStore.getById(sessionId);
-        if (!session?.appliedAdjustmentId || session.adjustmentOutcome) return;
+        if (!session) return;
+        if (session.tastingResult === "good") syncSuccessfulRecipe(session);
+        if (!session.appliedAdjustmentId || session.adjustmentOutcome) return;
         const profile = beanBrewProfileStore.getById(session.profileId);
         const trial = (profile?.adjustmentHistory ?? []).find(
           (item) => item.id === session.appliedAdjustmentId,
