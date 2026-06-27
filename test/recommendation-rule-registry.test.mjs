@@ -2,30 +2,69 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { recommendationRules } from "../data/recommendation/rules.ts";
+import { v60TemperatureRules } from "../data/recommendation/v60TemperatureRules.ts";
+
+const allRules = [...recommendationRules, ...v60TemperatureRules];
 
 test("recommendation rule ids are unique and versioned", () => {
-  const ids = recommendationRules.map((rule) => rule.id);
+  const ids = allRules.map((rule) => rule.id);
   assert.equal(new Set(ids).size, ids.length);
   assert.ok(
-    recommendationRules.every(
+    allRules.every(
       (rule) => Number.isInteger(rule.version) && rule.version >= 1,
     ),
   );
 });
 
 test("registry contains baseline, foundation and adjustment rules", () => {
-  const ids = new Set(recommendationRules.map((rule) => rule.id));
+  const ids = new Set(allRules.map((rule) => rule.id));
   assert.ok(ids.has("dose.user-default.normalized.v1"));
   assert.ok(ids.has("grind.holzklotz-e80.v1"));
   assert.ok(ids.has("personalization.profile-offset.v1"));
   assert.ok(ids.has("grind.1zpresso-k-ultra.official-zero.v1"));
+  assert.ok(ids.has("temperature.v60-hot-paper.roast-only.v1"));
   assert.ok(ids.has("pour.v60-hot-paper.foundation.v1"));
   assert.ok(ids.has("time.v60-hot-paper.foundation.v1"));
   assert.ok(ids.has("grind.v60-hot-paper.dial-in.v1"));
 });
 
+test("HOT V60 roast-only temperature rule preserves support and limits", () => {
+  const rule = allRules.find(
+    (candidate) =>
+      candidate.id === "temperature.v60-hot-paper.roast-only.v1",
+  );
+
+  assert.ok(rule);
+  assert.equal(rule.status, "active");
+  assert.equal(rule.parameter, "temperature");
+  assert.equal(
+    rule.implementationKey,
+    "v60-hot-paper-roast-only-temperature",
+  );
+  assert.equal(rule.evidenceLinks.length, 5);
+  assert.equal(
+    new Set(rule.evidenceLinks.map((link) => link.sourceId)).size,
+    4,
+  );
+  assert.equal(
+    rule.evidenceLinks.filter((link) => link.role === "supports").length,
+    2,
+  );
+  assert.equal(
+    rule.evidenceLinks.filter((link) => link.role === "limits").length,
+    1,
+  );
+  assert.ok(
+    rule.evidenceLinks.some(
+      (link) =>
+        link.observationId === "obs:research-batch-1:temperature" &&
+        link.applicability === "partial",
+    ),
+  );
+});
+
 test("K-Ultra official range rule retains chart and calibration evidence", () => {
-  const rule = recommendationRules.find(
+  const rule = allRules.find(
     (candidate) =>
       candidate.id === "grind.1zpresso-k-ultra.official-zero.v1",
   );
@@ -49,10 +88,10 @@ test("K-Ultra official range rule retains chart and calibration evidence", () =>
 });
 
 test("promoted HOT V60 foundation rules retain independent evidence", () => {
-  const pour = recommendationRules.find(
+  const pour = allRules.find(
     (candidate) => candidate.id === "pour.v60-hot-paper.foundation.v1",
   );
-  const time = recommendationRules.find(
+  const time = allRules.find(
     (candidate) => candidate.id === "time.v60-hot-paper.foundation.v1",
   );
 
@@ -67,7 +106,7 @@ test("promoted HOT V60 foundation rules retain independent evidence", () => {
 });
 
 test("promoted V60 adjustment rule retains support and limits", () => {
-  const rule = recommendationRules.find(
+  const rule = allRules.find(
     (candidate) => candidate.id === "grind.v60-hot-paper.dial-in.v1",
   );
   assert.equal(rule.status, "active");

@@ -3,6 +3,7 @@ import {
   isKUltraOfficialProfile,
   kUltraOfficialRange,
 } from "@/lib/recommendation/kUltraOfficialRange";
+import { applyV60RoastOnlyTemperature } from "@/lib/recommendation/v60RoastOnlyTemperature";
 import type {
   BrewRecommendation,
   RecommendationInput,
@@ -76,7 +77,7 @@ function personalizedGrinder(
 export function createPersonalizedRecommendation(
   input: RecommendationInput,
 ): BrewRecommendation {
-  const base = createRecommendation(input);
+  const base = applyV60RoastOnlyTemperature(createRecommendation(input), input);
   const offset = input.recommendationOffset;
 
   if (!offset) {

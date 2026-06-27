@@ -1,4 +1,5 @@
 import { candidateSimulationScenarios } from "@/data/recommendation/candidateSimulationScenarios";
+import { v60TemperatureSimulationScenarios } from "@/data/recommendation/v60TemperatureSimulationScenarios";
 import { getCandidateRule } from "@/lib/recommendation/candidateRuleRegistry";
 import { decideDialIn } from "@/lib/recommendation/dialInDecision";
 import {
@@ -10,6 +11,7 @@ import {
   v60FoundationBloomWater,
   v60FoundationTargetTime,
 } from "@/lib/recommendation/v60Foundation";
+import { v60RoastOnlyTemperature } from "@/lib/recommendation/v60RoastOnlyTemperature";
 import type { CandidateRule } from "@/lib/types/candidateRule";
 import type {
   CandidateSimulationExpectedValues,
@@ -18,6 +20,11 @@ import type {
   CandidateSimulationScenario,
 } from "@/lib/types/candidateSimulation";
 import type { RecommendationRuleParameter } from "@/lib/types/recommendation";
+
+const allCandidateSimulationScenarios = [
+  ...candidateSimulationScenarios,
+  ...v60TemperatureSimulationScenarios,
+] as const;
 
 function includesOrUnrestricted<T>(
   allowed: readonly T[] | undefined,
@@ -220,6 +227,37 @@ function simulateKUltraOfficialRange(
   };
 }
 
+function simulateV60RoastOnlyTemperature(
+  rule: CandidateRule,
+  scenario: CandidateSimulationScenario,
+): CandidateSimulationResult {
+  const roastLevel = scenario.recipeInput?.roastLevel;
+  if (!roastLevel) {
+    throw new Error(`Missing roast level: ${scenario.id}`);
+  }
+
+  const actualValues = {
+    temperatureCelsius: v60RoastOnlyTemperature(roastLevel),
+  } as const;
+  const decision = "apply" as const;
+
+  return {
+    scenarioId: scenario.id,
+    candidateRuleId: rule.id,
+    applies: true,
+    decision,
+    changedParameters: ["temperature"],
+    expectedDecision: scenario.expectedDecision,
+    actualValues,
+    expectedValues: scenario.expectedValues,
+    passed:
+      decision === scenario.expectedDecision &&
+      valuesMatch(actualValues, scenario.expectedValues),
+    reason:
+      "기존 배전도 기준 온도만 사용하고 맛 목표와 가공 방식의 추가 온도 오프셋은 적용하지 않습니다.",
+  };
+}
+
 export function simulateCandidateScenario(
   scenario: CandidateSimulationScenario,
 ): CandidateSimulationResult {
@@ -242,6 +280,8 @@ export function simulateCandidateScenario(
       return simulateFoundationTime(rule, scenario);
     case "k-ultra-official-zero-range-v1":
       return simulateKUltraOfficialRange(rule, scenario);
+    case "v60-hot-paper-roast-only-temperature-v1":
+      return simulateV60RoastOnlyTemperature(rule, scenario);
     default:
       throw new Error(
         `Unsupported candidate implementation: ${implementationKey ?? "missing"}`,
@@ -258,7 +298,7 @@ export function runCandidateSimulation(
   }
 
   const scenarioById = new Map<string, CandidateSimulationScenario>(
-    candidateSimulationScenarios.map((scenario) => [scenario.id, scenario]),
+    allCandidateSimulationScenarios.map((scenario) => [scenario.id, scenario]),
   );
   const scenarioIds = rule.validationPlan?.scenarioIds ?? [];
 

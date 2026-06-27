@@ -2,6 +2,9 @@ import type {
   BrewerType,
   DrinkStyle,
   GrinderModel,
+  ProcessMethod,
+  RoastLevel,
+  TasteGoal,
   TastingResult,
 } from "@/lib/types/coffee";
 import type { RecommendationRuleParameter } from "@/lib/types/recommendation";
@@ -22,6 +25,7 @@ export interface CandidateSimulationExpectedValues {
   grinderDisplayValue?: number;
   grinderRangeMin?: number;
   grinderRangeMax?: number;
+  temperatureCelsius?: number;
 }
 
 export interface CandidateSimulationScenario {
@@ -44,6 +48,9 @@ export interface CandidateSimulationScenario {
     doseGrams: number;
     waterGrams: number;
     grinderPersonalOffset?: number;
+    roastLevel?: RoastLevel;
+    process?: ProcessMethod;
+    tasteGoal?: TasteGoal;
   };
   expectedDecision: CandidateSimulationDecision;
   expectedValues?: CandidateSimulationExpectedValues;
