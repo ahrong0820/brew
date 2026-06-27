@@ -1,4 +1,4 @@
-import { isKUltraOfficialProfile } from "@/lib/recommendation/kUltraOfficialRange";
+import { isKUltraOfficialProfile } from "#k-ultra-official-range";
 import type { GrinderModel } from "@/lib/types/coffee";
 import type {
   BrewRecommendation,
