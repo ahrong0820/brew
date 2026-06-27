@@ -1,14 +1,14 @@
-import { baristaRecipes } from "../../data/baristaRecipes.ts";
+import { baristaRecipes } from "#barista-recipes";
 import type {
   BaristaRecipe,
   BaristaRecipeMatch,
   BaristaRecipeMatchInput,
-} from "../types/baristaRecipe.ts";
+} from "@/lib/types/baristaRecipe";
 import type {
   ProcessMethod,
   RoastLevel,
   TasteGoal,
-} from "../types/coffee.ts";
+} from "@/lib/types/coffee";
 
 const tasteGoalLabels: Record<TasteGoal, string> = {
   sweet: "단맛",
