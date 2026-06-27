@@ -1,18 +1,22 @@
 import { candidateRules } from "@/data/recommendation/candidateRules";
+import { v60RatioCandidateRules } from "@/data/recommendation/v60RatioCandidateRules";
 import { v60TemperatureCandidateRules } from "@/data/recommendation/v60TemperatureCandidateRules";
 import { evidenceRegistry } from "@/lib/evidence/registry";
 import type {
-  CandidateEvidenceRole,
   CandidateEvidenceSourceGroup,
   CandidateRule,
   CandidateRuleRegistry,
 } from "@/lib/types/candidateRule";
 
-export const candidateRuleRegistryVersion = "1.4.0";
+export const candidateRuleRegistryVersion = "1.5.0";
 
 export const candidateRuleRegistry: CandidateRuleRegistry = {
   version: candidateRuleRegistryVersion,
-  rules: [...candidateRules, ...v60TemperatureCandidateRules],
+  rules: [
+    ...candidateRules,
+    ...v60TemperatureCandidateRules,
+    ...v60RatioCandidateRules,
+  ],
 };
 
 export type CandidateRuleValidationCode =
@@ -224,10 +228,7 @@ export function assertValidCandidateRuleRegistry(
   registry: CandidateRuleRegistry,
 ) {
   const issues = validateCandidateRuleRegistry(registry);
-  if (issues.length === 0) {
-    return;
-  }
-
+  if (issues.length === 0) return;
   const details = issues
     .map((issue) => `${issue.code} ${issue.path}: ${issue.message}`)
     .join("\n");
@@ -263,24 +264,16 @@ export function listCandidateRules(options?: {
 
 export function groupCandidateEvidenceBySource(candidateRuleId: string) {
   const rule = getCandidateRule(candidateRuleId);
-  if (!rule) {
-    return [];
-  }
+  if (!rule) return [];
 
   const groups = new Map<string, CandidateEvidenceSourceGroup>();
   observationEntries(rule).forEach(({ observationId, role }) => {
     const observation = observationById.get(observationId);
-    if (!observation) {
-      return;
-    }
-
+    if (!observation) return;
     const current = groups.get(observation.sourceId);
     groups.set(observation.sourceId, {
       sourceId: observation.sourceId,
-      observationIds: [
-        ...(current?.observationIds ?? []),
-        observationId,
-      ],
+      observationIds: [...(current?.observationIds ?? []), observationId],
       roles: [...(current?.roles ?? []), role],
     });
   });
