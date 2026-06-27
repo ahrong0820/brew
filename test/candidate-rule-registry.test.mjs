@@ -3,25 +3,31 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { candidateRules } from "../data/recommendation/candidateRules.ts";
+import { v60RatioCandidateRules } from "../data/recommendation/v60RatioCandidateRules.ts";
 import { v60TemperatureCandidateRules } from "../data/recommendation/v60TemperatureCandidateRules.ts";
 
 async function readProjectFile(path) {
   return readFile(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
-const allCandidates = [...candidateRules, ...v60TemperatureCandidateRules];
+const allCandidates = [
+  ...candidateRules,
+  ...v60TemperatureCandidateRules,
+  ...v60RatioCandidateRules,
+];
 
 test("validated candidates record their active rule promotions", async () => {
-  assert.equal(allCandidates.length, 5);
+  assert.equal(allCandidates.length, 6);
   assert.ok(allCandidates.every((candidate) => candidate.status === "validated"));
   assert.ok(allCandidates.every((candidate) => candidate.audience === "global"));
   assert.ok(allCandidates.every((candidate) => candidate.reviewedBy === "project-maintainer"));
 
-  const [baseRules, temperatureRules] = await Promise.all([
+  const [baseRules, temperatureRules, ratioRules] = await Promise.all([
     readProjectFile("data/recommendation/rules.ts"),
     readProjectFile("data/recommendation/v60TemperatureRules.ts"),
+    readProjectFile("data/recommendation/v60RatioRules.ts"),
   ]);
-  const activeRules = `${baseRules}\n${temperatureRules}`;
+  const activeRules = `${baseRules}\n${temperatureRules}\n${ratioRules}`;
   for (const candidate of allCandidates) {
     assert.ok(candidate.promotion);
     assert.equal(candidate.promotion.ruleVersion, 1);
@@ -34,21 +40,15 @@ test("validated candidates record their active rule promotions", async () => {
   );
   assert.deepEqual(
     initialCandidates.map((candidate) => candidate.parameter),
-    ["pour", "time", "grind", "temperature"],
+    ["pour", "time", "grind", "temperature", "ratio"],
   );
 
-  const officialRange = allCandidates.find((candidate) =>
-    candidate.id.includes("k-ultra-official-zero"),
+  const ratioCandidate = allCandidates.find((candidate) =>
+    candidate.id.includes("ratio:v60-hot:foundation-16"),
   );
-  const roastOnlyTemperature = allCandidates.find((candidate) =>
-    candidate.id.includes("temperature:v60-hot:roast-only"),
-  );
-  assert.ok(officialRange);
-  assert.ok(roastOnlyTemperature);
-  assert.equal(officialRange.confidenceScore, 0.82);
-  assert.equal(officialRange.promotion.ruleRegistryVersion, "1.3.0");
-  assert.equal(roastOnlyTemperature.confidenceScore, 0.74);
-  assert.equal(roastOnlyTemperature.promotion.ruleRegistryVersion, "1.4.0");
+  assert.ok(ratioCandidate);
+  assert.equal(ratioCandidate.confidenceScore, 0.72);
+  assert.equal(ratioCandidate.promotion.ruleRegistryVersion, "1.5.0");
 });
 
 test("candidate evidence stays unique and resolvable", async () => {
@@ -85,8 +85,8 @@ test("candidate registry validates evidence, plans and promotion metadata", asyn
   assert.match(types, /audience: CandidateRuleAudience/);
   assert.match(types, /validationPlan\?: CandidateRuleValidationPlan/);
   assert.match(types, /promotion\?: CandidateRulePromotion/);
-  assert.match(registry, /candidateRuleRegistryVersion = "1\.4\.0"/);
-  assert.match(registry, /v60TemperatureCandidateRules/);
+  assert.match(registry, /candidateRuleRegistryVersion = "1\.5\.0"/);
+  assert.match(registry, /v60RatioCandidateRules/);
   assert.match(registry, /groupCandidateEvidenceBySource/);
   assert.match(registry, /personal-rule-without-personal-evidence/);
   assert.match(registry, /missing-validation-plan/);
