@@ -2,6 +2,7 @@ import { promoteCurrentBestSession } from "@/lib/brew/history";
 import { withUpdatedTimestamp } from "@/lib/domain/factories";
 import { brewSessionStore } from "@/lib/storage/coffeeData";
 import type {
+  BrewPaceAssessment,
   BrewSession,
   BrewSessionStatus,
   TastingResult,
@@ -16,6 +17,7 @@ export interface BrewFeedbackSavedDetail {
 export interface BrewFeedbackInput {
   sessionId: string;
   actualTimeSeconds?: number;
+  brewPaceAssessment?: BrewPaceAssessment;
   tastingResult?: TastingResult;
   note?: string;
 }
@@ -53,6 +55,8 @@ export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
   const nextSession: BrewSession = withUpdatedTimestamp<BrewSession>({
     ...session,
     actualTimeSeconds: actualTimeSeconds ?? session.actualTimeSeconds,
+    brewPaceAssessment:
+      input.brewPaceAssessment ?? session.brewPaceAssessment,
     tastingResult: nextTastingResult,
     note: trimmedNote ? trimmedNote : session.note,
     status: nextStatus,
