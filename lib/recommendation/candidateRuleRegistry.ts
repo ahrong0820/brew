@@ -1,4 +1,5 @@
 import { candidateRules } from "@/data/recommendation/candidateRules";
+import { v60TemperatureCandidateRules } from "@/data/recommendation/v60TemperatureCandidateRules";
 import { evidenceRegistry } from "@/lib/evidence/registry";
 import type {
   CandidateEvidenceRole,
@@ -7,11 +8,11 @@ import type {
   CandidateRuleRegistry,
 } from "@/lib/types/candidateRule";
 
-export const candidateRuleRegistryVersion = "1.3.0";
+export const candidateRuleRegistryVersion = "1.4.0";
 
 export const candidateRuleRegistry: CandidateRuleRegistry = {
   version: candidateRuleRegistryVersion,
-  rules: candidateRules,
+  rules: [...candidateRules, ...v60TemperatureCandidateRules],
 };
 
 export type CandidateRuleValidationCode =
