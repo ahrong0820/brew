@@ -115,20 +115,23 @@ function scoreRecipe(
   };
 }
 
+function eligibleBaristaRecipes(input: BaristaRecipeMatchInput) {
+  return baristaRecipes.filter(
+    (recipe) =>
+      recipe.brewerType === input.brewerType &&
+      recipe.drinkStyle === input.drinkStyle &&
+      input.doseGrams >= recipe.supportedDoseGrams.min &&
+      input.doseGrams <= recipe.supportedDoseGrams.max,
+  );
+}
+
 export function rankBaristaRecipes(
   input: BaristaRecipeMatchInput,
   limit = 3,
 ): BaristaRecipeMatch[] {
   if (limit <= 0) return [];
 
-  return baristaRecipes
-    .filter(
-      (recipe) =>
-        recipe.brewerType === input.brewerType &&
-        recipe.drinkStyle === input.drinkStyle &&
-        input.doseGrams >= recipe.supportedDoseGrams.min &&
-        input.doseGrams <= recipe.supportedDoseGrams.max,
-    )
+  return eligibleBaristaRecipes(input)
     .map((recipe) => scoreRecipe(recipe, input))
     .sort(
       (left, right) =>
@@ -140,6 +143,19 @@ export function rankBaristaRecipes(
 
 export function selectBaristaRecipe(
   input: BaristaRecipeMatchInput,
+  preferredRecipeId?: string,
 ): BaristaRecipeMatch | undefined {
-  return rankBaristaRecipes(input, 1)[0];
+  const matches = eligibleBaristaRecipes(input)
+    .map((recipe) => scoreRecipe(recipe, input))
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        left.recipe.id.localeCompare(right.recipe.id),
+    );
+
+  if (preferredRecipeId) {
+    return matches.find((match) => match.recipe.id === preferredRecipeId);
+  }
+
+  return matches[0];
 }

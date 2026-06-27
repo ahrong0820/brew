@@ -13,6 +13,8 @@ export interface RecommendationInput {
   preferences: UserPreferences;
   tasteGoal: TasteGoal;
   recommendationOffset?: BeanBrewProfile["recommendationOffset"];
+  /** Optional user-selected recipe from the ranked barista recipe candidates. */
+  baristaRecipeId?: string;
 }
 
 export interface RecommendationStep {
@@ -69,6 +71,8 @@ export interface AppliedRecommendationRule {
 
 export interface BrewRecommendation {
   templateName: string;
+  /** Original barista recipe ID when the recommendation comes from the catalog. */
+  sourceRecipeId?: string;
   doseGrams: number;
   waterGrams: number;
   ratio: number;

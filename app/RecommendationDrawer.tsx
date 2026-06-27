@@ -12,7 +12,9 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import RecommendationCandidates from "@/app/RecommendationCandidates";
 import { prepareRecommendationBrew } from "@/lib/recommendation/brewLaunch";
+import { rankBaristaRecipes } from "@/lib/recommendation/baristaRecipeMatcher";
 import { createRecommendation } from "@/lib/recommendation/engine";
 import {
   beanStore,
@@ -22,6 +24,7 @@ import {
   saveUserPreferences,
 } from "@/lib/storage/coffeeData";
 import { dispatchRecommendationTimerStart } from "@/lib/timer/recommendationTimer";
+import type { BaristaRecipeMatch } from "@/lib/types/baristaRecipe";
 import type {
   Bean,
   BrewerType,
@@ -65,7 +68,9 @@ function formatTime(seconds: number) {
 }
 
 function confidenceLabel(recommendation: BrewRecommendation) {
-  return recommendation.confidence === "medium" ? "보통" : "참고";
+  if (recommendation.confidence === "high") return "높음";
+  if (recommendation.confidence === "medium") return "보통";
+  return "참고";
 }
 
 export default function RecommendationDrawer() {
@@ -77,6 +82,8 @@ export default function RecommendationDrawer() {
   const [grinderId, setGrinderId] = useState("");
   const [tasteGoal, setTasteGoal] = useState<TasteGoal>("balanced");
   const [showSettings, setShowSettings] = useState(false);
+  const [recipeMatches, setRecipeMatches] = useState<BaristaRecipeMatch[]>([]);
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
   const [recommendation, setRecommendation] =
     useState<BrewRecommendation | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -89,6 +96,12 @@ export default function RecommendationDrawer() {
     () => grinders.find((grinder) => grinder.id === grinderId),
     [grinders, grinderId],
   );
+
+  function clearGeneratedRecommendation() {
+    setRecipeMatches([]);
+    setSelectedRecipeId(null);
+    setRecommendation(null);
+  }
 
   function loadData() {
     initializeCoffeeStorage();
@@ -124,14 +137,10 @@ export default function RecommendationDrawer() {
   }, []);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
+    if (!open) return;
 
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
+      if (event.key === "Escape") setOpen(false);
     }
 
     document.addEventListener("keydown", closeOnEscape);
@@ -140,7 +149,7 @@ export default function RecommendationDrawer() {
 
   function openDrawer() {
     loadData();
-    setRecommendation(null);
+    clearGeneratedRecommendation();
     setMessage(null);
     setOpen(true);
   }
@@ -152,14 +161,12 @@ export default function RecommendationDrawer() {
     setPreferences((current) =>
       current ? { ...current, [key]: value } : current,
     );
-    setRecommendation(null);
+    clearGeneratedRecommendation();
     setMessage(null);
   }
 
   function saveEnvironment() {
-    if (!preferences) {
-      return false;
-    }
+    if (!preferences) return false;
 
     const nextPreferences: UserPreferences = {
       ...preferences,
@@ -179,6 +186,21 @@ export default function RecommendationDrawer() {
     return saved;
   }
 
+  function buildRecommendation(
+    nextPreferences: UserPreferences,
+    baristaRecipeId?: string,
+  ) {
+    if (!selectedBean || !selectedGrinder) return null;
+
+    return createRecommendation({
+      bean: selectedBean,
+      grinder: selectedGrinder,
+      preferences: nextPreferences,
+      tasteGoal,
+      baristaRecipeId,
+    });
+  }
+
   function generateRecommendation() {
     if (!selectedBean) {
       setMessage("먼저 내 원두에서 원두를 등록해 주세요.");
@@ -196,17 +218,39 @@ export default function RecommendationDrawer() {
       defaultTasteGoal: tasteGoal,
       updatedAt: new Date().toISOString(),
     };
+    const matches = rankBaristaRecipes(
+      {
+        brewerType: nextPreferences.defaultBrewer,
+        drinkStyle: nextPreferences.defaultDrinkStyle,
+        roastLevel: selectedBean.roastLevel,
+        process: selectedBean.process,
+        tasteGoal,
+        doseGrams: nextPreferences.defaultDoseGrams,
+        flavorNotes: selectedBean.flavorNotes,
+      },
+      3,
+    );
+    const firstRecipeId = matches[0]?.recipe.id;
 
     saveUserPreferences(nextPreferences);
     setPreferences(nextPreferences);
-    setRecommendation(
-      createRecommendation({
-        bean: selectedBean,
-        grinder: selectedGrinder,
-        preferences: nextPreferences,
-        tasteGoal,
-      }),
-    );
+    setRecipeMatches(matches);
+    setSelectedRecipeId(firstRecipeId ?? null);
+    setRecommendation(buildRecommendation(nextPreferences, firstRecipeId));
+    setMessage(null);
+  }
+
+  function selectRecipeCandidate(recipeId: string) {
+    if (!preferences) return;
+
+    const nextRecommendation = buildRecommendation(preferences, recipeId);
+    if (!nextRecommendation) {
+      setMessage("선택한 레시피로 추천을 만들지 못했습니다.");
+      return;
+    }
+
+    setSelectedRecipeId(recipeId);
+    setRecommendation(nextRecommendation);
     setMessage(null);
   }
 
@@ -259,7 +303,7 @@ export default function RecommendationDrawer() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="recommendation-title"
-            className="flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-[#f4f6f1] shadow-2xl sm:max-w-3xl sm:rounded-2xl"
+            className="flex max-h-[94dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-[#f4f6f1] shadow-2xl sm:max-w-4xl sm:rounded-2xl"
           >
             <header className="flex items-center justify-between border-b border-[#d7ded4] bg-white px-4 py-4 sm:px-6">
               <div>
@@ -306,7 +350,7 @@ export default function RecommendationDrawer() {
                           value={beanId}
                           onChange={(event) => {
                             setBeanId(event.target.value);
-                            setRecommendation(null);
+                            clearGeneratedRecommendation();
                           }}
                           className={fieldClass}
                         >
@@ -327,7 +371,7 @@ export default function RecommendationDrawer() {
                           value={grinderId}
                           onChange={(event) => {
                             setGrinderId(event.target.value);
-                            setRecommendation(null);
+                            clearGeneratedRecommendation();
                           }}
                           className={fieldClass}
                         >
@@ -345,6 +389,8 @@ export default function RecommendationDrawer() {
                         </span>
                         <button
                           type="button"
+                          aria-expanded={showSettings}
+                          aria-controls="recommendation-environment-settings"
                           onClick={() => setShowSettings((current) => !current)}
                           className="flex w-full items-center justify-between rounded-lg border border-[#c8d0c5] bg-[#f8faf7] px-3 py-2.5 text-left text-sm"
                         >
@@ -371,9 +417,10 @@ export default function RecommendationDrawer() {
                             <button
                               key={option.value}
                               type="button"
+                              aria-pressed={selected}
                               onClick={() => {
                                 setTasteGoal(option.value);
-                                setRecommendation(null);
+                                clearGeneratedRecommendation();
                               }}
                               className={`rounded-lg border px-3 py-3 text-left transition ${
                                 selected
@@ -394,7 +441,10 @@ export default function RecommendationDrawer() {
                     </fieldset>
 
                     {showSettings && preferences && (
-                      <div className="mt-5 rounded-lg border border-[#d7ded4] bg-[#f8faf7] p-4">
+                      <div
+                        id="recommendation-environment-settings"
+                        className="mt-5 rounded-lg border border-[#d7ded4] bg-[#f8faf7] p-4"
+                      >
                         <div className="mb-3 flex items-center gap-2">
                           <Settings2 aria-hidden="true" size={17} />
                           <h3 className="text-sm font-bold">기본 추출 환경</h3>
@@ -496,7 +546,11 @@ export default function RecommendationDrawer() {
                     )}
 
                     {message && (
-                      <p className="mt-4 rounded-lg bg-[#fff8ee] px-3 py-2 text-sm text-[#704b2d]">
+                      <p
+                        role="status"
+                        aria-live="polite"
+                        className="mt-4 rounded-lg bg-[#fff8ee] px-3 py-2 text-sm text-[#704b2d]"
+                      >
                         {message}
                       </p>
                     )}
@@ -511,12 +565,20 @@ export default function RecommendationDrawer() {
                     </button>
                   </section>
 
+                  <RecommendationCandidates
+                    matches={recipeMatches}
+                    selectedRecipeId={selectedRecipeId}
+                    onSelect={selectRecipeCandidate}
+                  />
+
                   {recommendation && selectedBean && selectedGrinder && (
                     <section className="rounded-xl border border-[#c9d7c7] bg-white p-4 shadow-sm sm:p-5">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-xs font-semibold text-[#2f6f5f]">
-                            추천 결과
+                            {recipeMatches.length > 0
+                              ? "선택한 레시피"
+                              : "추천 결과"}
                           </p>
                           <h3 className="mt-1 text-lg font-bold">
                             {recommendation.templateName}
@@ -617,7 +679,7 @@ export default function RecommendationDrawer() {
                         이 레시피로 타이머 시작
                       </button>
                       <p className="mt-2 text-center text-xs leading-5 text-[#687168]">
-                        시작과 동시에 이 조건을 원두별 추출 기록에 저장합니다.
+                        현재 선택한 레시피와 분쇄도를 원두별 추출 기록에 저장합니다.
                       </p>
 
                       <div className="mt-5 rounded-lg bg-[#f8faf7] p-4">
