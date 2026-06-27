@@ -12,6 +12,7 @@ export type RecommendationRuleImplementationKey =
   | "taste-goal-ratio"
   | "dose-ratio-water"
   | "roast-process-taste-temperature"
+  | "v60-hot-paper-roast-only-temperature"
   | "grinder-model-setting"
   | "k-ultra-official-zero-range"
   | "brewer-taste-pour"
