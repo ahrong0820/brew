@@ -5,6 +5,7 @@ import {
   type AdjustmentPresentationContext,
 } from "@/lib/recommendation/adjustmentContext";
 import {
+  brewPaceAssessmentLabel,
   personalizationStageLabel,
   personalizationStageMessage,
   tastingResultLabel,
@@ -36,8 +37,8 @@ export function readAdjustmentContext(
     sourceRecipeId: profile?.sourceRecipeId,
     recipeName: session.recipeSnapshot.sourceTemplateName,
     actualTimeSeconds: session.actualTimeSeconds,
-    targetTimeMinSeconds: session.recipeSnapshot.targetTimeMinSeconds,
-    targetTimeMaxSeconds: session.recipeSnapshot.targetTimeMaxSeconds,
+    brewPaceAssessment: session.brewPaceAssessment,
+    brewPaceLabel: brewPaceAssessmentLabel(session.brewPaceAssessment),
     tastingResult: session.tastingResult,
     tastingLabel: tastingResultLabel(session.tastingResult),
     personalizationStage: stage,

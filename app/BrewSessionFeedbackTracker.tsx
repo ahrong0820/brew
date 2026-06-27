@@ -2,6 +2,7 @@
 
 import { Check, Coffee, Save, Timer, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import BrewPaceSelector from "@/app/BrewPaceSelector";
 import { discardActiveBrewSession } from "@/lib/brew/activeBrewDiscard";
 import { saveBrewFeedback } from "@/lib/brew/sessionFeedback";
 import { brewSessionStore } from "@/lib/storage/coffeeData";
@@ -13,7 +14,10 @@ import {
   subscribeToBrewSessionClock,
   type BrewSessionClock,
 } from "@/lib/timer/brewSessionClock";
-import type { TastingResult } from "@/lib/types/coffee";
+import type {
+  BrewPaceAssessment,
+  TastingResult,
+} from "@/lib/types/coffee";
 
 type CompletedSession = {
   sessionId: string;
@@ -27,12 +31,36 @@ const tastingOptions: Array<{
   description: string;
 }> = [
   { value: "good", label: "좋음", description: "다시 재현하고 싶은 맛" },
-  { value: "too-sour", label: "시고 덜 추출됨", description: "날카롭고 단맛이 부족함" },
-  { value: "not-sweet-enough", label: "단맛 부족", description: "향은 있으나 중심이 비어 있음" },
-  { value: "bitter-astringent", label: "쓰고 떫음", description: "끝맛이 거칠고 건조함" },
-  { value: "too-weak", label: "너무 연함", description: "농도와 바디가 부족함" },
-  { value: "too-strong", label: "너무 진함", description: "농도가 높고 무거움" },
-  { value: "aroma-muted", label: "향이 답답함", description: "향미가 선명하게 열리지 않음" },
+  {
+    value: "too-sour",
+    label: "시고 덜 추출됨",
+    description: "날카롭고 단맛이 부족함",
+  },
+  {
+    value: "not-sweet-enough",
+    label: "단맛 부족",
+    description: "향은 있으나 중심이 비어 있음",
+  },
+  {
+    value: "bitter-astringent",
+    label: "쓰고 떫음",
+    description: "끝맛이 거칠고 건조함",
+  },
+  {
+    value: "too-weak",
+    label: "너무 연함",
+    description: "농도와 바디가 부족함",
+  },
+  {
+    value: "too-strong",
+    label: "너무 진함",
+    description: "농도가 높고 무거움",
+  },
+  {
+    value: "aroma-muted",
+    label: "향이 답답함",
+    description: "향미가 선명하게 열리지 않음",
+  },
 ];
 
 function formatTime(seconds: number) {
@@ -43,10 +71,7 @@ function formatTime(seconds: number) {
 }
 
 function isTrackableClock(clock: BrewSessionClock | null) {
-  if (!clock?.sessionId) {
-    return false;
-  }
-
+  if (!clock?.sessionId) return false;
   const storedSession = brewSessionStore.getById(clock.sessionId);
   return Boolean(storedSession && storedSession.actualTimeSeconds === undefined);
 }
@@ -55,6 +80,8 @@ export default function BrewSessionFeedbackTracker() {
   const [clock, setClock] = useState<BrewSessionClock | null>(null);
   const [completed, setCompleted] = useState<CompletedSession | null>(null);
   const [now, setNow] = useState(0);
+  const [brewPaceAssessment, setBrewPaceAssessment] =
+    useState<BrewPaceAssessment | null>(null);
   const [tastingResult, setTastingResult] = useState<TastingResult | null>(null);
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -88,10 +115,7 @@ export default function BrewSessionFeedbackTracker() {
   }, []);
 
   useEffect(() => {
-    if (clock?.status !== "running") {
-      return;
-    }
-
+    if (clock?.status !== "running") return;
     const intervalId = window.setInterval(() => setNow(Date.now()), 200);
     return () => window.clearInterval(intervalId);
   }, [clock?.status]);
@@ -111,25 +135,24 @@ export default function BrewSessionFeedbackTracker() {
 
   function clearCompletedSession(sessionId: string) {
     const current = readBrewSessionClock();
-    if (current?.sessionId === sessionId) {
-      clearBrewSessionClock();
-    }
+    if (current?.sessionId === sessionId) clearBrewSessionClock();
   }
 
-  function dismissFeedback() {
-    if (completed) {
-      clearCompletedSession(completed.sessionId);
-    }
+  function resetFeedbackState() {
     setCompleted(null);
     setMessage(null);
+    setBrewPaceAssessment(null);
     setTastingResult(null);
     setNote("");
   }
 
+  function dismissFeedback() {
+    if (completed) clearCompletedSession(completed.sessionId);
+    resetFeedbackState();
+  }
+
   function finishBrew() {
-    if (!active?.sessionId) {
-      return;
-    }
+    if (!active?.sessionId) return;
 
     try {
       const actualTimeSeconds = Math.max(1, Math.round(elapsedSeconds));
@@ -148,7 +171,7 @@ export default function BrewSessionFeedbackTracker() {
       setMessage(
         error instanceof Error
           ? error.message
-          : "실제 추출 시간을 저장하지 못했습니다.",
+          : "타이머 기록을 저장하지 못했습니다.",
       );
     }
   }
@@ -166,9 +189,7 @@ export default function BrewSessionFeedbackTracker() {
   }
 
   function confirmDiscard() {
-    if (!active?.sessionId || discarding) {
-      return;
-    }
+    if (!active?.sessionId || discarding) return;
 
     setDiscarding(true);
     setMessage(null);
@@ -176,9 +197,7 @@ export default function BrewSessionFeedbackTracker() {
     try {
       discardActiveBrewSession(active.sessionId);
       setDiscardOpen(false);
-      setCompleted(null);
-      setTastingResult(null);
-      setNote("");
+      resetFeedbackState();
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -191,8 +210,8 @@ export default function BrewSessionFeedbackTracker() {
   }
 
   function saveFeedback() {
-    if (!completed || !tastingResult) {
-      setMessage("맛 평가를 하나 선택해 주세요.");
+    if (!completed || !brewPaceAssessment || !tastingResult) {
+      setMessage("추출 속도와 맛 평가를 모두 선택해 주세요.");
       return;
     }
 
@@ -200,16 +219,17 @@ export default function BrewSessionFeedbackTracker() {
       saveBrewFeedback({
         sessionId: completed.sessionId,
         actualTimeSeconds: completed.actualTimeSeconds,
+        brewPaceAssessment,
         tastingResult,
         note,
       });
-      setMessage("실제 시간과 맛 평가를 저장했습니다.");
+      setMessage("추출 속도와 맛 평가를 저장했습니다.");
       window.setTimeout(dismissFeedback, 900);
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "맛 평가를 저장하지 못했습니다.",
+          : "추출 평가를 저장하지 못했습니다.",
       );
     }
   }
@@ -223,10 +243,12 @@ export default function BrewSessionFeedbackTracker() {
               <p className="flex items-center gap-1.5 text-xs font-semibold text-white/70">
                 <Timer aria-hidden="true" size={14} />
                 {active.status === "paused"
-                  ? "실제 추출 시간 일시정지"
-                  : "실제 추출 시간 측정 중"}
+                  ? "추출 타이머 일시정지"
+                  : "추출 타이머 측정 중"}
               </p>
-              <p className="mt-1 truncate text-sm font-bold">{active.recipeName}</p>
+              <p className="mt-1 truncate text-sm font-bold">
+                {active.recipeName}
+              </p>
             </div>
             <div className="shrink-0 text-right">
               <p className="font-mono text-2xl font-bold">
@@ -241,10 +263,13 @@ export default function BrewSessionFeedbackTracker() {
           <div className="mt-3">
             <p className="text-xs leading-5 text-white/75">
               {active.status === "paused"
-                ? "메인 타이머에서 다시 시작하면 실제 시간 측정도 함께 재개됩니다."
+                ? "메인 타이머에서 다시 시작하면 측정도 함께 재개됩니다."
                 : targetReached
                   ? "목표 시간을 지났습니다. 드로다운이 끝나면 완료를 누르세요."
                   : "드로다운이 끝나는 시점에 완료를 누르세요."}
+            </p>
+            <p className="mt-1 text-[11px] leading-5 text-white/55">
+              종료 시각은 기록용이며 다음 조정은 완료 후 직접 선택한 추출 속도를 사용합니다.
             </p>
             <div className="mt-3 flex justify-end gap-2">
               <button
@@ -288,7 +313,10 @@ export default function BrewSessionFeedbackTracker() {
                 <Trash2 aria-hidden="true" size={19} />
               </span>
               <div>
-                <h2 id="discard-brew-title" className="text-lg font-bold text-[#292d28]">
+                <h2
+                  id="discard-brew-title"
+                  className="text-lg font-bold text-[#292d28]"
+                >
                   진행 중인 추출을 폐기할까요?
                 </h2>
                 <p
@@ -369,15 +397,23 @@ export default function BrewSessionFeedbackTracker() {
               </button>
             </div>
 
-            <div className="mt-5 rounded-xl border border-[#c9d7c7] bg-white p-4">
-              <p className="text-xs text-[#687168]">실제 추출 시간</p>
-              <p className="mt-1 font-mono text-3xl font-bold text-[#214f42]">
+            <div className="mt-5 rounded-xl border border-[#d7ded4] bg-white p-4">
+              <p className="text-xs text-[#687168]">타이머 참고 기록</p>
+              <p className="mt-1 font-mono text-2xl font-bold text-[#526055]">
                 {formatTime(completed.actualTimeSeconds)}
               </p>
-              <p className="mt-1 text-xs text-[#687168]">
-                공용 타이머에서 일시정지를 제외한 실제 경과 시간이 저장되었습니다.
+              <p className="mt-1 text-xs leading-5 text-[#687168]">
+                완료 버튼을 늦게 누를 수 있으므로 이 숫자는 조정 진단에 사용하지 않습니다.
               </p>
             </div>
+
+            <BrewPaceSelector
+              value={brewPaceAssessment}
+              onChange={(value) => {
+                setBrewPaceAssessment(value);
+                setMessage(null);
+              }}
+            />
 
             <fieldset className="mt-5">
               <legend className="text-sm font-bold">맛은 어땠나요?</legend>
@@ -388,6 +424,7 @@ export default function BrewSessionFeedbackTracker() {
                     <button
                       key={option.value}
                       type="button"
+                      aria-pressed={selected}
                       onClick={() => {
                         setTastingResult(option.value);
                         setMessage(null);
@@ -398,7 +435,9 @@ export default function BrewSessionFeedbackTracker() {
                           : "border-[#d7ded4] bg-white hover:bg-[#f8faf7]"
                       }`}
                     >
-                      <span className="block text-sm font-bold">{option.label}</span>
+                      <span className="block text-sm font-bold">
+                        {option.label}
+                      </span>
                       <span className="mt-1 block text-xs leading-5 text-[#687168]">
                         {option.description}
                       </span>
@@ -420,7 +459,11 @@ export default function BrewSessionFeedbackTracker() {
             </label>
 
             {message && (
-              <p className="mt-4 rounded-lg bg-[#fff8ee] px-3 py-2 text-sm text-[#704b2d]">
+              <p
+                role="status"
+                aria-live="polite"
+                className="mt-4 rounded-lg bg-[#fff8ee] px-3 py-2 text-sm text-[#704b2d]"
+              >
                 {message}
               </p>
             )}

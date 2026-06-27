@@ -1,5 +1,8 @@
 import type { PersonalizationStage } from "@/lib/recommendation/adjustmentContext";
-import type { TastingResult } from "@/lib/types/coffee";
+import type {
+  BrewPaceAssessment,
+  TastingResult,
+} from "@/lib/types/coffee";
 
 const tastingLabels: Record<TastingResult, string> = {
   good: "좋음",
@@ -11,8 +14,20 @@ const tastingLabels: Record<TastingResult, string> = {
   "aroma-muted": "향이 답답함",
 };
 
+const paceLabels: Record<BrewPaceAssessment, string> = {
+  fast: "빠름",
+  "in-range": "적정",
+  slow: "느림",
+};
+
 export function tastingResultLabel(result: TastingResult | undefined) {
   return result ? tastingLabels[result] : "미평가";
+}
+
+export function brewPaceAssessmentLabel(
+  assessment: BrewPaceAssessment | undefined,
+) {
+  return assessment ? paceLabels[assessment] : "미평가";
 }
 
 export function personalizationStageLabel(stage: PersonalizationStage) {
