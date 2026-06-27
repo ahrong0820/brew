@@ -1,6 +1,4 @@
-import {
-  isKUltraOfficialProfile,
-} from "@/lib/recommendation/kUltraOfficialRange";
+import { isKUltraOfficialProfile } from "@/lib/recommendation/kUltraOfficialRange";
 import type { GrinderModel } from "@/lib/types/coffee";
 import type {
   BrewRecommendation,
@@ -54,7 +52,11 @@ export function v60ReferenceGrindValue(
   const bounds = referenceBoundsByModel[model];
   if (start === undefined || !bounds) return null;
   const step = model === "1zpresso-k-ultra" ? 0.1 : 1;
-  return clamp(roundTo(start + grinderPersonalOffset, step), bounds.min, bounds.max);
+  return clamp(
+    roundTo(start + grinderPersonalOffset, step),
+    bounds.min,
+    bounds.max,
+  );
 }
 
 export function applyV60ReferenceGrind(
@@ -71,15 +73,23 @@ export function applyV60ReferenceGrind(
   if (value === null || !bounds) return recommendation;
 
   const step = input.grinder.displayStep ?? 1;
-  const rangeMin = clamp(roundTo(value - bounds.width, step), bounds.min, bounds.max);
-  const rangeMax = clamp(roundTo(value + bounds.width, step), bounds.min, bounds.max);
+  const rangeMin = clamp(
+    roundTo(value - bounds.width, step),
+    bounds.min,
+    bounds.max,
+  );
+  const rangeMax = clamp(
+    roundTo(value + bounds.width, step),
+    bounds.min,
+    bounds.max,
+  );
   const reasons = recommendation.reasons.filter(
     (reason) =>
       reason !==
       "가공 방식은 분쇄도 시작점에만 보수적으로 반영하고, HOT V60 초기 온도에는 별도 오프셋을 더하지 않았습니다.",
   );
   reasons.push(
-    "HOT V60의 비공식 교정 프로필은 기존 모델별 기준점에서 시작하되, 근거가 부족한 배전도·가공 방식·맛 목표·도징 분쇄도 오프셋은 적용하지 않았습니다.",
+    "HOT V60의 비공식 교정 프로필은 기존 모델별 기준점에서 시작하되, 원두 속성별 미검증 분쇄도 오프셋은 적용하지 않았습니다.",
   );
 
   return {
