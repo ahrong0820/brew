@@ -28,9 +28,14 @@ function decorate(
 export function createValidatedAdjustmentSuggestion(
   sessionId: string,
 ): ValidatedAdjustmentSuggestion | null {
-  const suggestion = createSensoryAdjustmentSuggestion(sessionId);
   const session = brewSessionStore.getById(sessionId);
-  if (!suggestion || !session?.tastingResult) return suggestion;
+  if (!session?.tastingResult) return null;
+  if (session.appliedAdjustmentId && !session.adjustmentOutcome) {
+    return null;
+  }
+
+  const suggestion = createSensoryAdjustmentSuggestion(sessionId);
+  if (!suggestion) return null;
 
   const style = session.drinkStyle ?? session.recipeSnapshot.drinkStyle ?? "hot";
   if (session.recipeSnapshot.brewerType !== "v60" || style !== "hot") {
