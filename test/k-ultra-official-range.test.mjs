@@ -79,5 +79,5 @@ test("official range rule is manufacturer-backed and calibration-specific", asyn
   assert.match(rules, /obs:equipment-data-1:zero-reference/);
   assert.match(rules, /obs:equipment-data-1:adjustment/);
   assert.match(candidateRegistry, /candidateRuleRegistryVersion = "1\.5\.0"/);
-  assert.match(ruleRegistry, /recommendationRuleRegistryVersion = "1\.5\.0"/);
+  assert.match(ruleRegistry, /recommendationRuleRegistryVersion = "1\.6\.0"/);
 });
