@@ -92,7 +92,7 @@ export default function NextBrewAdjustmentDrawer() {
               다음 추출 조정안
             </h2>
             <p className="mt-1 text-sm text-[#687168]">
-              원본 레시피 구조를 유지하고 한 번에 한 변수만 바꿉니다.
+              직접 선택한 추출 속도와 맛 평가를 기준으로 한 변수만 바꿉니다.
             </p>
           </div>
           <button
@@ -108,8 +108,8 @@ export default function NextBrewAdjustmentDrawer() {
         {context && (
           <AdjustmentContextPanel
             recipeName={context.recipeName}
-            actualTime={formatTime(context.actualTimeSeconds)}
-            targetTime={`${formatTime(context.targetTimeMinSeconds)}~${formatTime(context.targetTimeMaxSeconds)}`}
+            timerReference={formatTime(context.actualTimeSeconds)}
+            brewPaceLabel={context.brewPaceLabel}
             tastingLabel={context.tastingLabel}
             stageLabel={context.personalizationStageLabel}
             stageMessage={context.personalizationMessage}
