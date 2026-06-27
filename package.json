@@ -8,6 +8,7 @@
   },
   "imports": {
     "#brew-session-clock": "./lib/timer/brewSessionClock.ts",
+    "#k-ultra-official-range": "./lib/recommendation/kUltraOfficialRange.ts",
     "#origin-region-matching": "./lib/recommendation/originRegionMatching.ts"
   },
   "scripts": {
@@ -17,7 +18,7 @@
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit --pretty false",
-    "test": "node --experimental-strip-types --test test/v60-reference-grind.test.mjs",
+    "test": "node --experimental-strip-types --test",
     "validate:static-export": "node scripts/validate-static-export.mjs",
     "db:generate": "drizzle-kit generate"
   },
