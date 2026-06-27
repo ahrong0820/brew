@@ -1,4 +1,5 @@
 import { matchesBrewProfileIdentity } from "@/lib/brew/profileIdentity";
+import { applyBaristaRecipeRecommendation } from "@/lib/recommendation/baristaRecipeRecommendation";
 import {
   isKUltraOfficialProfile,
   kUltraOfficialRuleId,
@@ -185,6 +186,10 @@ export function createRecommendation(
   );
 
   recommendation = applyV60FoundationRecommendation(
+    recommendation,
+    recommendationInput,
+  );
+  recommendation = applyBaristaRecipeRecommendation(
     recommendation,
     recommendationInput,
   );
