@@ -1,14 +1,19 @@
 import type { BrewAdjustmentVariable } from "@/lib/recommendation/adjustment";
-import type { RecipeSnapshot, TastingResult } from "@/lib/types/coffee";
+import type {
+  BrewPaceAssessment,
+  RecipeSnapshot,
+  TastingResult,
+} from "@/lib/types/coffee";
 
 export type PersonalizationStage = "trial" | "provisional" | "stable";
 
 export interface AdjustmentPresentationContext {
   sourceRecipeId?: string;
   recipeName: string;
+  /** Timer value is displayed as reference only and is not diagnostic input. */
   actualTimeSeconds?: number;
-  targetTimeMinSeconds: number;
-  targetTimeMaxSeconds: number;
+  brewPaceAssessment?: BrewPaceAssessment;
+  brewPaceLabel: string;
   tastingResult?: TastingResult;
   tastingLabel: string;
   personalizationStage: PersonalizationStage;
