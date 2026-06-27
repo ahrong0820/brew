@@ -1,5 +1,6 @@
 import { recommendationRules } from "@/data/recommendation/rules";
 import { v60RatioRules } from "@/data/recommendation/v60RatioRules";
+import { v60ReferenceGrindRules } from "@/data/recommendation/v60ReferenceGrindRules";
 import { v60TemperatureRules } from "@/data/recommendation/v60TemperatureRules";
 import { evidenceRegistry } from "@/lib/evidence/registry";
 import type {
@@ -7,11 +8,16 @@ import type {
   RecommendationRuleRegistry,
 } from "@/lib/types/recommendationRule";
 
-export const recommendationRuleRegistryVersion = "1.5.0";
+export const recommendationRuleRegistryVersion = "1.6.0";
 
 export const recommendationRuleRegistry: RecommendationRuleRegistry = {
   version: recommendationRuleRegistryVersion,
-  rules: [...recommendationRules, ...v60TemperatureRules, ...v60RatioRules],
+  rules: [
+    ...recommendationRules,
+    ...v60TemperatureRules,
+    ...v60RatioRules,
+    ...v60ReferenceGrindRules,
+  ],
 };
 
 export type RecommendationRuleValidationCode =

@@ -3,12 +3,14 @@ import test from "node:test";
 
 import { recommendationRules } from "../data/recommendation/rules.ts";
 import { v60RatioRules } from "../data/recommendation/v60RatioRules.ts";
+import { v60ReferenceGrindRules } from "../data/recommendation/v60ReferenceGrindRules.ts";
 import { v60TemperatureRules } from "../data/recommendation/v60TemperatureRules.ts";
 
 const allRules = [
   ...recommendationRules,
   ...v60TemperatureRules,
   ...v60RatioRules,
+  ...v60ReferenceGrindRules,
 ];
 
 test("recommendation rule ids are unique and versioned", () => {
@@ -29,6 +31,7 @@ test("registry contains baseline, foundation and adjustment rules", () => {
   assert.ok(ids.has("grind.1zpresso-k-ultra.official-zero.v1"));
   assert.ok(ids.has("temperature.v60-hot-paper.roast-only.v1"));
   assert.ok(ids.has("ratio.v60-hot-paper.foundation-16.v1"));
+  assert.ok(ids.has("grind.v60-hot-paper.reference-start-no-bean-offsets.v1"));
   assert.ok(ids.has("pour.v60-hot-paper.foundation.v1"));
   assert.ok(ids.has("time.v60-hot-paper.foundation.v1"));
   assert.ok(ids.has("grind.v60-hot-paper.dial-in.v1"));
@@ -62,7 +65,7 @@ test("HOT V60 ratio rule preserves support, context and limits", () => {
     rule.evidenceLinks.some(
       (link) =>
         link.observationId ===
-        "obs:research-batch-1:brew-ratio-coupled-control" &&
+          "obs:research-batch-1:brew-ratio-coupled-control" &&
         link.role === "limits",
     ),
   );
@@ -104,6 +107,27 @@ test("K-Ultra official range rule retains chart and calibration evidence", () =>
   assert.equal(
     rule.evidenceLinks.filter((link) => link.role === "calibrates").length,
     2,
+  );
+});
+
+test("HOT V60 reference grind rule removes unsupported bean offsets", () => {
+  const rule = allRules.find(
+    (candidate) =>
+      candidate.id ===
+      "grind.v60-hot-paper.reference-start-no-bean-offsets.v1",
+  );
+  assert.ok(rule);
+  assert.equal(rule.status, "active");
+  assert.equal(rule.parameter, "grind");
+  assert.equal(rule.implementationKey, "v60-hot-paper-reference-grind");
+  assert.equal(rule.evidenceLinks.length, 4);
+  assert.equal(
+    rule.evidenceLinks.filter((link) => link.role === "context").length,
+    1,
+  );
+  assert.equal(
+    rule.evidenceLinks.filter((link) => link.role === "limits").length,
+    3,
   );
 });
 

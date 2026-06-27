@@ -12,6 +12,7 @@ export type RecommendationRuleImplementationKey =
   | "v60-hot-paper-roast-only-temperature"
   | "grinder-model-setting"
   | "k-ultra-official-zero-range"
+  | "v60-hot-paper-reference-grind"
   | "brewer-taste-pour"
   | "brewer-target-time"
   | "v60-hot-paper-foundation-pour"

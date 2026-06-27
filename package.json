@@ -8,6 +8,7 @@
   },
   "imports": {
     "#brew-session-clock": "./lib/timer/brewSessionClock.ts",
+    "#k-ultra-official-range": "./lib/recommendation/kUltraOfficialRange.ts",
     "#origin-region-matching": "./lib/recommendation/originRegionMatching.ts"
   },
   "scripts": {

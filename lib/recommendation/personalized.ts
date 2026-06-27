@@ -4,6 +4,7 @@ import {
   kUltraOfficialRange,
 } from "@/lib/recommendation/kUltraOfficialRange";
 import { applyV60FoundationRatio } from "@/lib/recommendation/v60FoundationRatio";
+import { applyV60ReferenceGrind } from "@/lib/recommendation/v60ReferenceGrind";
 import { applyV60RoastOnlyTemperature } from "@/lib/recommendation/v60RoastOnlyTemperature";
 import type {
   BrewRecommendation,
@@ -79,7 +80,8 @@ export function createPersonalizedRecommendation(
     createRecommendation(input),
     input,
   );
-  const base = applyV60FoundationRatio(temperatureAdjusted, input);
+  const ratioAdjusted = applyV60FoundationRatio(temperatureAdjusted, input);
+  const base = applyV60ReferenceGrind(ratioAdjusted, input);
   const offset = input.recommendationOffset;
 
   if (!offset) return base;

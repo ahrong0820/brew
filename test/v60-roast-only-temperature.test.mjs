@@ -203,6 +203,6 @@ test("active rule and engine use the promoted id, never the candidate id", async
   ]);
   assert.match(engine, /v60RoastOnlyTemperatureRuleId/);
   assert.equal(engine.includes(candidateId), false);
-  assert.match(ruleRegistry, /recommendationRuleRegistryVersion = "1\.5\.0"/);
+  assert.match(ruleRegistry, /recommendationRuleRegistryVersion = "1\.6\.0"/);
   assert.match(ruleRegistry, /v60TemperatureRules/);
 });
