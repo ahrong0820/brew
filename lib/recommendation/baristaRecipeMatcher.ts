@@ -64,14 +64,14 @@ function scoreRecipe(
   input: BaristaRecipeMatchInput,
 ): BaristaRecipeMatch {
   const reasons: string[] = [];
-  let score = recipe.tasteProfile[input.tasteGoal] * 10;
+  let score = recipe.tasteProfile[input.tasteGoal] * 12;
 
   reasons.push(
     `[맛 목표] ${tasteGoalLabels[input.tasteGoal]} 적합도 ${recipe.tasteProfile[input.tasteGoal]}/5`,
   );
 
   if (input.roastLevel === "unknown") {
-    score += 4;
+    score += 5;
     reasons.push("[원두 적합] 배전도 미입력 상태의 참고 후보입니다.");
   } else if (includesValue(recipe.suitableRoasts, input.roastLevel)) {
     score += 18;
@@ -87,10 +87,10 @@ function scoreRecipe(
 
   const doseDifference = Math.abs(recipe.doseGrams - input.doseGrams);
   if (doseDifference <= 2) {
-    score += 8;
+    score += 6;
     reasons.push(`[용량 적합] 원본 ${recipe.doseGrams}g과 변환 폭이 작습니다.`);
   } else if (doseDifference <= 5) {
-    score += 4;
+    score += 3;
     reasons.push(`[용량 적합] ${input.doseGrams}g으로 비례 조정합니다.`);
   }
 
@@ -99,7 +99,7 @@ function scoreRecipe(
     input.flavorNotes ?? [],
   );
   if (flavorMatches.length > 0) {
-    score += Math.min(8, flavorMatches.length * 2);
+    score += Math.min(6, flavorMatches.length * 2);
     reasons.push(
       `[향미 연결] ${flavorMatches.slice(0, 3).join(", ")} 특성과 연결됩니다.`,
     );
