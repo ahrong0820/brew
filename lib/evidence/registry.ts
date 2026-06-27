@@ -27,6 +27,7 @@ import { researchUnevenExtraction1Observations } from "@/data/evidence/researchU
 import { roastObservations1 } from "@/data/evidence/roastObservations1";
 import { roastSources1 } from "@/data/evidence/roastSources1";
 import { evidenceSources } from "@/data/evidence/sources";
+import { standardsBrewing1Sources } from "@/data/evidence/standardsBrewing1";
 import { v60FoundationObservations1 } from "@/data/evidence/v60FoundationObservations1";
 import { assertValidEvidenceRegistry } from "@/lib/evidence/validation";
 import type {
@@ -35,7 +36,7 @@ import type {
   EvidenceSource,
 } from "@/lib/types/evidence";
 
-export const evidenceRegistryVersion = "1.18.0";
+export const evidenceRegistryVersion = "1.19.0";
 
 export const evidenceRegistry: EvidenceRegistry = {
   version: evidenceRegistryVersion,
@@ -48,6 +49,7 @@ export const evidenceRegistry: EvidenceRegistry = {
     ...eventBatch1Sources,
     ...equipmentData1Sources,
     ...manufacturerSourcesHarioV60,
+    ...standardsBrewing1Sources,
     ...advisorSourceA,
     ...advisorSourcesJamesHoffmann,
     ...advisorSourcesScottRao,
