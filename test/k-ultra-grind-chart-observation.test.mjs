@@ -47,13 +47,18 @@ test("registry and evidence validation include the K-Ultra observation", async (
   assert.match(validation, /\.\.\.equipmentNotes3/);
 });
 
-test("Observation does not change active grinder recommendation values", async () => {
-  const [rules, baseEngine] = await Promise.all([
+test("promoted rule uses the Observation only for the official-zero path", async () => {
+  const [rules, baseEngine, profiles] = await Promise.all([
     readProjectFile("data/recommendation/rules.ts"),
     readProjectFile("lib/recommendation/baseEngine.ts"),
+    readProjectFile("data/defaultCoffeeProfiles.ts"),
   ]);
 
-  assert.equal(rules.includes(observationId), false);
+  assert.equal(rules.includes(observationId), true);
+  assert.match(rules, /grind\.1zpresso-k-ultra\.official-zero\.v1/);
+  assert.match(baseEngine, /isKUltraOfficialProfile/);
   assert.match(baseEngine, /v60: 7/);
-  assert.equal(baseEngine.includes("pour-over-range"), false);
+  assert.match(baseEngine, /버 비접촉 영점 기준의 기존 휴리스틱 시작값/);
+  assert.match(profiles, /manufacturer-resistance-start-zero/);
+  assert.match(profiles, /defaultGrinderProfileIds\.kUltraBurrNoRub/);
 });

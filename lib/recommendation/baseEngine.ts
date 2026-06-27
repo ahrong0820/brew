@@ -1,3 +1,8 @@
+import {
+  isKUltraOfficialProfile,
+  kUltraOfficialDialValue,
+  kUltraOfficialRange,
+} from "@/lib/recommendation/kUltraOfficialRange";
 import type {
   BrewerType,
   ProcessMethod,
@@ -161,7 +166,44 @@ function doseOffset(doseGrams: number) {
   return 0;
 }
 
-function kUltraRecommendation(input: RecommendationInput): GrinderRecommendation {
+function kUltraOfficialRecommendation(
+  input: RecommendationInput,
+): GrinderRecommendation {
+  const inValidatedScope =
+    input.preferences.defaultBrewer === "v60" &&
+    input.preferences.defaultDrinkStyle === "hot";
+
+  if (!inValidatedScope) {
+    return {
+      displayValue: "범위 미검증",
+      displayRange: "HOT V60에서 8.0~9.0",
+      commonDescription: commonGrindDescription(
+        input.preferences.defaultBrewer,
+        input.tasteGoal,
+      ),
+      calibrationLabel: input.grinder.calibrationLabel,
+      isNumeric: false,
+      note: "제조사 공식 8.0~9.0은 Siphon/Pour Over 차트의 HOT V60 시작 범위로만 적용합니다. 현재 브루어·음용 방식에는 검증된 단일 숫자를 만들지 않습니다.",
+    };
+  }
+
+  const value = kUltraOfficialDialValue(input.grinder.personalOffset);
+  return {
+    displayValue: value.toFixed(1),
+    displayRange: `${kUltraOfficialRange.min.toFixed(1)}~${kUltraOfficialRange.max.toFixed(1)}`,
+    commonDescription: commonGrindDescription(
+      input.preferences.defaultBrewer,
+      input.tasteGoal,
+    ),
+    calibrationLabel: input.grinder.calibrationLabel,
+    isNumeric: true,
+    note: "1Zpresso 공식 저항 시작 영점과 Siphon/Pour Over 차트의 8.0~9.0 범위를 사용한 시작값입니다. 원두·도징·필터에 따른 정답값이 아니므로 목표 시간과 맛에 따라 0.1~0.2씩 조정하세요.",
+  };
+}
+
+function kUltraHeuristicRecommendation(
+  input: RecommendationInput,
+): GrinderRecommendation {
   const brewerBase: Record<BrewerType, number> = {
     v60: 7,
     clever: 7.5,
@@ -189,8 +231,14 @@ function kUltraRecommendation(input: RecommendationInput): GrinderRecommendation
     ),
     calibrationLabel: input.grinder.calibrationLabel,
     isNumeric: true,
-    note: "사용자 버 비접촉 영점 기준의 첫 추출값입니다. 목표 시간보다 빠르면 0.1~0.2 곱게, 느리고 텁텁하면 0.1~0.2 굵게 조정하세요.",
+    note: "사용자 버 비접촉 영점 기준의 기존 휴리스틱 시작값입니다. 제조사 공식 8.0~9.0 범위는 저항 시작 영점 기준이므로 이 숫자에 무보정으로 환산하지 않습니다. 목표 시간보다 빠르면 0.1~0.2 곱게, 느리고 텁텁하면 0.1~0.2 굵게 조정하세요.",
   };
+}
+
+function kUltraRecommendation(input: RecommendationInput): GrinderRecommendation {
+  return isKUltraOfficialProfile(input.grinder)
+    ? kUltraOfficialRecommendation(input)
+    : kUltraHeuristicRecommendation(input);
 }
 
 function encoreRecommendation(input: RecommendationInput): GrinderRecommendation {
@@ -367,6 +415,16 @@ function recommendationReasons(input: RecommendationInput, ratio: number) {
   if (input.grinder.model === "holzklotz-e80") {
     reasons.push(
       "E80 분쇄 방향과 Step-미크론 관계에는 제조사 제공 자료를 사용했습니다.",
+    );
+  }
+
+  if (
+    isKUltraOfficialProfile(input.grinder) &&
+    input.preferences.defaultBrewer === "v60" &&
+    input.preferences.defaultDrinkStyle === "hot"
+  ) {
+    reasons.push(
+      "K-Ultra 제조사 저항 시작 영점과 공식 Pour Over 8.0~9.0 범위를 분쇄 시작점으로 사용했습니다.",
     );
   }
 

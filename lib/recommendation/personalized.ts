@@ -1,4 +1,8 @@
 import { createRecommendation } from "@/lib/recommendation/baseEngine";
+import {
+  isKUltraOfficialProfile,
+  kUltraOfficialRange,
+} from "@/lib/recommendation/kUltraOfficialRange";
 import type {
   BrewRecommendation,
   RecommendationInput,
@@ -30,8 +34,10 @@ function personalizedGrinder(
 
   const step = input.grinder.displayStep ?? 1;
   const referencePoints = input.grinder.micronReference?.points ?? [];
-  const fallbackBounds =
-    input.grinder.model === "1zpresso-k-ultra"
+  const usesKUltraOfficialRange = isKUltraOfficialProfile(input.grinder);
+  const fallbackBounds = usesKUltraOfficialRange
+    ? { min: kUltraOfficialRange.min, max: kUltraOfficialRange.max }
+    : input.grinder.model === "1zpresso-k-ultra"
       ? { min: 5.5, max: 8.5 }
       : input.grinder.model === "baratza-encore"
         ? { min: 8, max: 32 }
@@ -55,11 +61,14 @@ function personalizedGrinder(
     input.grinder.displayUnit === "dial"
       ? value.toFixed(1)
       : String(Math.round(value));
+  const displayRange = usesKUltraOfficialRange
+    ? `${format(kUltraOfficialRange.min)}~${format(kUltraOfficialRange.max)}`
+    : `${format(rangeMin)}~${format(rangeMax)}`;
 
   return {
     ...recommendation.grinder,
     displayValue: format(next),
-    displayRange: `${format(rangeMin)}~${format(rangeMax)}`,
+    displayRange,
     note: `${recommendation.grinder.note} 이 원두의 이전 추출에서 저장한 분쇄도 보정 ${grindOffset > 0 ? "+" : ""}${format(grindOffset)}을 반영했습니다.`,
   };
 }

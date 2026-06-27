@@ -9,7 +9,7 @@ async function readProjectFile(path) {
 }
 
 test("validated candidates record their active rule promotions", async () => {
-  assert.equal(candidateRules.length, 3);
+  assert.equal(candidateRules.length, 4);
   assert.ok(candidateRules.every((candidate) => candidate.status === "validated"));
   assert.ok(candidateRules.every((candidate) => candidate.audience === "global"));
   assert.ok(candidateRules.every((candidate) => candidate.reviewedBy === "project-maintainer"));
@@ -22,25 +22,30 @@ test("validated candidates record their active rule promotions", async () => {
     assert.equal(activeRules.includes(candidate.promotion.ruleId), true);
   }
 
-  const foundationCandidates = candidateRules.filter(
+  const initialCandidates = candidateRules.filter(
     (candidate) => candidate.validationPlan.targetLayer === "initial-recommendation",
   );
   assert.deepEqual(
-    foundationCandidates.map((candidate) => candidate.parameter),
-    ["pour", "time"],
+    initialCandidates.map((candidate) => candidate.parameter),
+    ["pour", "time", "grind"],
   );
-  assert.ok(
-    foundationCandidates.every(
-      (candidate) => candidate.promotion.ruleRegistryVersion === "1.2.0",
-    ),
+
+  const officialRange = candidateRules.find((candidate) =>
+    candidate.id.includes("k-ultra-official-zero"),
   );
+  assert.ok(officialRange);
+  assert.equal(officialRange.confidenceScore, 0.82);
+  assert.equal(officialRange.promotion.ruleRegistryVersion, "1.3.0");
 });
 
-test("candidate evidence stays unique within each role set", async () => {
+test("candidate evidence stays unique and resolvable", async () => {
   const observations = [
     await readProjectFile("data/evidence/advisorNotesA.ts"),
     await readProjectFile("data/evidence/advisorNotesScottRao.ts"),
     await readProjectFile("data/evidence/v60FoundationObservations1.ts"),
+    await readProjectFile("data/evidence/equipmentNotes1.ts"),
+    await readProjectFile("data/evidence/equipmentNotes2.ts"),
+    await readProjectFile("data/evidence/equipmentNotes3.ts"),
   ].join("\n");
 
   for (const candidate of candidateRules) {
@@ -65,7 +70,7 @@ test("candidate registry validates evidence, plans and promotion metadata", asyn
   assert.match(types, /audience: CandidateRuleAudience/);
   assert.match(types, /validationPlan\?: CandidateRuleValidationPlan/);
   assert.match(types, /promotion\?: CandidateRulePromotion/);
-  assert.match(registry, /candidateRuleRegistryVersion = "1\.2\.0"/);
+  assert.match(registry, /candidateRuleRegistryVersion = "1\.3\.0"/);
   assert.match(registry, /groupCandidateEvidenceBySource/);
   assert.match(registry, /personal-rule-without-personal-evidence/);
   assert.match(registry, /missing-validation-plan/);

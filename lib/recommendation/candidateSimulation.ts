@@ -2,6 +2,11 @@ import { candidateSimulationScenarios } from "@/data/recommendation/candidateSim
 import { getCandidateRule } from "@/lib/recommendation/candidateRuleRegistry";
 import { decideDialIn } from "@/lib/recommendation/dialInDecision";
 import {
+  kUltraOfficialCalibrationProfile,
+  kUltraOfficialDialValue,
+  kUltraOfficialRange,
+} from "@/lib/recommendation/kUltraOfficialRange";
+import {
   v60FoundationBloomWater,
   v60FoundationTargetTime,
 } from "@/lib/recommendation/v60Foundation";
@@ -26,18 +31,26 @@ function matchesScope(
   scenario: CandidateSimulationScenario,
 ) {
   const brew = rule.scope.brew;
-  if (!brew) {
-    return true;
-  }
+  const grinder = rule.scope.grinder;
+  const brewMatches =
+    !brew ||
+    (includesOrUnrestricted(brew.brewerTypes, scenario.context.brewerType) &&
+      includesOrUnrestricted(brew.drinkStyles, scenario.context.drinkStyle) &&
+      includesOrUnrestricted(
+        brew.filterMaterials,
+        scenario.context.filterMaterial,
+      ));
+  const grinderMatches =
+    !grinder?.models ||
+    (scenario.context.grinderModel !== undefined &&
+      grinder.models.includes(scenario.context.grinderModel));
+  const calibrationMatches =
+    rule.validationPlan?.implementationKey !==
+      "k-ultra-official-zero-range-v1" ||
+    scenario.context.grinderCalibrationProfile ===
+      kUltraOfficialCalibrationProfile;
 
-  return (
-    includesOrUnrestricted(brew.brewerTypes, scenario.context.brewerType) &&
-    includesOrUnrestricted(brew.drinkStyles, scenario.context.drinkStyle) &&
-    includesOrUnrestricted(
-      brew.filterMaterials,
-      scenario.context.filterMaterial,
-    )
-  );
+  return brewMatches && grinderMatches && calibrationMatches;
 }
 
 function valuesMatch(
@@ -68,7 +81,8 @@ function resultForOutOfScope(
     expectedDecision: scenario.expectedDecision,
     expectedValues: scenario.expectedValues,
     passed: decision === scenario.expectedDecision,
-    reason: "후보 규칙의 브루어·음료 스타일·필터 적용 범위 밖입니다.",
+    reason:
+      "후보 규칙의 브루어·음료 스타일·필터·그라인더 또는 교정 프로필 적용 범위 밖입니다.",
   };
 }
 
@@ -172,6 +186,40 @@ function simulateFoundationTime(
   };
 }
 
+function simulateKUltraOfficialRange(
+  rule: CandidateRule,
+  scenario: CandidateSimulationScenario,
+): CandidateSimulationResult {
+  if (!scenario.recipeInput) {
+    throw new Error(`Missing recipe input: ${scenario.id}`);
+  }
+
+  const actualValues = {
+    grinderDisplayValue: kUltraOfficialDialValue(
+      scenario.recipeInput.grinderPersonalOffset ?? 0,
+    ),
+    grinderRangeMin: kUltraOfficialRange.min,
+    grinderRangeMax: kUltraOfficialRange.max,
+  } as const;
+  const decision = "apply" as const;
+
+  return {
+    scenarioId: scenario.id,
+    candidateRuleId: rule.id,
+    applies: true,
+    decision,
+    changedParameters: ["grind"],
+    expectedDecision: scenario.expectedDecision,
+    actualValues,
+    expectedValues: scenario.expectedValues,
+    passed:
+      decision === scenario.expectedDecision &&
+      valuesMatch(actualValues, scenario.expectedValues),
+    reason:
+      "제조사 저항 시작 영점의 공식 8.0~9.0 범위에서 중앙값 8.5와 프로필 보정값을 적용합니다.",
+  };
+}
+
 export function simulateCandidateScenario(
   scenario: CandidateSimulationScenario,
 ): CandidateSimulationResult {
@@ -192,6 +240,8 @@ export function simulateCandidateScenario(
       return simulateFoundationPour(rule, scenario);
     case "v60-hot-paper-foundation-time-v1":
       return simulateFoundationTime(rule, scenario);
+    case "k-ultra-official-zero-range-v1":
+      return simulateKUltraOfficialRange(rule, scenario);
     default:
       throw new Error(
         `Unsupported candidate implementation: ${implementationKey ?? "missing"}`,

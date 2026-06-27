@@ -35,6 +35,30 @@ const personalEvidence: readonly RuleEvidenceLink[] = [
   },
 ];
 
+const kUltraOfficialEvidence: readonly RuleEvidenceLink[] = [
+  {
+    sourceId: "manufacturer:1zpresso:k-ultra:grind-setting-reference-2023",
+    observationId: "obs:manufacturer:1zpresso:k-ultra:pour-over-range",
+    role: "supports",
+    applicability: "direct",
+    note: "제조사 공식 Siphon/Pour Over 차트의 8.0~9.0 범위를 HOT V60 초기 범위로 사용합니다.",
+  },
+  {
+    sourceId: "manufacturer:1zpresso:k-ultra:manual-2022",
+    observationId: "obs:equipment-data-1:zero-reference",
+    role: "calibrates",
+    applicability: "direct",
+    note: "공식 범위는 핸들 회전에 저항이 생기기 시작하는 제조사 영점을 전제로 합니다.",
+  },
+  {
+    sourceId: "manufacturer:1zpresso:k-ultra:manual-2022",
+    observationId: "obs:equipment-data-1:adjustment",
+    role: "calibrates",
+    applicability: "direct",
+    note: "숫자가 높을수록 굵어지고 1회전 100클릭인 조절 방향을 적용합니다.",
+  },
+];
+
 const v60HotPaperGrindEvidence: readonly RuleEvidenceLink[] = [
   {
     sourceId: "expert:coffee-ad-astra:v60-2018",
@@ -223,6 +247,25 @@ const timeRules: RecommendationRuleDefinition[] = brewers.map((brewer) => ({
 }));
 
 const validatedInitialRules: RecommendationRuleDefinition[] = [
+  {
+    id: "grind.1zpresso-k-ultra.official-zero.v1",
+    version: 1,
+    status: "active",
+    title: "K-Ultra 공식 영점 Pour Over 범위",
+    description: "제조사 저항 시작 영점에서 HOT V60 초기 범위를 8.0~9.0으로 적용",
+    parameter: "grind",
+    implementationKey: "k-ultra-official-zero-range",
+    scope: {
+      brew: {
+        brewerTypes: ["v60"],
+        drinkStyles: ["hot"],
+        filterMaterials: ["paper"],
+      },
+      grinder: { models: ["1zpresso-k-ultra"] },
+    },
+    evidenceLinks: kUltraOfficialEvidence,
+    introducedAt: promotedAt,
+  },
   {
     id: "pour.v60-hot-paper.foundation.v1",
     version: 1,
