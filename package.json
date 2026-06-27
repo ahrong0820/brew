@@ -7,6 +7,8 @@
     "node": ">=22.13.0"
   },
   "imports": {
+    "#barista-recipe-matcher": "./lib/recommendation/baristaRecipeMatcher.ts",
+    "#barista-recipe-recommendation": "./lib/recommendation/baristaRecipeRecommendation.ts",
     "#barista-recipes": "./data/baristaRecipes.ts",
     "#brew-session-clock": "./lib/timer/brewSessionClock.ts",
     "#k-ultra-official-range": "./lib/recommendation/kUltraOfficialRange.ts",
