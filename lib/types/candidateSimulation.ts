@@ -26,6 +26,8 @@ export interface CandidateSimulationExpectedValues {
   grinderRangeMin?: number;
   grinderRangeMax?: number;
   temperatureCelsius?: number;
+  ratio?: number;
+  waterGrams?: number;
 }
 
 export interface CandidateSimulationScenario {
