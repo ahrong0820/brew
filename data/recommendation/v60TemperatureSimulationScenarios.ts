@@ -1,0 +1,115 @@
+import type { CandidateSimulationScenario } from "@/lib/types/candidateSimulation";
+
+const candidateRuleId = "candidate:temperature:v60-hot:roast-only-v1";
+
+export const v60TemperatureSimulationScenarios = [
+  {
+    id: "candidate-sim:v60-temperature:light-washed-bright",
+    candidateRuleId,
+    context: { brewerType: "v60", drinkStyle: "hot", filterMaterial: "paper" },
+    recipeInput: {
+      doseGrams: 15,
+      waterGrams: 240,
+      roastLevel: "light",
+      process: "washed",
+      tasteGoal: "bright",
+    },
+    expectedDecision: "apply",
+    expectedValues: { temperatureCelsius: 94 },
+  },
+  {
+    id: "candidate-sim:v60-temperature:light-natural-body",
+    candidateRuleId,
+    context: { brewerType: "v60", drinkStyle: "hot", filterMaterial: "paper" },
+    recipeInput: {
+      doseGrams: 15,
+      waterGrams: 240,
+      roastLevel: "light",
+      process: "natural",
+      tasteGoal: "body",
+    },
+    expectedDecision: "apply",
+    expectedValues: { temperatureCelsius: 94 },
+  },
+  {
+    id: "candidate-sim:v60-temperature:medium-fermented-bright",
+    candidateRuleId,
+    context: { brewerType: "v60", drinkStyle: "hot", filterMaterial: "paper" },
+    recipeInput: {
+      doseGrams: 15,
+      waterGrams: 240,
+      roastLevel: "medium",
+      process: "fermented",
+      tasteGoal: "bright",
+    },
+    expectedDecision: "apply",
+    expectedValues: { temperatureCelsius: 90 },
+  },
+  {
+    id: "candidate-sim:v60-temperature:dark-natural-body",
+    candidateRuleId,
+    context: { brewerType: "v60", drinkStyle: "hot", filterMaterial: "paper" },
+    recipeInput: {
+      doseGrams: 15,
+      waterGrams: 240,
+      roastLevel: "dark",
+      process: "natural",
+      tasteGoal: "body",
+    },
+    expectedDecision: "apply",
+    expectedValues: { temperatureCelsius: 85 },
+  },
+  {
+    id: "candidate-sim:v60-temperature:unknown-fermented-bright",
+    candidateRuleId,
+    context: { brewerType: "v60", drinkStyle: "hot", filterMaterial: "paper" },
+    recipeInput: {
+      doseGrams: 15,
+      waterGrams: 240,
+      roastLevel: "unknown",
+      process: "fermented",
+      tasteGoal: "bright",
+    },
+    expectedDecision: "apply",
+    expectedValues: { temperatureCelsius: 91 },
+  },
+  {
+    id: "candidate-sim:v60-temperature:iced-out-of-scope",
+    candidateRuleId,
+    context: { brewerType: "v60", drinkStyle: "iced", filterMaterial: "paper" },
+    recipeInput: {
+      doseGrams: 15,
+      waterGrams: 240,
+      roastLevel: "light",
+      process: "natural",
+      tasteGoal: "bright",
+    },
+    expectedDecision: "not-applicable",
+  },
+  {
+    id: "candidate-sim:v60-temperature:switch-out-of-scope",
+    candidateRuleId,
+    context: { brewerType: "switch", drinkStyle: "hot", filterMaterial: "paper" },
+    recipeInput: {
+      doseGrams: 15,
+      waterGrams: 240,
+      roastLevel: "medium",
+      process: "washed",
+      tasteGoal: "balanced",
+    },
+    expectedDecision: "not-applicable",
+  },
+  {
+    id: "candidate-sim:v60-temperature:metal-out-of-scope",
+    candidateRuleId,
+    context: { brewerType: "v60", drinkStyle: "hot", filterMaterial: "metal" },
+    recipeInput: {
+      doseGrams: 15,
+      waterGrams: 240,
+      roastLevel: "medium-light",
+      process: "washed",
+      tasteGoal: "sweet",
+    },
+    expectedDecision: "not-applicable",
+  },
+] as const satisfies readonly CandidateSimulationScenario[];
