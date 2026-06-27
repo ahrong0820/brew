@@ -52,9 +52,12 @@ test("SCA 310 observations preserve ratio, slurry temperature and exclusion", ()
 });
 
 test("controlled temperature observation preserves matched extraction limits", () => {
-  assert.equal(researchBatch1Observations.length, 1);
-  const observation = researchBatch1Observations[0];
+  assert.equal(researchBatch1Observations.length, 3);
+  const observation = researchBatch1Observations.find(
+    (candidate) => candidate.id === "obs:research-batch-1:temperature",
+  );
 
+  assert.ok(observation);
   assert.equal(observation.reviewStatus, "reviewed");
   assert.deepEqual(observation.context.brew.temperatureCelsius, {
     min: 87,
@@ -74,24 +77,27 @@ test("controlled temperature observation preserves matched extraction limits", (
     ),
   );
   assert.ok(
-    observation.assessment.limitations.some((note) => note.includes("분쇄도, 유량과 투입 비율")),
+    observation.assessment.limitations.some((note) =>
+      note.includes("분쇄도, 유량과 투입 비율"),
+    ),
   );
   assert.ok(
     observation.assessment.limitations.some((note) => note.includes("수동 V60")),
   );
 });
 
-test("SCA observations remain inactive recommendation evidence in this PR", async () => {
-  const [rules, baseEngine, registry] = await Promise.all([
+test("SCA observations retain their scope boundaries", async () => {
+  const [baseRules, baseEngine, registry] = await Promise.all([
     readProjectFile("data/recommendation/rules.ts"),
     readProjectFile("lib/recommendation/baseEngine.ts"),
     readProjectFile("lib/evidence/registry.ts"),
   ]);
 
-  for (const observation of standardsBrewing1Observations) {
-    assert.equal(rules.includes(observation.id), false);
-  }
+  assert.equal(
+    baseRules.includes("obs:standard:sca-310:brew-ratio-55-g-per-kg"),
+    false,
+  );
   assert.match(baseEngine, /temperatureProcessOffset/);
   assert.match(baseEngine, /temperatureTasteOffset/);
-  assert.match(registry, /evidenceRegistryVersion = "1\.20\.0"/);
+  assert.match(registry, /evidenceRegistryVersion = "1\.21\.0"/);
 });

@@ -37,7 +37,7 @@ import type {
   EvidenceSource,
 } from "@/lib/types/evidence";
 
-export const evidenceRegistryVersion = "1.20.0";
+export const evidenceRegistryVersion = "1.21.0";
 
 export const evidenceRegistry: EvidenceRegistry = {
   version: evidenceRegistryVersion,
