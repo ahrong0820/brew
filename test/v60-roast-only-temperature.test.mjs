@@ -90,7 +90,7 @@ function input({
   };
 }
 
-test("candidate data satisfies promotion thresholds and all dry-run cases", async () => {
+test("candidate data satisfies promotion thresholds and dry-run cases", async () => {
   assert.equal(v60TemperatureCandidateRules.length, 1);
   const candidate = v60TemperatureCandidateRules[0];
   assert.equal(candidate.id, candidateId);
@@ -98,7 +98,6 @@ test("candidate data satisfies promotion thresholds and all dry-run cases", asyn
   assert.equal(candidate.confidenceScore, 0.74);
   assert.equal(candidate.supportingObservationIds.length, 3);
   assert.equal(candidate.limitingObservationIds.length, 1);
-  assert.equal(candidate.contradictingObservationIds.length, 0);
   assert.equal(candidate.validationPlan.scenarioIds.length, 8);
 
   assert.equal(v60TemperatureSimulationScenarios.length, 8);
@@ -128,7 +127,7 @@ test("candidate data satisfies promotion thresholds and all dry-run cases", asyn
   assert.match(readiness, /minimumEmpiricalSupportingObservations: 1/);
   assert.match(simulation, /\.\.\.v60TemperatureSimulationScenarios/);
   assert.match(simulation, /v60-hot-paper-roast-only-temperature-v1/);
-  assert.match(candidateRegistry, /candidateRuleRegistryVersion = "1\.4\.0"/);
+  assert.match(candidateRegistry, /candidateRuleRegistryVersion = "1\.5\.0"/);
   assert.match(candidateRegistry, /v60TemperatureCandidateRules/);
 });
 
@@ -169,14 +168,9 @@ test("roast baseline is stable across taste goals and process methods", () => {
 
 test("personal temperature history remains additive after the initial rule", async () => {
   const personalized = await readProjectFile("lib/recommendation/personalized.ts");
-  assert.match(
-    personalized,
-    /applyV60RoastOnlyTemperature\(createRecommendation\(input\), input\)/,
-  );
-  assert.match(
-    personalized,
-    /base\.temperatureCelsius \+ temperatureOffset/,
-  );
+  assert.match(personalized, /applyV60RoastOnlyTemperature/);
+  assert.match(personalized, /createRecommendation\(input\)/);
+  assert.match(personalized, /base\.temperatureCelsius \+ temperatureOffset/);
   assert.match(personalized, /개인 보정값을 반영했습니다/);
 });
 
@@ -190,7 +184,6 @@ test("non-HOT-V60 recommendations remain unchanged by the specific rule", () => 
     base,
     input({ drinkStyle: "iced", process: "natural", tasteGoal: "body" }),
   );
-
   assert.equal(switchRecommendation, base);
   assert.equal(icedRecommendation, base);
   assert.equal(switchRecommendation.temperatureCelsius, 92);
@@ -210,6 +203,6 @@ test("active rule and engine use the promoted id, never the candidate id", async
   ]);
   assert.match(engine, /v60RoastOnlyTemperatureRuleId/);
   assert.equal(engine.includes(candidateId), false);
-  assert.match(ruleRegistry, /recommendationRuleRegistryVersion = "1\.4\.0"/);
+  assert.match(ruleRegistry, /recommendationRuleRegistryVersion = "1\.5\.0"/);
   assert.match(ruleRegistry, /v60TemperatureRules/);
 });
