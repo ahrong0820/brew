@@ -20,6 +20,10 @@ import {
   appliesV60HotPaperFoundation,
 } from "@/lib/recommendation/v60FoundationRecommendation";
 import {
+  appliesV60RoastOnlyTemperature,
+  v60RoastOnlyTemperatureRuleId,
+} from "@/lib/recommendation/v60RoastOnlyTemperature";
+import {
   beanBrewProfileStore,
   brewSessionStore,
 } from "@/lib/storage/coffeeData";
@@ -32,6 +36,7 @@ import type {
 function baseAppliedRules(input: RecommendationInput) {
   const brewer = input.preferences.defaultBrewer;
   const usesV60Foundation = appliesV60HotPaperFoundation(input);
+  const usesV60RoastOnlyTemperature = appliesV60RoastOnlyTemperature(input);
   const usesKUltraOfficialRange =
     isKUltraOfficialProfile(input.grinder) &&
     brewer === "v60" &&
@@ -46,6 +51,9 @@ function baseAppliedRules(input: RecommendationInput) {
   const grinderRuleId = usesKUltraOfficialRange
     ? kUltraOfficialRuleId
     : `grind.${input.grinder.model}.v1`;
+  const temperatureRuleId = usesV60RoastOnlyTemperature
+    ? v60RoastOnlyTemperatureRuleId
+    : "temperature.roast-process-taste.v1";
 
   return [
     createAppliedRule({
@@ -64,9 +72,11 @@ function baseAppliedRules(input: RecommendationInput) {
       description: "정규화된 원두량과 비율로 물량을 계산하고 5g 단위로 반올림",
     }),
     createAppliedRule({
-      id: "temperature.roast-process-taste.v1",
+      id: temperatureRuleId,
       parameter: "temperature",
-      description: "배전도·가공 방식·맛 목표의 초기 온도 오프셋 적용",
+      description: usesV60RoastOnlyTemperature
+        ? "HOT V60에서 배전도 기준 온도만 적용하고 맛 목표·가공 방식 오프셋 제외"
+        : "배전도·가공 방식·맛 목표의 초기 온도 오프셋 적용",
     }),
     createAppliedRule({
       id: grinderRuleId,
