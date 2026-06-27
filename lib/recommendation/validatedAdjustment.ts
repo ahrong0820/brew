@@ -37,7 +37,9 @@ export function createValidatedAdjustmentSuggestion(
     return suggestion;
   }
 
-  if (suggestion.variable !== "grind") return suggestion;
+  if (!session.brewPaceAssessment || suggestion.variable !== "grind") {
+    return suggestion;
+  }
   return decorate(suggestion, createAppliedRuleFromRegistry(ruleId));
 }
 
