@@ -1,0 +1,214 @@
+name: Apply site audit fix
+
+on:
+  push:
+    branches:
+      - fix-site-audit-stability
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix-site-audit-stability
+      - name: Patch audited UI behavior
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("app/page.tsx")
+          source = path.read_text()
+
+          replacements = [
+              (
+                  '''  function selectRecipe(recipe: Recipe) {
+            const current = readBrewSessionClock();
+            if (isDifferentTrackedRecipe(current, recipe)) {
+              setTimerNotice("진행 중인 추천 추출을 완료한 뒤 다른 레시피를 선택해 주세요.");
+              document.getElementById("brew-timer-panel")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+              return;
+            }
+
+            clearBrewSessionClock();
+            setSelectedId(recipe.id);
+            setDose(recipe.dose);
+            setTimerNotice(null);
+            completionPlayedRef.current = false;
+            previousElapsedRef.current = 0;
+          }''',
+                  '''  function selectRecipe(recipe: Recipe) {
+            const current = readBrewSessionClock();
+            const sameTrackedRecipe = Boolean(
+              current?.sessionId &&
+                current.status !== "completed" &&
+                current.recipe?.id === recipe.id,
+            );
+
+            if (sameTrackedRecipe) {
+              setTimerNotice(null);
+              document.getElementById("brew-timer-panel")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+              return;
+            }
+
+            if (isDifferentTrackedRecipe(current, recipe)) {
+              setTimerNotice("진행 중인 추천 추출을 완료한 뒤 다른 레시피를 선택해 주세요.");
+              document.getElementById("brew-timer-panel")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+              return;
+            }
+
+            clearBrewSessionClock();
+            setSelectedId(recipe.id);
+            setDose(recipe.dose);
+            setTimerNotice(null);
+            completionPlayedRef.current = false;
+            previousElapsedRef.current = 0;
+          }''',
+              ),
+              (
+                  '''  function deleteCustomRecipe(recipeId: string) {
+            setCustomRecipes((currentRecipes) =>
+              currentRecipes.filter((recipe) => recipe.id !== recipeId),
+            );
+            setFavoriteIds((currentIds) => currentIds.filter((id) => id !== recipeId));
+
+            if (selectedId === recipeId) {
+              selectRecipe(recipes[0]);
+            }
+          }''',
+                  '''  function deleteCustomRecipe(recipeId: string) {
+            const activeClock = readBrewSessionClock();
+            const deletingActiveRecipe = Boolean(
+              activeClock?.sessionId &&
+                activeClock.status !== "completed" &&
+                activeClock.recipe?.id === recipeId,
+            );
+
+            if (deletingActiveRecipe) {
+              setTimerNotice(
+                "진행 중인 사용자 레시피는 타이머를 완료하거나 초기화한 뒤 삭제해 주세요.",
+              );
+              document.getElementById("brew-timer-panel")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+              return;
+            }
+
+            setCustomRecipes((currentRecipes) =>
+              currentRecipes.filter((recipe) => recipe.id !== recipeId),
+            );
+            setFavoriteIds((currentIds) => currentIds.filter((id) => id !== recipeId));
+
+            if (selectedId === recipeId) {
+              clearBrewSessionClock();
+              setSelectedId(recipes[0].id);
+              setDose(recipes[0].dose);
+              setTimerNotice(null);
+              completionPlayedRef.current = false;
+              previousElapsedRef.current = 0;
+            }
+          }''',
+              ),
+              (
+                  '''                value={query}
+                          onChange={(event) => setQuery(event.target.value)}
+                          placeholder="원두, 도구, 향미 검색"''',
+                  '''                value={query}
+                          onChange={(event) => setQuery(event.target.value)}
+                          aria-label="레시피 검색"
+                          placeholder="원두, 도구, 향미 검색"''',
+              ),
+              (
+                  '''                  type="button"
+                            onClick={() => setFilter(option)}
+                            className={`h-9 shrink-0''',
+                  '''                  type="button"
+                            onClick={() => setFilter(option)}
+                            aria-pressed={filter === option}
+                            className={`h-9 shrink-0''',
+              ),
+              (
+                  '''          </div>
+
+                    <section className="rounded-lg border border-[#d7ded4] bg-white p-5 shadow-sm shadow-black/5">''',
+                  '''          </div>
+
+                    {filteredRecipes.length === 0 ? (
+                      <p role="status" className="rounded-lg border border-dashed border-[#bfc9bd] bg-white px-5 py-8 text-center text-sm text-[#607064]">
+                        검색 조건에 맞는 레시피가 없습니다.
+                      </p>
+                    ) : null}
+
+                    <section className="rounded-lg border border-[#d7ded4] bg-white p-5 shadow-sm shadow-black/5">''',
+              ),
+              (
+                  '''              {timerNotice && (
+                            <p className="mt-3 rounded-md bg-[#fff3df] px-3 py-2 text-xs leading-5 text-[#805526]">''',
+                  '''              {timerNotice && (
+                            <p role="status" aria-live="polite" className="mt-3 rounded-md bg-[#fff3df] px-3 py-2 text-xs leading-5 text-[#805526]">''',
+              ),
+              (
+                  '''                type="button"
+                          onClick={() => setAlertsEnabled((current) => !current)}
+                          className={`flex h-10''',
+                  '''                type="button"
+                          onClick={() => setAlertsEnabled((current) => !current)}
+                          aria-pressed={alertsEnabled}
+                          className={`flex h-10''',
+              ),
+              (
+                  '''                type="button"
+                          onClick={() => toggleFavorite(selectedRecipe.id)}
+                          className={`flex h-10''',
+                  '''                type="button"
+                          onClick={() => toggleFavorite(selectedRecipe.id)}
+                          aria-pressed={selectedIsFavorite}
+                          className={`flex h-10''',
+              ),
+              (
+                  '''                    value={dose}
+                              onChange={(event) => setDose(Number(event.target.value))}
+                              className="h-10''',
+                  '''                    value={dose}
+                              onChange={(event) => {
+                                const nextDose = Number(event.target.value);
+                                if (Number.isFinite(nextDose)) {
+                                  setDose(clampNumber(nextDose, 8, 40));
+                                }
+                              }}
+                              className="h-10''',
+              ),
+              (
+                  '''                    key={`${selectedRecipe.id}-${step.label}`}''',
+                  '''                    key={`${selectedRecipe.id}-${index}-${step.label}`}''',
+              ),
+          ]
+
+          for old, new in replacements:
+              if old not in source:
+                  raise SystemExit(f"Expected snippet not found:\n{old[:180]}")
+              source = source.replace(old, new, 1)
+
+          path.write_text(source)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add app/page.tsx
+          git commit -m "fix: harden recipe selection and accessibility"
+          git push origin HEAD:fix-site-audit-stability
