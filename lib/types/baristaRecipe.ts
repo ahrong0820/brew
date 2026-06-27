@@ -21,6 +21,13 @@ export interface BaristaRecipeGrindIntent {
   };
 }
 
+export interface BaristaRecipeStep {
+  label: string;
+  startSeconds: number;
+  targetWaterGrams: number;
+  cue: string;
+}
+
 export interface BaristaRecipe {
   id: string;
   name: string;
@@ -31,6 +38,10 @@ export interface BaristaRecipe {
   brewerType: BrewerType;
   drinkStyle: DrinkStyle;
   doseGrams: number;
+  supportedDoseGrams: {
+    min: number;
+    max: number;
+  };
   waterGrams: number;
   ratio: number;
   temperatureCelsius?: number;
@@ -42,6 +53,7 @@ export interface BaristaRecipe {
   flavorKeywords: readonly string[];
   grindIntent: BaristaRecipeGrindIntent;
   difficulty: BaristaRecipeDifficulty;
+  steps: readonly BaristaRecipeStep[];
 }
 
 export interface BaristaRecipeMatchInput {
