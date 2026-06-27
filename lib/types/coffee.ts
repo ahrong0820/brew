@@ -113,6 +113,27 @@ export interface BrewAdjustmentTrial {
   evaluatedAt?: string;
 }
 
+export type PersonalRecipeStatus = "provisional" | "stable";
+
+export interface PersonalRecipeVersion {
+  version: number;
+  sessionId: string;
+  createdAt: string;
+  successfulBrewCount: number;
+  grindDisplayValue: string;
+  temperatureCelsius: number;
+  ratio: number;
+}
+
+export interface PersonalRecipeState {
+  status: PersonalRecipeStatus;
+  successfulBrewCount: number;
+  currentSessionId: string;
+  version: number;
+  versions: PersonalRecipeVersion[];
+  updatedAt: string;
+}
+
 export interface Bean {
   id: string;
   name: string;
@@ -230,6 +251,8 @@ export interface BeanBrewProfile {
   adjustmentHistory?: BrewAdjustmentTrial[];
   /** Trial that must be evaluated by the next completed brew. */
   pendingAdjustmentId?: string;
+  /** Recipe-scoped personal derivative created from successful brews. */
+  personalRecipe?: PersonalRecipeState;
   createdAt: string;
   updatedAt: string;
 }
