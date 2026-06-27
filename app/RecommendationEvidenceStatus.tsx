@@ -9,10 +9,10 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { recommendationRules } from "@/data/recommendation/rules";
 import { evidenceRegistry, evidenceRegistryVersion } from "@/lib/evidence/registry";
 import { assessCandidateReadiness } from "@/lib/recommendation/candidateReadiness";
 import { candidateRuleRegistry } from "@/lib/recommendation/candidateRuleRegistry";
+import { recommendationRuleRegistry } from "@/lib/recommendation/ruleRegistry";
 
 function readinessLabel(stage: string) {
   if (stage === "promotion-ready") {
@@ -38,6 +38,21 @@ function targetLayerLabel(targetLayer: string | null) {
   return "정보 제공";
 }
 
+function candidateTitle(parameter: string) {
+  switch (parameter) {
+    case "temperature":
+      return "V60 초기 온도 후보";
+    case "pour":
+      return "V60 푸어 구조 후보";
+    case "time":
+      return "V60 목표 시간 후보";
+    case "grind":
+      return "V60 분쇄도 후보";
+    default:
+      return "추천 규칙 후보";
+  }
+}
+
 export default function RecommendationEvidenceStatus() {
   const [open, setOpen] = useState(false);
 
@@ -56,7 +71,9 @@ export default function RecommendationEvidenceStatus() {
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [open]);
 
-  const activeRules = recommendationRules.filter((rule) => rule.status === "active");
+  const activeRules = recommendationRuleRegistry.rules.filter(
+    (rule) => rule.status === "active",
+  );
   const activeEvidence = activeRules.flatMap((rule) => rule.evidenceLinks);
   const activeSourceCount = new Set(
     activeEvidence.map((reference) => reference.sourceId),
@@ -165,12 +182,12 @@ export default function RecommendationEvidenceStatus() {
                   </p>
                 </div>
                 <div className="rounded-lg border border-[#ead9c7] bg-[#fff8ee] p-3">
-                  <p className="text-xs font-semibold text-[#704b2d]">후보 검증</p>
+                  <p className="text-xs font-semibold text-[#704b2d]">후보 검증 이력</p>
                   <p className="mt-1 text-lg font-bold text-[#704b2d]">
                     Candidate {candidateAssessments.length}개
                   </p>
                   <p className="mt-1 text-[11px] leading-5 text-[#806448]">
-                    승격 전에는 추천 계산과 분리합니다.
+                    dry-run 결과와 활성 규칙 승격 상태를 함께 표시합니다.
                   </p>
                 </div>
                 <div className="rounded-lg border border-[#ddd7e4] bg-[#f5f3f8] p-3">
@@ -194,7 +211,7 @@ export default function RecommendationEvidenceStatus() {
                   <div>
                     <h3 className="text-sm font-bold">활성 추천 규칙 구성</h3>
                     <p className="mt-1 text-xs leading-5 text-[#687168]">
-                      현재 수치에는 초기 휴리스틱, 제조사 교정 자료와 사용자 추출 이력이 적용됩니다.
+                      현재 수치에는 초기 휴리스틱, 공개 근거, 제조사 교정 자료와 사용자 추출 이력이 적용됩니다.
                     </p>
                   </div>
                 </div>
@@ -244,10 +261,12 @@ export default function RecommendationEvidenceStatus() {
                     />
                     <div>
                       <p className="text-xs font-bold text-[#704b2d]">
-                        {readinessLabel(assessment.stage)}
+                        {candidate.promotion
+                          ? "활성 규칙으로 승격됨"
+                          : readinessLabel(assessment.stage)}
                       </p>
                       <h3 className="mt-1 text-sm font-bold text-[#51351f]">
-                        V60 분쇄도 다이얼인 후보
+                        {candidateTitle(candidate.parameter)}
                       </h3>
                       <p className="mt-1 text-xs leading-5 text-[#806448]">
                         대상: {targetLayerLabel(assessment.targetLayer)} · 신뢰도{" "}
