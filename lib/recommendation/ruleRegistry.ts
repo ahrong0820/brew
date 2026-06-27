@@ -1,15 +1,16 @@
 import { recommendationRules } from "@/data/recommendation/rules";
+import { v60TemperatureRules } from "@/data/recommendation/v60TemperatureRules";
 import { evidenceRegistry } from "@/lib/evidence/registry";
 import type {
   RecommendationRuleDefinition,
   RecommendationRuleRegistry,
 } from "@/lib/types/recommendationRule";
 
-export const recommendationRuleRegistryVersion = "1.3.0";
+export const recommendationRuleRegistryVersion = "1.4.0";
 
 export const recommendationRuleRegistry: RecommendationRuleRegistry = {
   version: recommendationRuleRegistryVersion,
-  rules: recommendationRules,
+  rules: [...recommendationRules, ...v60TemperatureRules],
 };
 
 export type RecommendationRuleValidationCode =
