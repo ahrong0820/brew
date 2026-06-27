@@ -38,3 +38,5 @@ test("empty searches and duplicate custom step labels remain stable", async () =
   assert.match(page, /검색 조건에 맞는 레시피가 없습니다/);
   assert.match(page, /key=\{`\$\{selectedRecipe\.id\}-\$\{index\}-\$\{step\.label\}`\}/);
 });
+
+// This source-level regression suite complements the full lint, typecheck and static export CI.
