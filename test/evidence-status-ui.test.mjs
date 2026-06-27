@@ -4,25 +4,22 @@ import test from "node:test";
 
 import { advisorSourcesJamesHoffmann } from "../data/evidence/advisorSourcesJamesHoffmann.ts";
 import { advisorSourcesTetsuKasuya } from "../data/evidence/advisorSourcesTetsuKasuya.ts";
-import { recommendationRuleRegistry } from "../lib/recommendation/ruleRegistry.ts";
+import { recommendationRules } from "../data/recommendation/rules.ts";
+import { v60TemperatureRules } from "../data/recommendation/v60TemperatureRules.ts";
 
 async function readProjectFile(path) {
   return readFile(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
+const allRules = [...recommendationRules, ...v60TemperatureRules];
+
 test("evidence status derives complete active recommendation rule counts", () => {
-  const activeRules = recommendationRuleRegistry.rules.filter(
-    (rule) => rule.status === "active",
-  );
+  const activeRules = allRules.filter((rule) => rule.status === "active");
   const heuristicRules = activeRules.filter((rule) =>
-    rule.evidenceLinks.some((reference) =>
-      reference.sourceId.startsWith("internal:"),
-    ),
+    rule.evidenceLinks.some((reference) => reference.sourceId.startsWith("internal:")),
   );
   const manufacturerRules = activeRules.filter((rule) =>
-    rule.evidenceLinks.some((reference) =>
-      reference.sourceId.startsWith("manufacturer:"),
-    ),
+    rule.evidenceLinks.some((reference) => reference.sourceId.startsWith("manufacturer:")),
   );
   const personalRules = activeRules.filter((rule) =>
     rule.evidenceLinks.some((reference) => reference.sourceId.startsWith("local:")),
@@ -40,7 +37,6 @@ test("evidence status derives complete active recommendation rule counts", () =>
 
 test("evidence status drawer shows active, candidate and source-only boundaries", async () => {
   const drawer = await readProjectFile("app/RecommendationEvidenceStatus.tsx");
-
   assert.match(drawer, /근거 반영 현황/);
   assert.match(drawer, /Source → Observation → CandidateRule → 검증 → 활성 규칙/);
   assert.match(drawer, /recommendationRuleRegistry\.rules\.filter/);
@@ -60,14 +56,8 @@ test("evidence status drawer shows active, candidate and source-only boundaries"
 test("known expert videos remain visible as source-only verification work", () => {
   assert.equal(advisorSourcesJamesHoffmann.length, 1);
   assert.equal(advisorSourcesTetsuKasuya.length, 1);
-  assert.equal(
-    advisorSourcesJamesHoffmann[0].title,
-    "A Better 1 Cup V60 Technique",
-  );
-  assert.equal(
-    advisorSourcesTetsuKasuya[0].title,
-    "How to Brew Coffee Using the 4:6 Method",
-  );
+  assert.equal(advisorSourcesJamesHoffmann[0].title, "A Better 1 Cup V60 Technique");
+  assert.equal(advisorSourcesTetsuKasuya[0].title, "How to Brew Coffee Using the 4:6 Method");
 });
 
 test("evidence status is mounted globally and available from mobile tools", async () => {
@@ -75,7 +65,6 @@ test("evidence status is mounted globally and available from mobile tools", asyn
     readProjectFile("app/layout.tsx"),
     readProjectFile("app/MobileCoffeeNav.tsx"),
   ]);
-
   assert.match(layout, /import RecommendationEvidenceStatus/);
   assert.match(layout, /<RecommendationEvidenceStatus \/>/);
   assert.match(mobileNav, /key: "evidence", label: "근거 현황"/);
@@ -92,23 +81,13 @@ test("transparency UI does not connect candidates directly", async () => {
     readProjectFile("data/recommendation/v60TemperatureRules.ts"),
   ]);
   const activeRules = `${baseRules}\n${temperatureRules}`;
-
   assert.equal(engine.includes("RecommendationEvidenceStatus"), false);
   assert.equal(engine.includes("candidateReadiness"), false);
   assert.equal(adjustment.includes("RecommendationEvidenceStatus"), false);
   assert.equal(adjustment.includes("candidateReadiness"), false);
-  assert.equal(
-    activeRules.includes("candidate:temperature:v60-hot:roast-only-v1"),
-    false,
-  );
-  assert.equal(
-    activeRules.includes("temperature.v60-hot-paper.roast-only.v1"),
-    true,
-  );
-  assert.equal(
-    activeRules.includes("grind.1zpresso-k-ultra.official-zero.v1"),
-    true,
-  );
+  assert.equal(activeRules.includes("candidate:temperature:v60-hot:roast-only-v1"), false);
+  assert.equal(activeRules.includes("temperature.v60-hot-paper.roast-only.v1"), true);
+  assert.equal(activeRules.includes("grind.1zpresso-k-ultra.official-zero.v1"), true);
   assert.equal(activeRules.includes("pour.v60-hot-paper.foundation.v1"), true);
   assert.equal(activeRules.includes("time.v60-hot-paper.foundation.v1"), true);
   assert.equal(activeRules.includes("grind.v60-hot-paper.dial-in.v1"), true);
