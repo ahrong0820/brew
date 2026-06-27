@@ -184,6 +184,8 @@ export interface BeanBrewProfile {
   drinkStyle?: DrinkStyle;
   grinderProfileId: string;
   tasteGoal: TasteGoal;
+  /** Selected barista recipe. Legacy profiles remain in a separate default scope. */
+  sourceRecipeId?: string;
   currentBestSessionId?: string;
   latestSessionId?: string;
   recommendationOffset: {
