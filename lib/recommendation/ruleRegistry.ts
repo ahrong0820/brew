@@ -1,4 +1,5 @@
 import { recommendationRules } from "@/data/recommendation/rules";
+import { v60RatioRules } from "@/data/recommendation/v60RatioRules";
 import { v60TemperatureRules } from "@/data/recommendation/v60TemperatureRules";
 import { evidenceRegistry } from "@/lib/evidence/registry";
 import type {
@@ -6,11 +7,11 @@ import type {
   RecommendationRuleRegistry,
 } from "@/lib/types/recommendationRule";
 
-export const recommendationRuleRegistryVersion = "1.4.0";
+export const recommendationRuleRegistryVersion = "1.5.0";
 
 export const recommendationRuleRegistry: RecommendationRuleRegistry = {
   version: recommendationRuleRegistryVersion,
-  rules: [...recommendationRules, ...v60TemperatureRules],
+  rules: [...recommendationRules, ...v60TemperatureRules, ...v60RatioRules],
 };
 
 export type RecommendationRuleValidationCode =
@@ -64,10 +65,7 @@ export function validateRecommendationRuleRegistry(
       });
     }
 
-    if (
-      rule.status === "deprecated" &&
-      !rule.deprecationReason?.trim()
-    ) {
+    if (rule.status === "deprecated" && !rule.deprecationReason?.trim()) {
       issues.push({
         code: "missing-deprecation-reason",
         path: `${path}.deprecationReason`,
@@ -95,10 +93,7 @@ export function validateRecommendationRuleRegistry(
         });
       }
 
-      if (!link.observationId) {
-        return;
-      }
-
+      if (!link.observationId) return;
       const observation = observationById.get(link.observationId);
       if (!observation) {
         issues.push({
@@ -138,10 +133,7 @@ export function assertValidRecommendationRuleRegistry(
   registry: RecommendationRuleRegistry,
 ) {
   const issues = validateRecommendationRuleRegistry(registry);
-  if (issues.length === 0) {
-    return;
-  }
-
+  if (issues.length === 0) return;
   const details = issues
     .map((issue) => `${issue.code} ${issue.path}: ${issue.message}`)
     .join("\n");
@@ -160,25 +152,19 @@ export function getRecommendationRule(ruleId: string) {
 
 export function requireRecommendationRule(ruleId: string) {
   const rule = getRecommendationRule(ruleId);
-  if (!rule) {
-    throw new Error(`Unknown recommendation rule: ${ruleId}`);
-  }
+  if (!rule) throw new Error(`Unknown recommendation rule: ${ruleId}`);
   return rule;
 }
 
 export function listActiveRecommendationRules() {
-  return recommendationRuleRegistry.rules.filter(
-    (rule) => rule.status === "active",
-  );
+  return recommendationRuleRegistry.rules.filter((rule) => rule.status === "active");
 }
 
 export function resolveRecommendationRuleEvidence(ruleId: string) {
   const rule = requireRecommendationRule(ruleId);
   return rule.evidenceLinks.map((link) => ({
     link,
-    source: evidenceRegistry.sources.find(
-      (source) => source.id === link.sourceId,
-    ),
+    source: evidenceRegistry.sources.find((source) => source.id === link.sourceId),
     observation: link.observationId
       ? evidenceRegistry.observations.find(
           (observation) => observation.id === link.observationId,

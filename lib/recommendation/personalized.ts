@@ -3,6 +3,7 @@ import {
   isKUltraOfficialProfile,
   kUltraOfficialRange,
 } from "@/lib/recommendation/kUltraOfficialRange";
+import { applyV60FoundationRatio } from "@/lib/recommendation/v60FoundationRatio";
 import { applyV60RoastOnlyTemperature } from "@/lib/recommendation/v60RoastOnlyTemperature";
 import type {
   BrewRecommendation,
@@ -23,15 +24,12 @@ function personalizedGrinder(
   input: RecommendationInput,
 ) {
   const grindOffset = input.recommendationOffset?.grind ?? 0;
-
   if (!recommendation.grinder.isNumeric || grindOffset === 0) {
     return recommendation.grinder;
   }
 
   const current = Number(recommendation.grinder.displayValue);
-  if (!Number.isFinite(current)) {
-    return recommendation.grinder;
-  }
+  if (!Number.isFinite(current)) return recommendation.grinder;
 
   const step = input.grinder.displayStep ?? 1;
   const referencePoints = input.grinder.micronReference?.points ?? [];
@@ -77,22 +75,21 @@ function personalizedGrinder(
 export function createPersonalizedRecommendation(
   input: RecommendationInput,
 ): BrewRecommendation {
-  const base = applyV60RoastOnlyTemperature(createRecommendation(input), input);
+  const temperatureAdjusted = applyV60RoastOnlyTemperature(
+    createRecommendation(input),
+    input,
+  );
+  const base = applyV60FoundationRatio(temperatureAdjusted, input);
   const offset = input.recommendationOffset;
 
-  if (!offset) {
-    return base;
-  }
+  if (!offset) return base;
 
   const temperatureOffset = offset.temperature ?? 0;
   const ratioOffset = offset.ratio ?? 0;
   const grindOffset = offset.grind ?? 0;
   const hasPersonalOffset =
     temperatureOffset !== 0 || ratioOffset !== 0 || grindOffset !== 0;
-
-  if (!hasPersonalOffset) {
-    return base;
-  }
+  if (!hasPersonalOffset) return base;
 
   const adjustedRatio = clamp(
     Math.round((base.ratio + ratioOffset) * 2) / 2,

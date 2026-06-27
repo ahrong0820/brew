@@ -20,6 +20,11 @@ import {
   appliesV60HotPaperFoundation,
 } from "@/lib/recommendation/v60FoundationRecommendation";
 import {
+  appliesV60FoundationRatio,
+  v60FoundationRatio,
+  v60FoundationRatioRuleId,
+} from "@/lib/recommendation/v60FoundationRatio";
+import {
   appliesV60RoastOnlyTemperature,
   v60RoastOnlyTemperatureRuleId,
 } from "@/lib/recommendation/v60RoastOnlyTemperature";
@@ -36,7 +41,8 @@ import type {
 function baseAppliedRules(input: RecommendationInput) {
   const brewer = input.preferences.defaultBrewer;
   const usesV60Foundation = appliesV60HotPaperFoundation(input);
-  const usesV60RoastOnlyTemperature = appliesV60RoastOnlyTemperature(input);
+  const usesV60Ratio = appliesV60FoundationRatio(input);
+  const usesV60Temperature = appliesV60RoastOnlyTemperature(input);
   const usesKUltraOfficialRange =
     isKUltraOfficialProfile(input.grinder) &&
     brewer === "v60" &&
@@ -51,7 +57,10 @@ function baseAppliedRules(input: RecommendationInput) {
   const grinderRuleId = usesKUltraOfficialRange
     ? kUltraOfficialRuleId
     : `grind.${input.grinder.model}.v1`;
-  const temperatureRuleId = usesV60RoastOnlyTemperature
+  const ratioRuleId = usesV60Ratio
+    ? v60FoundationRatioRuleId
+    : "ratio.taste-goal.v1";
+  const temperatureRuleId = usesV60Temperature
     ? v60RoastOnlyTemperatureRuleId
     : "temperature.roast-process-taste.v1";
 
@@ -62,9 +71,11 @@ function baseAppliedRules(input: RecommendationInput) {
       description: "사용자 기본 원두량을 지원 범위와 1g 단위로 정규화",
     }),
     createAppliedRule({
-      id: "ratio.taste-goal.v1",
+      id: ratioRuleId,
       parameter: "ratio",
-      description: "맛 목표별 초기 추출 비율 적용",
+      description: usesV60Ratio
+        ? "HOT V60에서 1:16 공통 시작점 적용"
+        : "맛 목표별 초기 추출 비율 적용",
     }),
     createAppliedRule({
       id: "water.dose-ratio.normalized.v1",
@@ -74,8 +85,8 @@ function baseAppliedRules(input: RecommendationInput) {
     createAppliedRule({
       id: temperatureRuleId,
       parameter: "temperature",
-      description: usesV60RoastOnlyTemperature
-        ? "HOT V60에서 배전도 기준 온도만 적용하고 맛 목표·가공 방식 오프셋 제외"
+      description: usesV60Temperature
+        ? "HOT V60에서 배전도 기준 온도만 적용"
         : "배전도·가공 방식·맛 목표의 초기 온도 오프셋 적용",
     }),
     createAppliedRule({
@@ -116,11 +127,7 @@ function appendPersonalOffsetRule(
     (offset?.temperature ?? 0) !== 0 ||
     (offset?.ratio ?? 0) !== 0 ||
     (offset?.grind ?? 0) !== 0;
-
-  if (!hasOffset) {
-    return rules;
-  }
-
+  if (!hasOffset) return rules;
   return appendAppliedRule(
     rules,
     createAppliedRule({
@@ -147,14 +154,13 @@ export function createRecommendation(
   );
   const recommendationOffset =
     input.recommendationOffset ?? profile?.recommendationOffset;
-  const recommendationInput = {
-    ...input,
-    recommendationOffset,
-  };
+  const recommendationInput = { ...input, recommendationOffset };
   const generated = createPersonalizedRecommendation(recommendationInput);
+  const initialRatio = appliesV60FoundationRatio(input)
+    ? v60FoundationRatio
+    : recommendedRatioForTaste(input.tasteGoal);
   const canonicalRatio = normalizeRatio(
-    recommendedRatioForTaste(input.tasteGoal) +
-      (recommendationOffset?.ratio ?? 0),
+    initialRatio + (recommendationOffset?.ratio ?? 0),
   );
   let recommendation = normalizeRecommendationForGrinder(
     {
@@ -173,10 +179,7 @@ export function createRecommendation(
     recommendation,
     recommendationInput,
   );
-
-  if (!profile) {
-    return recommendation;
-  }
+  if (!profile) return recommendation;
 
   const successfulSessions = brewSessionStore.list().filter(
     (session) =>
@@ -205,7 +208,7 @@ export function createRecommendation(
         `같은 조건에서 좋음 평가가 ${successfulSessions.length}회 누적되어 개인 성공 이력을 우선 반영했습니다.`,
       ],
       confidenceReason:
-        "같은 원두·음용 방식·드리퍼·그라인더·맛 방향에서 성공 기록이 2회 이상 재현되어 개인화 추천 근거가 강화되었습니다.",
+        "같은 조건에서 성공 기록이 2회 이상 재현되어 개인화 추천 근거가 강화되었습니다.",
     };
   } else if (successfulSessions.length === 1) {
     recommendation = {
@@ -232,6 +235,5 @@ export function createRecommendation(
         "현재 베스트 기록이 1회 있습니다. 같은 조건에서 한 번 더 좋은 맛이 재현되면 기록 신뢰도가 높아집니다.",
     };
   }
-
   return recommendation;
 }

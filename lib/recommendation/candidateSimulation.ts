@@ -1,4 +1,5 @@
 import { candidateSimulationScenarios } from "@/data/recommendation/candidateSimulationScenarios";
+import { v60RatioSimulationScenarios } from "@/data/recommendation/v60RatioSimulationScenarios";
 import { v60TemperatureSimulationScenarios } from "@/data/recommendation/v60TemperatureSimulationScenarios";
 import { getCandidateRule } from "@/lib/recommendation/candidateRuleRegistry";
 import { decideDialIn } from "@/lib/recommendation/dialInDecision";
@@ -7,10 +8,12 @@ import {
   kUltraOfficialDialValue,
   kUltraOfficialRange,
 } from "@/lib/recommendation/kUltraOfficialRange";
+import { recommendedWaterGrams } from "@/lib/recommendation/normalization";
 import {
   v60FoundationBloomWater,
   v60FoundationTargetTime,
 } from "@/lib/recommendation/v60Foundation";
+import { v60FoundationRatio } from "@/lib/recommendation/v60FoundationRatio";
 import { v60RoastOnlyTemperature } from "@/lib/recommendation/v60RoastOnlyTemperature";
 import type { CandidateRule } from "@/lib/types/candidateRule";
 import type {
@@ -24,39 +27,28 @@ import type { RecommendationRuleParameter } from "@/lib/types/recommendation";
 const allCandidateSimulationScenarios = [
   ...candidateSimulationScenarios,
   ...v60TemperatureSimulationScenarios,
+  ...v60RatioSimulationScenarios,
 ] as const;
 
-function includesOrUnrestricted<T>(
-  allowed: readonly T[] | undefined,
-  actual: T,
-) {
+function includesOrUnrestricted<T>(allowed: readonly T[] | undefined, actual: T) {
   return !allowed || allowed.includes(actual);
 }
 
-function matchesScope(
-  rule: CandidateRule,
-  scenario: CandidateSimulationScenario,
-) {
+function matchesScope(rule: CandidateRule, scenario: CandidateSimulationScenario) {
   const brew = rule.scope.brew;
   const grinder = rule.scope.grinder;
   const brewMatches =
     !brew ||
     (includesOrUnrestricted(brew.brewerTypes, scenario.context.brewerType) &&
       includesOrUnrestricted(brew.drinkStyles, scenario.context.drinkStyle) &&
-      includesOrUnrestricted(
-        brew.filterMaterials,
-        scenario.context.filterMaterial,
-      ));
+      includesOrUnrestricted(brew.filterMaterials, scenario.context.filterMaterial));
   const grinderMatches =
     !grinder?.models ||
     (scenario.context.grinderModel !== undefined &&
       grinder.models.includes(scenario.context.grinderModel));
   const calibrationMatches =
-    rule.validationPlan?.implementationKey !==
-      "k-ultra-official-zero-range-v1" ||
-    scenario.context.grinderCalibrationProfile ===
-      kUltraOfficialCalibrationProfile;
-
+    rule.validationPlan?.implementationKey !== "k-ultra-official-zero-range-v1" ||
+    scenario.context.grinderCalibrationProfile === kUltraOfficialCalibrationProfile;
   return brewMatches && grinderMatches && calibrationMatches;
 }
 
@@ -64,10 +56,7 @@ function valuesMatch(
   actual: CandidateSimulationExpectedValues | undefined,
   expected: CandidateSimulationExpectedValues | undefined,
 ) {
-  if (!expected) {
-    return true;
-  }
-
+  if (!expected) return true;
   return Object.entries(expected).every(
     ([key, value]) =>
       actual?.[key as keyof CandidateSimulationExpectedValues] === value,
@@ -97,10 +86,7 @@ function simulateGrind(
   rule: CandidateRule,
   scenario: CandidateSimulationScenario,
 ): CandidateSimulationResult {
-  if (!scenario.signal) {
-    throw new Error(`Missing grind signal: ${scenario.id}`);
-  }
-
+  if (!scenario.signal) throw new Error(`Missing grind signal: ${scenario.id}`);
   const decision = decideDialIn({
     actualSeconds: scenario.signal.actualTimeSeconds,
     minimumSeconds: scenario.signal.targetTimeMinSeconds,
@@ -109,7 +95,6 @@ function simulateGrind(
   });
   const changedParameters: readonly RecommendationRuleParameter[] =
     decision === "finer" || decision === "coarser" ? ["grind"] : [];
-
   return {
     scenarioId: scenario.id,
     candidateRuleId: rule.id,
@@ -135,10 +120,7 @@ function simulateFoundationPour(
   rule: CandidateRule,
   scenario: CandidateSimulationScenario,
 ): CandidateSimulationResult {
-  if (!scenario.recipeInput) {
-    throw new Error(`Missing recipe input: ${scenario.id}`);
-  }
-
+  if (!scenario.recipeInput) throw new Error(`Missing recipe input: ${scenario.id}`);
   const actualValues = {
     bloomWaterGrams: v60FoundationBloomWater(
       scenario.recipeInput.doseGrams,
@@ -148,7 +130,6 @@ function simulateFoundationPour(
     mainPourStartSeconds: 30,
   } as const;
   const decision = "apply" as const;
-
   return {
     scenarioId: scenario.id,
     candidateRuleId: rule.id,
@@ -175,7 +156,6 @@ function simulateFoundationTime(
     targetTimeMaxSeconds: v60FoundationTargetTime.max,
   } as const;
   const decision = "apply" as const;
-
   return {
     scenarioId: scenario.id,
     candidateRuleId: rule.id,
@@ -197,10 +177,7 @@ function simulateKUltraOfficialRange(
   rule: CandidateRule,
   scenario: CandidateSimulationScenario,
 ): CandidateSimulationResult {
-  if (!scenario.recipeInput) {
-    throw new Error(`Missing recipe input: ${scenario.id}`);
-  }
-
+  if (!scenario.recipeInput) throw new Error(`Missing recipe input: ${scenario.id}`);
   const actualValues = {
     grinderDisplayValue: kUltraOfficialDialValue(
       scenario.recipeInput.grinderPersonalOffset ?? 0,
@@ -209,7 +186,6 @@ function simulateKUltraOfficialRange(
     grinderRangeMax: kUltraOfficialRange.max,
   } as const;
   const decision = "apply" as const;
-
   return {
     scenarioId: scenario.id,
     candidateRuleId: rule.id,
@@ -232,15 +208,11 @@ function simulateV60RoastOnlyTemperature(
   scenario: CandidateSimulationScenario,
 ): CandidateSimulationResult {
   const roastLevel = scenario.recipeInput?.roastLevel;
-  if (!roastLevel) {
-    throw new Error(`Missing roast level: ${scenario.id}`);
-  }
-
+  if (!roastLevel) throw new Error(`Missing roast level: ${scenario.id}`);
   const actualValues = {
     temperatureCelsius: v60RoastOnlyTemperature(roastLevel),
   } as const;
   const decision = "apply" as const;
-
   return {
     scenarioId: scenario.id,
     candidateRuleId: rule.id,
@@ -258,20 +230,44 @@ function simulateV60RoastOnlyTemperature(
   };
 }
 
+function simulateV60FoundationRatio(
+  rule: CandidateRule,
+  scenario: CandidateSimulationScenario,
+): CandidateSimulationResult {
+  if (!scenario.recipeInput) throw new Error(`Missing recipe input: ${scenario.id}`);
+  const actualValues = {
+    ratio: v60FoundationRatio,
+    waterGrams: recommendedWaterGrams(
+      scenario.recipeInput.doseGrams,
+      v60FoundationRatio,
+    ),
+  } as const;
+  const decision = "apply" as const;
+  return {
+    scenarioId: scenario.id,
+    candidateRuleId: rule.id,
+    applies: true,
+    decision,
+    changedParameters: ["ratio"],
+    expectedDecision: scenario.expectedDecision,
+    actualValues,
+    expectedValues: scenario.expectedValues,
+    passed:
+      decision === scenario.expectedDecision &&
+      valuesMatch(actualValues, scenario.expectedValues),
+    reason:
+      "맛 목표별 고정 비율 오프셋 없이 1:16으로 시작하고 도징에서 물량을 다시 계산합니다.",
+  };
+}
+
 export function simulateCandidateScenario(
   scenario: CandidateSimulationScenario,
 ): CandidateSimulationResult {
   const rule = getCandidateRule(scenario.candidateRuleId);
-  if (!rule) {
-    throw new Error(`Unknown candidate rule: ${scenario.candidateRuleId}`);
-  }
+  if (!rule) throw new Error(`Unknown candidate rule: ${scenario.candidateRuleId}`);
+  if (!matchesScope(rule, scenario)) return resultForOutOfScope(rule, scenario);
 
-  if (!matchesScope(rule, scenario)) {
-    return resultForOutOfScope(rule, scenario);
-  }
-
-  const implementationKey = rule.validationPlan?.implementationKey;
-  switch (implementationKey) {
+  switch (rule.validationPlan?.implementationKey) {
     case "v60-hot-paper-grind-direction-v1":
       return simulateGrind(rule, scenario);
     case "v60-hot-paper-foundation-pour-v1":
@@ -282,9 +278,11 @@ export function simulateCandidateScenario(
       return simulateKUltraOfficialRange(rule, scenario);
     case "v60-hot-paper-roast-only-temperature-v1":
       return simulateV60RoastOnlyTemperature(rule, scenario);
+    case "v60-hot-paper-foundation-ratio-16-v1":
+      return simulateV60FoundationRatio(rule, scenario);
     default:
       throw new Error(
-        `Unsupported candidate implementation: ${implementationKey ?? "missing"}`,
+        `Unsupported candidate implementation: ${rule.validationPlan?.implementationKey ?? "missing"}`,
       );
   }
 }
@@ -293,15 +291,11 @@ export function runCandidateSimulation(
   candidateRuleId: string,
 ): CandidateSimulationReport {
   const rule = getCandidateRule(candidateRuleId);
-  if (!rule) {
-    throw new Error(`Unknown candidate rule: ${candidateRuleId}`);
-  }
-
+  if (!rule) throw new Error(`Unknown candidate rule: ${candidateRuleId}`);
   const scenarioById = new Map<string, CandidateSimulationScenario>(
     allCandidateSimulationScenarios.map((scenario) => [scenario.id, scenario]),
   );
   const scenarioIds = rule.validationPlan?.scenarioIds ?? [];
-
   const results: CandidateSimulationResult[] = scenarioIds.map((scenarioId) => {
     const scenario = scenarioById.get(scenarioId);
     if (!scenario) {
@@ -316,12 +310,9 @@ export function runCandidateSimulation(
         reason: "검증 계획이 존재하지 않는 시나리오 ID를 참조합니다.",
       };
     }
-
     return simulateCandidateScenario(scenario);
   });
-
   const passedScenarios = results.filter((result) => result.passed).length;
-
   return {
     candidateRuleId,
     totalScenarios: results.length,
