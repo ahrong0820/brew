@@ -113,15 +113,18 @@ export function applyBaristaRecipeRecommendation(
   recommendation: BrewRecommendation,
   input: RecommendationInput,
 ): BrewRecommendation {
-  const match = selectBaristaRecipe({
-    brewerType: input.preferences.defaultBrewer,
-    drinkStyle: input.preferences.defaultDrinkStyle,
-    roastLevel: input.bean.roastLevel,
-    process: input.bean.process,
-    tasteGoal: input.tasteGoal,
-    doseGrams: recommendation.doseGrams,
-    flavorNotes: input.bean.flavorNotes,
-  });
+  const match = selectBaristaRecipe(
+    {
+      brewerType: input.preferences.defaultBrewer,
+      drinkStyle: input.preferences.defaultDrinkStyle,
+      roastLevel: input.bean.roastLevel,
+      process: input.bean.process,
+      tasteGoal: input.tasteGoal,
+      doseGrams: recommendation.doseGrams,
+      flavorNotes: input.bean.flavorNotes,
+    },
+    input.baristaRecipeId,
+  );
 
   if (!match) return recommendation;
 
@@ -145,6 +148,7 @@ export function applyBaristaRecipeRecommendation(
   return {
     ...recommendation,
     templateName: recipe.name,
+    sourceRecipeId: recipe.id,
     waterGrams,
     ratio,
     temperatureCelsius,
