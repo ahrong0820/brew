@@ -73,6 +73,62 @@ test("balanced 15g matching selects the closest reproducible home recipe", () =>
   assert.ok(matches[0].score > matches[1].score);
 });
 
+test("ranking remains unchanged when no personal history is supplied", () => {
+  const first = rankBaristaRecipes(baseInput, 6).map((match) => match.recipe.id);
+  const second = rankBaristaRecipes(
+    { ...baseInput, personalRecipeStatuses: {} },
+    6,
+  ).map((match) => match.recipe.id);
+
+  assert.deepEqual(second, first);
+});
+
+test("provisional personal history adds 10 points and raises only that recipe", () => {
+  const baseline = rankBaristaRecipes(baseInput, 6);
+  const boosted = rankBaristaRecipes(
+    {
+      ...baseInput,
+      personalRecipeStatuses: { "anstar-6888": "provisional" },
+    },
+    6,
+  );
+  const baselineIndex = baseline.findIndex(
+    (match) => match.recipe.id === "anstar-6888",
+  );
+  const boostedIndex = boosted.findIndex(
+    (match) => match.recipe.id === "anstar-6888",
+  );
+  const baselineScore = baseline[baselineIndex].score;
+  const boostedMatch = boosted[boostedIndex];
+
+  assert.equal(boostedMatch.score, baselineScore + 10);
+  assert.ok(boostedIndex < baselineIndex);
+  assert.ok(
+    boostedMatch.reasons.some((reason) => reason.includes("[개인 성공] 잠정")),
+  );
+});
+
+test("stable personal history adds 20 points and can promote the recipe to first", () => {
+  const baseline = rankBaristaRecipes(baseInput, 6);
+  const boosted = rankBaristaRecipes(
+    {
+      ...baseInput,
+      personalRecipeStatuses: { "anstar-6888": "stable" },
+    },
+    6,
+  );
+  const baselineMatch = baseline.find(
+    (match) => match.recipe.id === "anstar-6888",
+  );
+
+  assert.ok(baselineMatch);
+  assert.equal(boosted[0].recipe.id, "anstar-6888");
+  assert.equal(boosted[0].score, Math.min(100, baselineMatch.score + 20));
+  assert.ok(
+    boosted[0].reasons.some((reason) => reason.includes("[개인 성공] 안정")),
+  );
+});
+
 test("body matching favors the stronger-ratio 4:6 reference", () => {
   const match = selectBaristaRecipe({
     ...baseInput,
