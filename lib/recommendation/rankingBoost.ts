@@ -1,4 +1,4 @@
-import { beanBrewProfileStore } from "@/lib/storage/coffeeData";
+import { beanBrewProfileStore } from "../storage/coffeeData.ts";
 import type { BaristaRecipeMatchInput } from "@/lib/types/baristaRecipe";
 
 export function rankingBoost(recipeId: string, input: BaristaRecipeMatchInput) {
