@@ -1,7 +1,12 @@
 import { promoteCurrentBestSession } from "@/lib/brew/history";
 import { withUpdatedTimestamp } from "@/lib/domain/factories";
-import { brewSessionStore } from "@/lib/storage/coffeeData";
+import {
+  beanBrewProfileStore,
+  brewSessionStore,
+} from "@/lib/storage/coffeeData";
 import type {
+  BeanBrewProfile,
+  BrewAdjustmentOutcome,
   BrewPaceAssessment,
   BrewSession,
   BrewSessionStatus,
@@ -19,28 +24,72 @@ export interface BrewFeedbackInput {
   actualTimeSeconds?: number;
   brewPaceAssessment?: BrewPaceAssessment;
   tastingResult?: TastingResult;
+  adjustmentOutcome?: BrewAdjustmentOutcome;
   note?: string;
 }
 
 function normalizeActualTime(value: number | undefined) {
-  if (value === undefined) {
-    return undefined;
-  }
-
+  if (value === undefined) return undefined;
   if (!Number.isFinite(value)) {
     throw new Error("실제 추출 시간이 올바르지 않습니다.");
   }
-
   return Math.max(1, Math.round(value));
+}
+
+function pendingTrial(profile: BeanBrewProfile | undefined) {
+  if (!profile?.pendingAdjustmentId) return undefined;
+  return (profile.adjustmentHistory ?? []).find(
+    (trial) => trial.id === profile.pendingAdjustmentId && !trial.outcome,
+  );
+}
+
+function finalizeAdjustmentTrial(
+  profileId: string,
+  adjustmentId: string,
+  resultSessionId: string,
+  outcome: BrewAdjustmentOutcome,
+) {
+  const profile = beanBrewProfileStore.getById(profileId);
+  if (!profile) {
+    throw new Error("조정 결과를 연결할 추출 프로필을 찾지 못했습니다.");
+  }
+
+  const timestamp = new Date().toISOString();
+  const history = (profile.adjustmentHistory ?? []).map((trial) =>
+    trial.id === adjustmentId
+      ? {
+          ...trial,
+          resultSessionId,
+          outcome,
+          evaluatedAt: timestamp,
+        }
+      : trial,
+  );
+  const nextProfile = withUpdatedTimestamp<BeanBrewProfile>(
+    {
+      ...profile,
+      adjustmentHistory: history,
+      pendingAdjustmentId:
+        profile.pendingAdjustmentId === adjustmentId
+          ? undefined
+          : profile.pendingAdjustmentId,
+    },
+    timestamp,
+  );
+
+  if (!beanBrewProfileStore.upsert(nextProfile)) {
+    throw new Error("조정 결과를 추출 프로필에 저장하지 못했습니다.");
+  }
 }
 
 export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
   const session = brewSessionStore.getById(input.sessionId);
-
   if (!session) {
     throw new Error("저장할 추출 기록을 찾지 못했습니다.");
   }
 
+  const profile = beanBrewProfileStore.getById(session.profileId);
+  const adjustment = pendingTrial(profile);
   const actualTimeSeconds = normalizeActualTime(input.actualTimeSeconds);
   const trimmedNote = input.note?.trim();
   const nextTastingResult = input.tastingResult ?? session.tastingResult;
@@ -58,6 +107,10 @@ export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
     brewPaceAssessment:
       input.brewPaceAssessment ?? session.brewPaceAssessment,
     tastingResult: nextTastingResult,
+    appliedAdjustmentId: adjustment?.id ?? session.appliedAdjustmentId,
+    comparedToSessionId:
+      adjustment?.sourceSessionId ?? session.comparedToSessionId,
+    adjustmentOutcome: input.adjustmentOutcome ?? session.adjustmentOutcome,
     note: trimmedNote ? trimmedNote : session.note,
     status: nextStatus,
   });
@@ -71,6 +124,15 @@ export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
     !brewSessionStore.upsert(savedSession)
   ) {
     throw new Error("추출 기록을 저장하지 못했습니다.");
+  }
+
+  if (adjustment && input.adjustmentOutcome) {
+    finalizeAdjustmentTrial(
+      session.profileId,
+      adjustment.id,
+      savedSession.id,
+      input.adjustmentOutcome,
+    );
   }
 
   if (input.tastingResult && typeof window !== "undefined") {
