@@ -1,4 +1,5 @@
 import { matchesBrewProfileIdentity } from "@/lib/brew/profileIdentity";
+import { selectBaristaRecipe } from "@/lib/recommendation/baristaRecipeMatcher";
 import { applyBaristaRecipeRecommendation } from "@/lib/recommendation/baristaRecipeRecommendation";
 import {
   isKUltraOfficialProfile,
@@ -150,9 +151,29 @@ function appendPersonalOffsetRule(
   );
 }
 
+function resolvedBaristaRecipeId(input: RecommendationInput) {
+  return selectBaristaRecipe(
+    {
+      brewerType: input.preferences.defaultBrewer,
+      drinkStyle: input.preferences.defaultDrinkStyle,
+      roastLevel: input.bean.roastLevel,
+      process: input.bean.process,
+      tasteGoal: input.tasteGoal,
+      doseGrams: input.preferences.defaultDoseGrams,
+      flavorNotes: input.bean.flavorNotes,
+    },
+    input.baristaRecipeId,
+  )?.recipe.id;
+}
+
 export function createRecommendation(
   input: RecommendationInput,
 ): BrewRecommendation {
+  const sourceRecipeId = resolvedBaristaRecipeId(input);
+  const scopedInput: RecommendationInput = {
+    ...input,
+    baristaRecipeId: sourceRecipeId,
+  };
   const profile = beanBrewProfileStore.list().find((candidate) =>
     matchesBrewProfileIdentity(candidate, {
       beanId: input.bean.id,
@@ -160,13 +181,14 @@ export function createRecommendation(
       grinderProfileId: input.grinder.id,
       tasteGoal: input.tasteGoal,
       drinkStyle: input.preferences.defaultDrinkStyle,
+      sourceRecipeId,
     }),
   );
   const recommendationOffset =
     input.recommendationOffset ?? profile?.recommendationOffset;
-  const recommendationInput = { ...input, recommendationOffset };
+  const recommendationInput = { ...scopedInput, recommendationOffset };
   const generated = createPersonalizedRecommendation(recommendationInput);
-  const initialRatio = appliesV60FoundationRatio(input)
+  const initialRatio = appliesV60FoundationRatio(recommendationInput)
     ? v60FoundationRatio
     : recommendedRatioForTaste(input.tasteGoal);
   const canonicalRatio = normalizeRatio(
@@ -177,7 +199,7 @@ export function createRecommendation(
       ...generated,
       ratio: canonicalRatio,
       appliedRules: appendPersonalOffsetRule(
-        baseAppliedRules(input),
+        baseAppliedRules(recommendationInput),
         recommendationInput,
       ),
     },
@@ -219,10 +241,10 @@ export function createRecommendation(
       ),
       reasons: [
         ...recommendation.reasons,
-        `같은 조건에서 좋음 평가가 ${successfulSessions.length}회 누적되어 개인 성공 이력을 우선 반영했습니다.`,
+        `같은 레시피 조건에서 좋음 평가가 ${successfulSessions.length}회 누적되어 개인 성공 이력을 우선 반영했습니다.`,
       ],
       confidenceReason:
-        "같은 조건에서 성공 기록이 2회 이상 재현되어 개인화 추천 근거가 강화되었습니다.",
+        "같은 원두·장비·맛 목표·레시피에서 성공 기록이 2회 이상 재현되어 개인화 추천 근거가 강화되었습니다.",
     };
   } else if (successfulSessions.length === 1) {
     recommendation = {
@@ -243,10 +265,10 @@ export function createRecommendation(
       ),
       reasons: [
         ...recommendation.reasons,
-        "같은 조건의 현재 베스트 추출 1회를 참고했습니다.",
+        "같은 레시피 조건의 현재 베스트 추출 1회를 참고했습니다.",
       ],
       confidenceReason:
-        "현재 베스트 기록이 1회 있습니다. 같은 조건에서 한 번 더 좋은 맛이 재현되면 기록 신뢰도가 높아집니다.",
+        "현재 선택한 레시피의 베스트 기록이 1회 있습니다. 같은 조건에서 한 번 더 좋은 맛이 재현되면 기록 신뢰도가 높아집니다.",
     };
   }
   return recommendation;
