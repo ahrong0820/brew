@@ -5,13 +5,18 @@ import test from "node:test";
 import { advisorSourcesJamesHoffmann } from "../data/evidence/advisorSourcesJamesHoffmann.ts";
 import { advisorSourcesTetsuKasuya } from "../data/evidence/advisorSourcesTetsuKasuya.ts";
 import { recommendationRules } from "../data/recommendation/rules.ts";
+import { v60RatioRules } from "../data/recommendation/v60RatioRules.ts";
 import { v60TemperatureRules } from "../data/recommendation/v60TemperatureRules.ts";
 
 async function readProjectFile(path) {
   return readFile(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
-const allRules = [...recommendationRules, ...v60TemperatureRules];
+const allRules = [
+  ...recommendationRules,
+  ...v60TemperatureRules,
+  ...v60RatioRules,
+];
 
 test("evidence status derives complete active recommendation rule counts", () => {
   const activeRules = allRules.filter((rule) => rule.status === "active");
@@ -28,11 +33,11 @@ test("evidence status derives complete active recommendation rule counts", () =>
     rule.evidenceLinks.some((reference) => reference.sourceId.startsWith("expert:")),
   );
 
-  assert.equal(activeRules.length, 36);
-  assert.equal(heuristicRules.length, 29);
-  assert.equal(manufacturerRules.length, 4);
+  assert.equal(activeRules.length, 37);
+  assert.equal(heuristicRules.length, 30);
+  assert.equal(manufacturerRules.length, 5);
   assert.equal(personalRules.length, 3);
-  assert.equal(expertRules.length, 4);
+  assert.equal(expertRules.length, 5);
 });
 
 test("evidence status drawer shows active, candidate and source-only boundaries", async () => {
@@ -42,7 +47,6 @@ test("evidence status drawer shows active, candidate and source-only boundaries"
   assert.match(drawer, /recommendationRuleRegistry\.rules\.filter/);
   assert.match(drawer, /assessCandidateReadiness/);
   assert.match(drawer, /candidateTitle/);
-  assert.match(drawer, /V60 초기 온도 후보/);
   assert.match(drawer, /활성 규칙으로 승격됨/);
   assert.match(drawer, /sourceOnlyExpertVideos/);
   assert.match(drawer, /Source 등록만으로는 수치가 바뀌지 않습니다/);
@@ -74,18 +78,21 @@ test("evidence status is mounted globally and available from mobile tools", asyn
 });
 
 test("transparency UI does not connect candidates directly", async () => {
-  const [engine, adjustment, baseRules, temperatureRules] = await Promise.all([
-    readProjectFile("lib/recommendation/engine.ts"),
-    readProjectFile("lib/recommendation/adjustment.ts"),
-    readProjectFile("data/recommendation/rules.ts"),
-    readProjectFile("data/recommendation/v60TemperatureRules.ts"),
-  ]);
-  const activeRules = `${baseRules}\n${temperatureRules}`;
+  const [engine, adjustment, baseRules, temperatureRules, ratioRules] =
+    await Promise.all([
+      readProjectFile("lib/recommendation/engine.ts"),
+      readProjectFile("lib/recommendation/adjustment.ts"),
+      readProjectFile("data/recommendation/rules.ts"),
+      readProjectFile("data/recommendation/v60TemperatureRules.ts"),
+      readProjectFile("data/recommendation/v60RatioRules.ts"),
+    ]);
+  const activeRules = `${baseRules}\n${temperatureRules}\n${ratioRules}`;
   assert.equal(engine.includes("RecommendationEvidenceStatus"), false);
   assert.equal(engine.includes("candidateReadiness"), false);
   assert.equal(adjustment.includes("RecommendationEvidenceStatus"), false);
   assert.equal(adjustment.includes("candidateReadiness"), false);
-  assert.equal(activeRules.includes("candidate:temperature:v60-hot:roast-only-v1"), false);
+  assert.equal(activeRules.includes("candidate:ratio:v60-hot:foundation-16-v1"), false);
+  assert.equal(activeRules.includes("ratio.v60-hot-paper.foundation-16.v1"), true);
   assert.equal(activeRules.includes("temperature.v60-hot-paper.roast-only.v1"), true);
   assert.equal(activeRules.includes("grind.1zpresso-k-ultra.official-zero.v1"), true);
   assert.equal(activeRules.includes("pour.v60-hot-paper.foundation.v1"), true);
