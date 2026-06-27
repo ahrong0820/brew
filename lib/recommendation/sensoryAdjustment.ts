@@ -1,10 +1,14 @@
 import type { BrewAdjustmentSuggestion } from "@/lib/recommendation/adjustment";
 import { decideAdjustmentAction } from "@/lib/recommendation/adjustmentPolicy";
+import { latestEvaluatedAdjustment } from "@/lib/recommendation/adjustmentProgression";
+import { decideAdjustmentProgression } from "@/lib/recommendation/adjustmentProgressionDecision";
 import {
+  beanBrewProfileStore,
   brewSessionStore,
   grinderProfileStore,
 } from "@/lib/storage/coffeeData";
 import type {
+  BrewAdjustmentAction,
   BrewPaceAssessment,
   BrewSession,
   GrinderProfile,
@@ -29,7 +33,7 @@ function tastingReason(result: TastingResult) {
     "not-sweet-enough": "단맛이 부족하다고 기록되었습니다.",
     "bitter-astringent": "쓰고 떫은 느낌이 기록되었습니다.",
     "too-weak": "농도가 너무 연하다고 기록되었습니다.",
-    "too-strong": "농도가 너무 진하다고 기록되었습니다.",
+    "too-strong": "농도가 높고 무겁다고 기록되었습니다.",
     "aroma-muted": "향이 답답하다고 기록되었습니다.",
   };
   return labels[result];
@@ -71,7 +75,7 @@ function settingBounds(profile: GrinderProfile) {
 
 function grindSuggestion(
   session: BrewSession,
-  direction: "finer" | "coarser",
+  action: "finer" | "coarser",
 ): BrewAdjustmentSuggestion | null {
   const grinderId = session.recipeSnapshot.grinderProfileId;
   const current = session.recipeSnapshot.grindLevel;
@@ -82,7 +86,7 @@ function grindSuggestion(
   const movement = grindStep(grinder);
   const higherIsCoarser = grinder.adjustmentDirection === "higher-is-coarser";
   const signedDelta =
-    direction === "coarser"
+    action === "coarser"
       ? higherIsCoarser
         ? movement
         : -movement
@@ -100,8 +104,9 @@ function grindSuggestion(
     sessionId: session.id,
     profileId: session.profileId,
     variable: "grind",
+    action,
     delta: appliedDelta,
-    title: direction === "finer" ? "분쇄도를 조금 더 곱게" : "분쇄도를 조금 더 굵게",
+    title: action === "finer" ? "분쇄도를 조금 더 곱게" : "분쇄도를 조금 더 굵게",
     currentValue: `${formatSetting(grinder, current)} ${unit}`,
     nextValue: `${formatSetting(grinder, next)} ${unit}`,
     reason: diagnosticReason(session),
@@ -112,18 +117,19 @@ function grindSuggestion(
 
 function temperatureSuggestion(
   session: BrewSession,
-  delta: number,
+  action: "hotter" | "cooler",
 ): BrewAdjustmentSuggestion {
   const current = session.recipeSnapshot.temperatureCelsius;
-  const next = clamp(current + delta, 82, 96);
+  const next = clamp(current + (action === "hotter" ? 1 : -1), 82, 96);
   const appliedDelta = next - current;
 
   return {
     sessionId: session.id,
     profileId: session.profileId,
     variable: "temperature",
+    action,
     delta: appliedDelta,
-    title: appliedDelta > 0 ? "물 온도를 1℃ 높이기" : "물 온도를 1℃ 낮추기",
+    title: action === "hotter" ? "물 온도를 1℃ 높이기" : "물 온도를 1℃ 낮추기",
     currentValue: `${current}℃`,
     nextValue: `${next}℃`,
     reason: diagnosticReason(session),
@@ -134,18 +140,23 @@ function temperatureSuggestion(
 
 function ratioSuggestion(
   session: BrewSession,
-  delta: number,
+  action: "less-water" | "more-water",
 ): BrewAdjustmentSuggestion {
   const current = session.recipeSnapshot.ratio;
-  const next = clamp(Math.round((current + delta) * 2) / 2, 13, 18);
+  const next = clamp(
+    Math.round((current + (action === "less-water" ? -0.5 : 0.5)) * 2) / 2,
+    13,
+    18,
+  );
   const appliedDelta = next - current;
 
   return {
     sessionId: session.id,
     profileId: session.profileId,
     variable: "ratio",
+    action,
     delta: appliedDelta,
-    title: appliedDelta > 0 ? "물 비율을 조금 늘리기" : "물 비율을 조금 줄이기",
+    title: action === "more-water" ? "물 비율을 조금 늘리기" : "물 비율을 조금 줄이기",
     currentValue: `1:${current}`,
     nextValue: `1:${next}`,
     reason: diagnosticReason(session),
@@ -159,6 +170,7 @@ function keepSuggestion(session: BrewSession): BrewAdjustmentSuggestion {
     sessionId: session.id,
     profileId: session.profileId,
     variable: "none",
+    action: "hold",
     delta: 0,
     title: "현재 조건 유지",
     currentValue: "변경 없음",
@@ -169,26 +181,49 @@ function keepSuggestion(session: BrewSession): BrewAdjustmentSuggestion {
   };
 }
 
+function suggestionForAction(
+  session: BrewSession,
+  action: BrewAdjustmentAction,
+) {
+  if (action === "finer" || action === "coarser") {
+    return (
+      grindSuggestion(session, action) ??
+      temperatureSuggestion(session, action === "finer" ? "hotter" : "cooler")
+    );
+  }
+  if (action === "hotter" || action === "cooler") {
+    return temperatureSuggestion(session, action);
+  }
+  if (action === "less-water" || action === "more-water") {
+    return ratioSuggestion(session, action);
+  }
+  return keepSuggestion(session);
+}
+
 export function createSensoryAdjustmentSuggestion(
   sessionId: string,
 ): BrewAdjustmentSuggestion | null {
   const session = brewSessionStore.getById(sessionId);
   if (!session?.tastingResult) return null;
 
-  const action = decideAdjustmentAction({
+  const baseAction = decideAdjustmentAction({
     brewPaceAssessment: session.brewPaceAssessment,
     tastingResult: session.tastingResult,
   });
+  const profile = beanBrewProfileStore.getById(session.profileId);
+  const decision = decideAdjustmentProgression({
+    baseAction,
+    previous: latestEvaluatedAdjustment(profile?.adjustmentHistory),
+    brewPaceAssessment: session.brewPaceAssessment,
+    tastingResult: session.tastingResult,
+  });
+  const suggestion = suggestionForAction(session, decision.action);
 
-  if (action === "finer") {
-    return grindSuggestion(session, "finer") ?? temperatureSuggestion(session, 1);
-  }
-  if (action === "coarser") {
-    return grindSuggestion(session, "coarser") ?? temperatureSuggestion(session, -1);
-  }
-  if (action === "hotter") return temperatureSuggestion(session, 1);
-  if (action === "cooler") return temperatureSuggestion(session, -1);
-  if (action === "less-water") return ratioSuggestion(session, -0.5);
-  if (action === "more-water") return ratioSuggestion(session, 0.5);
-  return keepSuggestion(session);
+  return decision.reason
+    ? {
+        ...suggestion,
+        reason: `${decision.reason} ${suggestion.reason}`,
+        progressionReason: decision.reason,
+      }
+    : suggestion;
 }
