@@ -25,7 +25,7 @@ const removedRecipeIds = [
 ];
 
 test("active V60 catalog contains only source-audited current recipes", () => {
-  assert.equal(baristaRecipes.length, 4);
+  assert.equal(baristaRecipes.length, 5);
   assert.ok(
     baristaRecipes.every(
       (recipe) =>
@@ -40,6 +40,12 @@ test("active V60 catalog contains only source-audited current recipes", () => {
       (recipeId) => !baristaRecipes.some((recipe) => recipe.id === recipeId),
     ),
   );
+  const anstar = baristaRecipes.find(
+    (recipe) => recipe.id === "anstar-multiserve-20g-2024",
+  );
+  assert.ok(anstar);
+  assert.equal(anstar.sourceStatus, "partial");
+  assert.equal(anstar.temperatureCelsius, undefined);
 });
 
 test("bright light-roast matching uses the retained official 4:6 reference", () => {
@@ -84,6 +90,18 @@ test("balanced 15g matching selects the current low-dose 484 recipe", () => {
   assert.equal(matches.length, 3);
   assert.equal(matches[0].recipe.id, "jis-484-15g-2026");
   assert.ok(matches[0].score > matches[1].score);
+});
+
+test("the current Anstar multi-serving source can be selected explicitly", () => {
+  const match = selectBaristaRecipe(
+    baseInput,
+    "anstar-multiserve-20g-2024",
+  );
+
+  assert.ok(match);
+  assert.equal(match.recipe.name, "안스타 2인분 HOT (2024)");
+  assert.equal(match.recipe.sourceStatus, "partial");
+  assert.match(match.recipe.steps[0].cue, /기존 앱 전사 시작값/);
 });
 
 test("ranking remains unchanged when no personal history is supplied", () => {
