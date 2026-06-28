@@ -36,6 +36,16 @@ export interface GrinderRecommendation {
   calibrationLabel: string;
   isNumeric: boolean;
   note: string;
+  /** Original wording preserved from the selected barista recipe. */
+  originalDescription?: string;
+  /** Human-readable source used to derive the numeric start value. */
+  conversionSourceLabel?: string;
+  /** Official, user, reference, or unknown zero-point basis. */
+  calibrationBasisLabel?: string;
+  /** Model-specific range that recommendations may not exceed. */
+  safeRangeLabel?: string;
+  /** Present only when a recipe-scoped successful value was reused. */
+  personalRecipeStatus?: PersonalRecipeStatus;
 }
 
 export type RecommendationRuleParameter =
