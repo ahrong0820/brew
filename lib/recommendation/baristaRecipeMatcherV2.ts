@@ -139,6 +139,13 @@ function scoreRecipe(
   return { recipe, score: Math.min(100, score), reasons };
 }
 
+function personalPriority(recipeId: string, input: BaristaRecipeMatchInput) {
+  const status = input.personalRecipeStatuses?.[recipeId];
+  if (status === "stable") return 2;
+  if (status === "provisional") return 1;
+  return 0;
+}
+
 function allMatches(input: BaristaRecipeMatchInput) {
   return baristaRecipes
     .filter(
@@ -151,7 +158,10 @@ function allMatches(input: BaristaRecipeMatchInput) {
     .map((recipe) => scoreRecipe(recipe, input))
     .sort(
       (left, right) =>
-        right.score - left.score || left.recipe.id.localeCompare(right.recipe.id),
+        right.score - left.score ||
+        personalPriority(right.recipe.id, input) -
+          personalPriority(left.recipe.id, input) ||
+        left.recipe.id.localeCompare(right.recipe.id),
     );
 }
 
