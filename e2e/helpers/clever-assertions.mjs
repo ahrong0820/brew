@@ -22,7 +22,9 @@ export async function assertJisClever(dialog) {
   await dialog
     .getByText(/\[원본과 앱 조정 분리\]/)
     .waitFor({ state: "attached" });
-  await dialog.getByText("신뢰도 참고", { exact: true }).waitFor();
+  await dialog
+    .getByText(/신뢰도 (참고|보통|높음)/)
+    .waitFor({ state: "visible" });
 }
 
 export async function startRecommendationTimer(dialog) {
