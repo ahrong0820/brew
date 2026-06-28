@@ -12,7 +12,7 @@ const mobileNav = await readFile(
 );
 
 test("mobile timer dose input keeps blank and partial editing states", () => {
-  assert.match(enhancer, /data\.timerDoseInput = "true"/);
+  assert.match(enhancer, /input\.dataset\.timerDoseInput = "true"/);
   assert.match(enhancer, /document\.addEventListener\("input", handleTimerDoseInput, true\)/);
   assert.match(enhancer, /input\.value === "" \|\| !isValidTimerDose\(value\)/);
   assert.match(enhancer, /event\.stopPropagation\(\)/);
