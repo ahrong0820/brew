@@ -12,11 +12,13 @@ permissions:
 jobs:
   research:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Fetch official transcript
         run: python scripts/research-anstar-transcript.py
+      - name: Probe official player clients
+        run: python scripts/research-anstar-player.py
       - uses: actions/upload-artifact@v4
         with:
           name: anstar-video-research-${{ github.run_id }}
