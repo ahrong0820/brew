@@ -27,6 +27,56 @@ def find(pattern: str, text: str) -> str:
     return match.group(1) if match else ""
 
 
+def extract_json_after(page: str, marker: str) -> dict[str, object]:
+    marker_index = page.find(marker)
+    if marker_index < 0:
+        return {}
+    start = marker_index + len(marker)
+    while start < len(page) and page[start].isspace():
+        start += 1
+    if start >= len(page) or page[start] != "{":
+        return {}
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(start, len(page)):
+        character = page[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            continue
+        if character == '"':
+            in_string = True
+        elif character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+            if depth == 0:
+                return json.loads(page[start : index + 1])
+    return {}
+
+
+def find_transcript_endpoint(value: object) -> dict[str, object] | None:
+    if isinstance(value, dict):
+        endpoint = value.get("getTranscriptEndpoint")
+        if isinstance(endpoint, dict):
+            return value
+        for child in value.values():
+            found = find_transcript_endpoint(child)
+            if found is not None:
+                return found
+    elif isinstance(value, list):
+        for child in value:
+            found = find_transcript_endpoint(child)
+            if found is not None:
+                return found
+    return None
+
+
 def collect_segments(value: object, output: list[dict[str, object]]) -> None:
     if isinstance(value, dict):
         renderer = value.get("transcriptSegmentRenderer")
@@ -55,12 +105,11 @@ page = fetch_text(WATCH_URL)
 api_key = find(r'"INNERTUBE_API_KEY":"([^"]+)"', page)
 client_version = find(r'"INNERTUBE_CLIENT_VERSION":"([^"]+)"', page)
 visitor_data = find(r'"VISITOR_DATA":"([^"]+)"', page)
-params = find(r'"getTranscriptEndpoint":\{"params":"([^"]+)"', page)
-click_tracking = find(
-    r'"clickTrackingParams":"([^"]+)"[^{}]{0,800}'
-    r'"getTranscriptEndpoint":\{"params":"' + re.escape(params) + r'"',
-    page,
-)
+initial_data = extract_json_after(page, "var ytInitialData = ")
+continuation = find_transcript_endpoint(initial_data) or {}
+endpoint = continuation.get("getTranscriptEndpoint", {})
+params = endpoint.get("params", "") if isinstance(endpoint, dict) else ""
+click_tracking = continuation.get("clickTrackingParams", "")
 
 metadata = {
     "videoId": VIDEO_ID,
@@ -80,6 +129,8 @@ body = {
             "gl": "KR",
             "visitorData": visitor_data,
             "originalUrl": WATCH_URL,
+            "utcOffsetMinutes": 540,
+            "timeZone": "Asia/Seoul",
         },
         "request": {"useSsl": True},
         "clickTracking": {"clickTrackingParams": click_tracking},
@@ -90,6 +141,7 @@ headers = {
     "Content-Type": "application/json",
     "User-Agent": USER_AGENT,
     "Origin": "https://www.youtube.com",
+    "X-Origin": "https://www.youtube.com",
     "Referer": WATCH_URL,
     "X-YouTube-Client-Name": "1",
     "X-YouTube-Client-Version": client_version,
