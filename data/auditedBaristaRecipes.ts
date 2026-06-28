@@ -15,6 +15,7 @@ export const baristaRecipes: readonly BaristaRecipe[] = catalogRecipes.map(
     return {
       ...recipe,
       sourceLabel: source.label,
+      sourceUrl: source.url || recipe.sourceUrl,
       sourceStatus: source.check === "exact" ? "verified" : "reference",
     };
   },
