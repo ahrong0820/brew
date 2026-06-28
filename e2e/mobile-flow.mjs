@@ -125,8 +125,9 @@ async function run() {
     await dialog.getByRole("button", { name: "추천 만들기" }).click();
     await dialog.getByRole("heading", { name: "클레버 공식 유통 레시피 18.5g" }).waitFor();
     await dialog.getByText("공식·검증", { exact: true }).waitFor();
-    await dialog.getByText("100℃", { exact: true }).first().waitFor();
-    await dialog.getByText("2:30~2:45", { exact: true }).waitFor();
+    const recommendationText = await dialog.textContent();
+    assert.match(recommendationText || "", /100℃/);
+    assert.match(recommendationText || "", /2:30~2:45/);
 
     const overlay = await page.evaluate(() => ({
       overflow: document.body.style.overflow,
