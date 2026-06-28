@@ -130,25 +130,32 @@ async function run() {
 
     await doseInput.fill("22");
     await page.waitForTimeout(150);
-    assert.equal(await doseInput.inputValue(), "22", "valid dose must not clamp unexpectedly");
+    assert.equal(await doseInput.inputValue(), "22", "valid dose must update immediately");
+    await timerPanel.getByText("330g", { exact: true }).first().waitFor();
     await doseInput.press("Tab");
     assert.equal(await doseInput.inputValue(), "22", "valid dose must commit on blur");
 
     await doseInput.focus();
     await doseInput.fill("4");
-    await page.waitForTimeout(250);
-    assert.equal(await doseInput.inputValue(), "4", "partial out-of-range input must remain editable");
+    await page.waitForTimeout(150);
+    assert.equal(await doseInput.inputValue(), "4", "partial low input must remain editable");
     await doseInput.press("Tab");
     await page.waitForTimeout(100);
-    assert.equal(await doseInput.inputValue(), "8", "out-of-range dose must clamp on blur");
+    assert.equal(await doseInput.inputValue(), "8", "low dose must clamp on blur");
+
+    await doseInput.focus();
+    await doseInput.fill("45");
+    await page.waitForTimeout(150);
+    assert.equal(await doseInput.inputValue(), "45", "partial high input must remain editable");
+    await doseInput.press("Tab");
+    await page.waitForTimeout(100);
+    assert.equal(await doseInput.inputValue(), "40", "high dose must clamp on blur");
 
     const recipeRows = page.locator('[data-recipe-row="true"]');
     await waitForCount(recipeRows, 2);
-    await recipeRows.nth(1).click();
-    await page.waitForFunction(() => {
-      const rows = document.querySelectorAll('[data-recipe-row="true"]');
-      return rows[1]?.getAttribute("aria-current") === "true";
-    });
+    await page.getByRole("button", { name: /용챔 라이트로스트 15g/ }).click();
+    await page.waitForTimeout(100);
+    assert.equal(await doseInput.inputValue(), "15", "recipe selection must synchronize dose draft");
 
     const startButton = timerPanel.getByRole("button", { name: "시작", exact: true });
     await startButton.waitFor({ state: "visible" });
@@ -161,7 +168,9 @@ async function run() {
     assert.equal(await mobileNav.count(), 0, "mobile navigation must stay hidden while paused");
 
     assert.deepEqual(browserMessages, [], browserMessages.join("\n"));
-    console.log("E2E PASS: mobile tools, dose editing, recipe selection, and timer navigation");
+    console.log(
+      "E2E PASS: React dose editing, recipe synchronization, mobile tools, and timer navigation",
+    );
   } catch (error) {
     await page.screenshot({ path: path.join(resultsDir, "e2e-failure.png"), fullPage: true });
     await fs.writeFile(

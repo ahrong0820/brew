@@ -762,10 +762,7 @@ function scaleValue(value: number, factor: number) {
   return Math.round(value * factor);
 }
 
-function formatWaterAmount(
-  amount: WaterAmount,
-  factor = 1,
-) {
+function formatWaterAmount(amount: WaterAmount, factor = 1) {
   if (typeof amount === "number") {
     return `${scaleValue(amount, factor)}g`;
   }
@@ -823,6 +820,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("전체");
   const [dose, setDose] = useState(recipes[0].dose);
+  const [doseInput, setDoseInput] = useState(String(recipes[0].dose));
   const [timerClock, setTimerClock] = useState<BrewSessionClock | null>(null);
   const [clockNow, setClockNow] = useState(0);
   const [timerNotice, setTimerNotice] = useState<string | null>(null);
@@ -919,6 +917,27 @@ export default function Home() {
     0,
   );
 
+  function syncTimerDose(nextDose: number) {
+    setDose(nextDose);
+    setDoseInput(String(nextDose));
+  }
+
+  function updateTimerDoseInput(nextValue: string) {
+    setDoseInput(nextValue);
+    if (nextValue === "") {
+      return;
+    }
+
+    const nextDose = Number(nextValue);
+    if (Number.isFinite(nextDose) && nextDose >= 8 && nextDose <= 40) {
+      setDose(nextDose);
+    }
+  }
+
+  function commitTimerDoseInput() {
+    syncTimerDose(clampNumber(Number(doseInput), 8, 40));
+  }
+
   useEffect(() => {
     function applyClock(nextClock: BrewSessionClock | null) {
       setTimerClock(nextClock);
@@ -929,7 +948,7 @@ export default function Home() {
           setRecommendedRecipe(nextClock.recipe as Recipe);
         }
         setSelectedId(nextClock.recipe.id);
-        setDose(nextClock.recipe.dose);
+        syncTimerDose(nextClock.recipe.dose);
       }
     }
 
@@ -993,7 +1012,7 @@ export default function Home() {
 
       setRecommendedRecipe(detail.recipe);
       setSelectedId(detail.recipe.id);
-      setDose(detail.recipe.dose);
+      syncTimerDose(detail.recipe.dose);
       setTimerClock(readBrewSessionClock());
       setClockNow(Date.now());
       setTimerNotice(null);
@@ -1138,7 +1157,7 @@ export default function Home() {
 
     clearBrewSessionClock();
     setSelectedId(recipe.id);
-    setDose(recipe.dose);
+    syncTimerDose(recipe.dose);
     setTimerNotice(null);
     completionPlayedRef.current = false;
     previousElapsedRef.current = 0;
@@ -1241,7 +1260,7 @@ export default function Home() {
 
     setCustomRecipes((currentRecipes) => [customRecipe, ...currentRecipes]);
     setSelectedId(customRecipe.id);
-    setDose(customRecipe.dose);
+    syncTimerDose(customRecipe.dose);
     setFilter("나만의 레시피");
     clearBrewSessionClock();
     setTimerNotice(null);
@@ -1276,7 +1295,7 @@ export default function Home() {
     if (selectedId === recipeId) {
       clearBrewSessionClock();
       setSelectedId(recipes[0].id);
-      setDose(recipes[0].dose);
+      syncTimerDose(recipes[0].dose);
       setTimerNotice(null);
       completionPlayedRef.current = false;
       previousElapsedRef.current = 0;
@@ -1865,11 +1884,15 @@ export default function Home() {
                     min="8"
                     max="40"
                     step="1"
-                    value={dose}
-                    onChange={(event) => {
-                      const nextDose = Number(event.target.value);
-                      if (Number.isFinite(nextDose)) {
-                        setDose(clampNumber(nextDose, 8, 40));
+                    value={doseInput}
+                    data-timer-dose-input="true"
+                    onChange={(event) => updateTimerDoseInput(event.target.value)}
+                    onBlur={commitTimerDoseInput}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        commitTimerDoseInput();
+                        event.currentTarget.blur();
                       }
                     }}
                     className="h-10 w-full rounded-md border border-[#d7ded4] bg-white px-3 text-lg font-semibold outline-none focus:border-[#2f6f5f] focus:ring-2 focus:ring-[#2f6f5f]/20"
