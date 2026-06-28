@@ -1,3 +1,4 @@
+import { feedbackEventKind } from "@/lib/brew/feedbackWorkflow";
 import { promoteCurrentBestSession } from "@/lib/brew/history";
 import { withUpdatedTimestamp } from "@/lib/domain/factories";
 import {
@@ -135,7 +136,11 @@ export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
     );
   }
 
-  if (input.tastingResult && typeof window !== "undefined") {
+  const eventKind = feedbackEventKind({
+    hasTastingResult: input.tastingResult !== undefined,
+    hasAdjustmentOutcome: input.adjustmentOutcome !== undefined,
+  });
+  if (eventKind && typeof window !== "undefined") {
     window.dispatchEvent(
       new CustomEvent<BrewFeedbackSavedDetail>(brewFeedbackSavedEvent, {
         detail: { sessionId: savedSession.id },
