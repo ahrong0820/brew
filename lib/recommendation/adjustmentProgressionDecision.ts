@@ -1,4 +1,4 @@
-import { actionVariable } from "@/lib/recommendation/adjustmentProgression";
+import { actionVariable } from "./adjustmentProgression.ts";
 import type {
   BrewAdjustmentAction,
   BrewAdjustmentTrial,
