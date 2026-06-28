@@ -25,6 +25,8 @@ export function formatGrindPresentation(input: GrindPresentationInput) {
 const categoryLabels = [
   "맛 목표",
   "원두 적합",
+  "산지 연결",
+  "품종 연결",
   "용량 적합",
   "향미 연결",
   "개인 성공",
