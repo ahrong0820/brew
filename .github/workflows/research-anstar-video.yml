@@ -12,15 +12,26 @@ permissions:
 jobs:
   research:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
       - name: Fetch official transcript
         run: python scripts/research-anstar-transcript.py
       - name: Probe official player clients
         run: python scripts/research-anstar-player.py
       - name: Inspect official video comments
         run: python scripts/research-anstar-comments.py
+      - name: Probe official transcript in Chromium
+        run: node scripts/research-anstar-browser.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: anstar-video-research-${{ github.run_id }}
