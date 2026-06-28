@@ -24,6 +24,12 @@ export const recipeSourceRegistry: readonly RecipeSourceRecord[] = [
   },
   { recipeId: "signature-cone", label: "기존 전사본", check: "unknown" },
   { recipeId: "deepblue-v60", label: "기존 전사본", check: "unknown" },
+  {
+    recipeId: "clever-official-distributor-185",
+    label: "Clever Coffee Brewers 공식 유통 제품 페이지",
+    url: "https://cleverbrewing.coffee/products/clever-dripper",
+    check: "exact",
+  },
   { recipeId: "clever-balanced-reference", label: "내부 참고 레시피", check: "unknown" },
 ] as const;
 
