@@ -15,7 +15,12 @@ export function auditBaristaRecipeSource(recipe: BaristaRecipe): BaristaRecipe {
     ...recipe,
     sourceLabel: source.label,
     sourceUrl: source.url || recipe.sourceUrl,
-    sourceStatus: source.check === "exact" ? "verified" : "reference",
+    sourceStatus:
+      source.check === "exact"
+        ? "verified"
+        : source.check === "partial"
+          ? "partial"
+          : "reference",
   };
 }
 

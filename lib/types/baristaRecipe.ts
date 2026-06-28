@@ -8,7 +8,7 @@ import type {
   TasteGoal,
 } from "@/lib/types/coffee";
 
-export type BaristaRecipeSourceStatus = "verified" | "reference";
+export type BaristaRecipeSourceStatus = "verified" | "partial" | "reference";
 
 export type BaristaRecipeDifficulty = "easy" | "medium" | "advanced";
 

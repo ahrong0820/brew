@@ -30,6 +30,6 @@ test("mobile overlay coordinator hides floating controls and locks scrolling", a
 test("recommendations expose audited source state", async () => {
   const types = await read("lib/types/recommendation.ts");
   const apply = await read("lib/recommendation/baristaRecipeRecommendation.ts");
-  assert.match(types, /sourceStatus\?: "verified" \| "reference"/);
+  assert.match(types, /sourceStatus\?: "verified" \| "partial" \| "reference"/);
   assert.match(apply, /sourceStatus: recipe\.sourceStatus/);
 });
