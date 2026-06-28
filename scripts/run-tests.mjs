@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { globSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 
 const testFiles = [
   ...globSync("test/**/*adjustment*.test.mjs"),
@@ -28,10 +29,13 @@ child.stderr.on("data", (chunk) => {
   output += chunk;
 });
 child.on("error", (error) => {
-  console.error(error);
+  output += `\n${error.stack ?? error.message}\n`;
   process.exitCode = 1;
 });
-child.on("close", (code) => {
+child.on("close", async (code) => {
   console.log(output.trim());
+  if (code !== 0) {
+    await writeFile("test-failure.log", output, "utf8");
+  }
   process.exitCode = code ?? 1;
 });
