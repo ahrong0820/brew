@@ -133,7 +133,7 @@ async function run() {
     await page.reload({ waitUntil: "networkidle" });
     await page.getByRole("heading", { name: /핸드드립.*레시피 노트/ }).waitFor();
 
-    await page.getByRole("button", { name: /내 원두 열기/ }).click();
+    await page.getByRole("button", { name: "원두", exact: true }).click();
     let dialog = page.getByRole("dialog", { name: "내 원두" });
     await dialog.getByRole("button", { name: /원두 등록/ }).first().click();
     await fillField(dialog, "원두 이름", "E2E 에티오피아 워시드");
@@ -149,12 +149,12 @@ async function run() {
     await closeDialog(page, "내 원두 닫기");
 
     await page.reload({ waitUntil: "networkidle" });
-    await page.getByRole("button", { name: /내 원두 열기/ }).click();
+    await page.getByRole("button", { name: "원두", exact: true }).click();
     dialog = page.getByRole("dialog", { name: "내 원두" });
     await dialog.getByText("E2E 에티오피아 워시드", { exact: true }).waitFor();
     await closeDialog(page, "내 원두 닫기");
 
-    await page.getByRole("button", { name: "맞춤 추천" }).click();
+    await page.getByRole("button", { name: "추천", exact: true }).click();
     dialog = page.getByRole("dialog", { name: "원두 맞춤 추천" });
     await fillField(dialog, "원두량(g)", "19");
     await selectField(dialog, "드리퍼", "clever");
@@ -224,7 +224,7 @@ async function run() {
     await dialog.getByText("v1", { exact: true }).first().waitFor();
     await closeDialog(page, "개인 레시피 버전 닫기");
 
-    await page.getByRole("button", { name: "맞춤 추천" }).click();
+    await page.getByRole("button", { name: "추천", exact: true }).click();
     dialog = page.getByRole("dialog", { name: "원두 맞춤 추천" });
     await selectField(dialog, "드리퍼", "v60");
     await dialog.getByRole("button", { name: "추천 만들기" }).click();
