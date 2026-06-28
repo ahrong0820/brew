@@ -20,9 +20,15 @@ export async function assertStablePersonalRecipe(page) {
 }
 
 export async function restoreFirstPersonalRecipeVersion(page) {
-  await page
-    .getByRole("button", { name: /개인 레시피 버전 열기/ })
+  const nav = page.locator('nav[data-mobile-coffee-nav="true"]');
+  await nav.waitFor({ state: "visible" });
+  await nav.getByRole("button", { name: "도구", exact: true }).click();
+  const tools = page.getByRole("dialog", { name: "도구" });
+  await tools.waitFor({ state: "visible" });
+  await tools
+    .getByRole("button", { name: /개인 레시피 버전/ })
     .click();
+
   const dialog = page.getByRole("dialog", { name: "개인 레시피 버전" });
   await dialog.waitFor({ state: "visible" });
   await dialog.getByText("안정 개인 성공", { exact: true }).waitFor();
