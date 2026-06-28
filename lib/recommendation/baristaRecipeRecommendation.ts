@@ -78,9 +78,9 @@ function recipeAppliedRules(
   return [
     ...preserved,
     recipeRule(
-      "recipe.hot-v60.barista-catalog-match.v1",
+      "recipe.barista-catalog-match.v2",
       "pour",
-      "원두 특성과 원하는 맛에 맞는 HOT V60 바리스타 레시피를 선택",
+      "원두 특성과 원하는 맛에 맞는 추출 레시피를 선택",
       recipe,
     ),
     recipeRule(
@@ -123,6 +123,10 @@ export function applyBaristaRecipeRecommendation(
       tasteGoal: input.tasteGoal,
       doseGrams: recommendation.doseGrams,
       flavorNotes: input.bean.flavorNotes,
+      originCountry: input.bean.originCountry,
+      originGroup: input.bean.originGroup,
+      originRegions: input.bean.originRegions,
+      variety: input.bean.variety,
     },
     input.baristaRecipeId,
   );
@@ -163,7 +167,7 @@ export function applyBaristaRecipeRecommendation(
     ],
     confidence: "reference",
     confidenceReason:
-      "선택된 바리스타 레시피는 현재 참고 카탈로그 단계입니다. 추출 후 속도와 맛 평가를 기록하면 같은 원두·장비 조건의 개인 맞춤값이 우선 적용됩니다.",
+      "선택된 레시피는 현재 참고 카탈로그 단계입니다. 추출 후 속도와 맛 평가를 기록하면 같은 원두·장비 조건의 개인 맞춤값이 우선 적용됩니다.",
     appliedRules: recipeAppliedRules(recommendation, recipe),
   };
 
