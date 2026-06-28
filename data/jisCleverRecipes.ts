@@ -7,7 +7,7 @@ export const jisCleverRecipes: readonly BaristaRecipe[] = [
     author: "정인성",
     sourceLabel: "정인성의 커피생활 공식 YouTube 영상 설명",
     sourceUrl: "https://youtu.be/JWHanqQ5MsQ",
-    sourceStatus: "reference",
+    sourceStatus: "partial",
     brewerType: "clever",
     drinkStyle: "hot",
     doseGrams: 20,
