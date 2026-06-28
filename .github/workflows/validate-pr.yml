@@ -11,7 +11,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -73,3 +73,20 @@ jobs:
 
       - name: Validate static export
         run: pnpm run validate:static-export out "$GITHUB_SHA"
+
+      - name: Install Playwright Chromium
+        run: |
+          pnpm add --global playwright@1.55.0
+          playwright install --with-deps chromium
+
+      - name: Run mobile browser E2E
+        run: NODE_PATH="$(pnpm root -g)" node test/e2e/user-flow.cjs
+
+      - name: Upload E2E diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failure-${{ github.run_id }}
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 3
