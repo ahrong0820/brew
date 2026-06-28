@@ -103,7 +103,7 @@ function grindSuggestion(
     currentValue: `${formatSetting(grinder, current)} ${unit}`,
     nextValue: `${formatSetting(grinder, next)} ${unit}`,
     reason: diagnosticReason(session),
-    instruction: "온도, 비율과 푸어 구조는 그대로 유지하고 분쇄도만 바꿔 비교하세요.",
+    instruction: "온도, 비율과 추출 구조는 그대로 유지하고 분쇄도만 바꿔 비교하세요.",
     canApply: Math.abs(appliedDelta) > 0.0001,
   };
 }
@@ -126,7 +126,7 @@ function temperatureSuggestion(
     currentValue: `${current}℃`,
     nextValue: `${next}℃`,
     reason: diagnosticReason(session),
-    instruction: "분쇄도, 비율과 푸어 구조는 그대로 유지하고 온도만 바꿔 비교하세요.",
+    instruction: "분쇄도, 비율과 추출 구조는 그대로 유지하고 온도만 바꿔 비교하세요.",
     canApply: Math.abs(appliedDelta) > 0.0001,
   };
 }
@@ -153,8 +153,85 @@ function ratioSuggestion(
     currentValue: `1:${current}`,
     nextValue: `1:${next}`,
     reason: diagnosticReason(session),
-    instruction: "원두량, 분쇄도, 온도와 푸어 구조는 그대로 두고 총 물량만 새 비율에 맞추세요.",
+    instruction: "원두량, 분쇄도, 온도와 추출 구조는 그대로 두고 총 물량만 새 비율에 맞추세요.",
     canApply: Math.abs(appliedDelta) > 0.0001,
+  };
+}
+
+function currentAgitationCount(session: BrewSession) {
+  const cues = session.recipeSnapshot.steps.map((step) => step.cue).join(" ");
+  if (cues.includes("교반 생략")) return 0;
+  const match = cues.match(/교반[^0-9]*([0-2])회/);
+  return match ? Number(match[1]) : 1;
+}
+
+function agitationSuggestion(
+  session: BrewSession,
+  action: "less-agitation" | "more-agitation",
+): BrewAdjustmentSuggestion {
+  const current = currentAgitationCount(session);
+  const next = clamp(current + (action === "less-agitation" ? -1 : 1), 0, 2);
+  const delta = next - current;
+  const label = (value: number) => (value === 0 ? "교반 생략" : `교반 ${value}회`);
+  return {
+    sessionId: session.id,
+    profileId: session.profileId,
+    variable: "agitation",
+    action,
+    delta,
+    title: action === "less-agitation" ? "클레버 교반 줄이기" : "클레버 교반 늘리기",
+    currentValue: label(current),
+    nextValue: label(next),
+    reason: diagnosticReason(session),
+    instruction: "분쇄도, 온도, 비율과 침출 시간은 유지하고 커피 투입 직후 교반 횟수만 바꾸세요.",
+    canApply: delta !== 0,
+  };
+}
+
+function immersionSuggestion(
+  session: BrewSession,
+  action: "shorter-immersion" | "longer-immersion",
+): BrewAdjustmentSuggestion {
+  const drawdown = session.recipeSnapshot.steps.find((step) =>
+    `${step.label} ${step.cue}`.includes("드로다운"),
+  );
+  const current = drawdown?.startSeconds ?? 120;
+  const next = clamp(current + (action === "shorter-immersion" ? -15 : 15), 60, 240);
+  const delta = next - current;
+  return {
+    sessionId: session.id,
+    profileId: session.profileId,
+    variable: "immersion-time",
+    action,
+    delta,
+    title: action === "shorter-immersion" ? "침출 시간을 15초 줄이기" : "침출 시간을 15초 늘리기",
+    currentValue: `${current}초 침출`,
+    nextValue: `${next}초 침출`,
+    reason: diagnosticReason(session),
+    instruction: "분쇄도, 온도, 비율과 교반은 유지하고 서버에 올리는 시점만 바꾸세요.",
+    canApply: delta !== 0,
+  };
+}
+
+function pourStructureSuggestion(
+  session: BrewSession,
+  action: "gentler-pour" | "stronger-pour",
+): BrewAdjustmentSuggestion {
+  return {
+    sessionId: session.id,
+    profileId: session.profileId,
+    variable: "pour-structure",
+    action,
+    delta: action === "gentler-pour" ? -1 : 1,
+    title: action === "gentler-pour" ? "푸어를 낮고 부드럽게" : "푸어 에너지를 한 단계 높이기",
+    currentValue: "현재 푸어 구조",
+    nextValue:
+      action === "gentler-pour"
+        ? "낮은 높이·약한 교반"
+        : "조금 높은 높이·적정 교반",
+    reason: diagnosticReason(session),
+    instruction: "분쇄도, 온도와 비율은 유지하고 물줄기 높이와 베드 교반만 한 단계 바꾸세요.",
+    canApply: true,
   };
 }
 
@@ -190,6 +267,15 @@ function suggestionForAction(
   if (action === "less-water" || action === "more-water") {
     return ratioSuggestion(session, action);
   }
+  if (action === "less-agitation" || action === "more-agitation") {
+    return agitationSuggestion(session, action);
+  }
+  if (action === "shorter-immersion" || action === "longer-immersion") {
+    return immersionSuggestion(session, action);
+  }
+  if (action === "gentler-pour" || action === "stronger-pour") {
+    return pourStructureSuggestion(session, action);
+  }
   return keepSuggestion(session);
 }
 
@@ -209,6 +295,7 @@ export function createSensoryAdjustmentSuggestion(
     baseAction,
     previous: latestEvaluatedAdjustment(profile?.adjustmentHistory),
     history: profile?.adjustmentHistory,
+    brewerType: session.recipeSnapshot.brewerType,
     brewPaceAssessment: session.brewPaceAssessment,
     tastingResult: session.tastingResult,
   });

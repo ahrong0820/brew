@@ -22,7 +22,7 @@
     "start": "vinext start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit --pretty false",
-    "test": "node --experimental-strip-types --test",
+    "test": "node scripts/run-tests.mjs",
     "validate:static-export": "node scripts/validate-static-export.mjs",
     "db:generate": "drizzle-kit generate"
   },

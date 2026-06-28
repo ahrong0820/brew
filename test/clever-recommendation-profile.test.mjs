@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   applyCleverRecommendationProfile,
+  cleverGrindRange,
   cleverLoadingOrder,
   cleverTemperatureForRoast,
   cleverTiming,
@@ -30,10 +31,43 @@ const recipe = {
   grindIntent: { originalDescription: "중굵게", targetFlow: "moderate" },
   difficulty: "easy",
   steps: [
-    { label: "물 붓기", startSeconds: 0, targetWaterGrams: 250, cue: "물을 먼저 붓기" },
-    { label: "커피 투입", startSeconds: 5, targetWaterGrams: 250, cue: "커피를 넣고 저어 주기" },
-    { label: "드로다운", startSeconds: 120, targetWaterGrams: 250, cue: "서버에 올려 드로다운" },
+    {
+      label: "물 붓기",
+      startSeconds: 0,
+      targetWaterGrams: 250,
+      cue: "물을 먼저 붓기",
+    },
+    {
+      label: "커피 투입",
+      startSeconds: 5,
+      targetWaterGrams: 250,
+      cue: "커피를 넣고 저어 주기",
+    },
+    {
+      label: "드로다운",
+      startSeconds: 120,
+      targetWaterGrams: 250,
+      cue: "서버에 올려 드로다운",
+    },
   ],
+};
+
+const grinder = {
+  id: "grinder-1",
+  model: "1zpresso-k-ultra",
+  displayName: "K-Ultra",
+  calibrationProfile: "user-zero",
+  calibrationLabel: "사용자 영점",
+  calibrationStatus: "user-calibrated",
+  recommendationStatus: "primary",
+  displayUnit: "dial",
+  adjustmentDirection: "higher-is-coarser",
+  displayStep: 0.1,
+  personalOffset: 0,
+  notes: [],
+  isBuiltIn: false,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
 const recommendation = {
@@ -50,6 +84,7 @@ const recommendation = {
     displayRange: "6.5~8.0",
     commonDescription: "중굵게",
     calibrationLabel: "사용자 영점",
+    safeRangeLabel: "5.0~10.0",
     isNumeric: true,
     note: "참고",
   },
@@ -71,7 +106,7 @@ const input = {
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
   },
-  grinder: {},
+  grinder,
   preferences: {
     defaultBrewer: "clever",
     defaultDoseGrams: 15,
@@ -98,10 +133,24 @@ test("Clever separates immersion and drawdown timing", () => {
   });
 });
 
+test("Clever immersion offset changes only immersion and total timing", () => {
+  assert.deepEqual(cleverTiming(recipe, 15), {
+    immersionSeconds: 135,
+    drawdownMinSeconds: 45,
+    drawdownMaxSeconds: 75,
+    totalMinSeconds: 180,
+    totalMaxSeconds: 210,
+  });
+});
+
 test("Clever temperature follows roast level", () => {
   assert.equal(cleverTemperatureForRoast("light", 92), 95);
   assert.equal(cleverTemperatureForRoast("medium", 94), 92);
   assert.equal(cleverTemperatureForRoast("dark", 94), 88);
+});
+
+test("Clever grind range stays near the converted start and inside safe bounds", () => {
+  assert.equal(cleverGrindRange(recommendation.grinder, grinder), "6.5~7.5");
 });
 
 test("Clever profile adds immersion-specific rules and cues", () => {
@@ -109,12 +158,28 @@ test("Clever profile adds immersion-specific rules and cues", () => {
   assert.equal(result.temperatureCelsius, 95);
   assert.equal(result.targetTimeMinSeconds, 165);
   assert.equal(result.targetTimeMaxSeconds, 195);
+  assert.equal(result.grinder.displayRange, "6.5~7.5");
   assert.match(result.steps[1].cue, /교반은.*1회/);
   assert.match(result.steps[2].cue, /드로다운 45~75초/);
   assert.ok(result.reasons.some((reason) => reason.startsWith("[클레버 구조]")));
+  assert.ok(result.reasons.some((reason) => reason.startsWith("[클레버 분쇄]")));
   assert.ok(
     result.appliedRules.some(
       (rule) => rule.id === "time.clever.immersion-drawdown.v1",
     ),
   );
+});
+
+test("stored Clever technique offsets update the next recipe", () => {
+  const result = applyCleverRecommendationProfile(recommendation, recipe, {
+    ...input,
+    recommendationOffset: {
+      agitation: -1,
+      "immersion-time": 15,
+    },
+  });
+  assert.equal(result.targetTimeMinSeconds, 180);
+  assert.equal(result.targetTimeMaxSeconds, 210);
+  assert.equal(result.steps[2].startSeconds, 135);
+  assert.match(result.steps[1].cue, /교반 생략/);
 });

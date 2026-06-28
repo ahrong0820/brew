@@ -3,18 +3,27 @@ import type {
   BrewAdjustmentAction,
   BrewAdjustmentTrial,
   BrewPaceAssessment,
+  BrewerType,
   TastingResult,
 } from "@/lib/types/coffee";
 
 const maxRepeatedGrindAdjustments = 2;
 
-function reverseAction(action: Exclude<BrewAdjustmentAction, "hold">) {
-  if (action === "finer") return "coarser" as const;
-  if (action === "coarser") return "finer" as const;
-  if (action === "hotter") return "cooler" as const;
-  if (action === "cooler") return "hotter" as const;
-  if (action === "less-water") return "more-water" as const;
-  return "less-water" as const;
+function reverseAction(
+  action: Exclude<BrewAdjustmentAction, "hold">,
+): Exclude<BrewAdjustmentAction, "hold"> {
+  if (action === "finer") return "coarser";
+  if (action === "coarser") return "finer";
+  if (action === "hotter") return "cooler";
+  if (action === "cooler") return "hotter";
+  if (action === "less-water") return "more-water";
+  if (action === "more-water") return "less-water";
+  if (action === "less-agitation") return "more-agitation";
+  if (action === "more-agitation") return "less-agitation";
+  if (action === "shorter-immersion") return "longer-immersion";
+  if (action === "longer-immersion") return "shorter-immersion";
+  if (action === "gentler-pour") return "stronger-pour";
+  return "gentler-pour";
 }
 
 function temperatureAction(taste: TastingResult): BrewAdjustmentAction {
@@ -38,13 +47,30 @@ function grindAction(
   return "hold";
 }
 
+function cleverTechniqueAction(taste: TastingResult): BrewAdjustmentAction {
+  if (taste === "too-sour" || taste === "not-sweet-enough") {
+    return "longer-immersion";
+  }
+  if (taste === "bitter-astringent" || taste === "aroma-muted") {
+    return "less-agitation";
+  }
+  if (taste === "too-weak") return "less-water";
+  if (taste === "too-strong") return "more-water";
+  return "hold";
+}
+
 function alternateAction(input: {
   previous: BrewAdjustmentTrial;
   baseAction: BrewAdjustmentAction;
+  brewerType?: BrewerType;
   pace?: BrewPaceAssessment;
   taste: TastingResult;
 }) {
-  if (input.previous.variable === "grind") return temperatureAction(input.taste);
+  if (input.previous.variable === "grind") {
+    return input.brewerType === "clever"
+      ? cleverTechniqueAction(input.taste)
+      : temperatureAction(input.taste);
+  }
   if (input.previous.variable === "temperature") {
     return grindAction(input.pace, input.taste);
   }
@@ -72,6 +98,7 @@ export function decideAdjustmentProgression(input: {
   baseAction: BrewAdjustmentAction;
   previous?: BrewAdjustmentTrial;
   history?: readonly BrewAdjustmentTrial[];
+  brewerType?: BrewerType;
   brewPaceAssessment?: BrewPaceAssessment;
   tastingResult: TastingResult;
 }) {
@@ -100,13 +127,16 @@ export function decideAdjustmentProgression(input: {
       const action = alternateAction({
         previous,
         baseAction: input.baseAction,
+        brewerType: input.brewerType,
         pace: input.brewPaceAssessment,
         taste: input.tastingResult,
       });
       return {
         action,
         reason:
-          "분쇄도를 같은 방향으로 두 번 연속 시험했고 개선이 제한적이므로 추가 분쇄 변경 대신 온도 또는 비율 한 변수로 전환합니다.",
+          input.brewerType === "clever"
+            ? "분쇄도를 같은 방향으로 두 번 연속 시험했으므로 추가 분쇄 변경 대신 클레버 침출 시간·교반·비율 중 한 변수로 전환합니다."
+            : "분쇄도를 같은 방향으로 두 번 연속 시험했고 개선이 제한적이므로 추가 분쇄 변경 대신 온도 또는 비율 한 변수로 전환합니다.",
       };
     }
     return {
@@ -120,6 +150,7 @@ export function decideAdjustmentProgression(input: {
   const action = alternateAction({
     previous,
     baseAction: input.baseAction,
+    brewerType: input.brewerType,
     pace: input.brewPaceAssessment,
     taste: input.tastingResult,
   });
