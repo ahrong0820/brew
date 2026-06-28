@@ -1,4 +1,5 @@
 import { selectBaristaRecipe } from "#barista-recipe-matcher";
+import { applyRecipeGrindRecommendation } from "./grindRecommendationV2.ts";
 import type { BaristaRecipe } from "@/lib/types/baristaRecipe";
 import type {
   AppliedRecommendationRule,
@@ -145,7 +146,7 @@ export function applyBaristaRecipeRecommendation(
           96,
         );
 
-  return {
+  const recipeRecommendation: BrewRecommendation = {
     ...recommendation,
     templateName: recipe.name,
     sourceRecipeId: recipe.id,
@@ -154,21 +155,17 @@ export function applyBaristaRecipeRecommendation(
     temperatureCelsius,
     targetTimeMinSeconds: recipe.targetTimeMinSeconds,
     targetTimeMaxSeconds: recipe.targetTimeMaxSeconds,
-    grinder: {
-      ...recommendation.grinder,
-      commonDescription: recipe.grindIntent.originalDescription,
-      note: `${recommendation.grinder.note} 선택된 ${recipe.name}의 원본 분쇄 표현은 “${recipe.grindIntent.originalDescription}”입니다. 숫자 시작값은 ${input.grinder.displayName}의 ${input.grinder.calibrationLabel} 기준으로 제시합니다.`,
-    },
     steps: scaleRecipeSteps(recipe, waterGrams),
     reasons: [
       `${recipe.author}의 ${recipe.name}을 원본 템플릿으로 선택했습니다.`,
       ...match.reasons,
       `원본 ${recipe.doseGrams}g/${recipe.waterGrams}g 구성을 ${recommendation.doseGrams}g/${waterGrams}g으로 비례 조정했습니다.`,
-      `분쇄도 숫자는 레시피의 분쇄 의도와 ${input.grinder.displayName} 교정 프로필을 함께 사용한 첫 추출 시작값입니다.`,
     ],
     confidence: "reference",
     confidenceReason:
-      "선택된 바리스타 레시피는 현재 참고 카탈로그 단계입니다. 추출 후 시간과 맛 평가를 기록하면 같은 원두·장비 조건의 개인 맞춤값이 우선 적용됩니다.",
+      "선택된 바리스타 레시피는 현재 참고 카탈로그 단계입니다. 추출 후 속도와 맛 평가를 기록하면 같은 원두·장비 조건의 개인 맞춤값이 우선 적용됩니다.",
     appliedRules: recipeAppliedRules(recommendation, recipe),
   };
+
+  return applyRecipeGrindRecommendation(recipeRecommendation, recipe, input);
 }
