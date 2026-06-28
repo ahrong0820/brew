@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { baristaRecipes } from "../data/expandedBaristaRecipes.ts";
 import {
   applyCleverRecommendationProfile,
   cleverGrindRange,
@@ -73,6 +74,7 @@ const grinder = {
 const recommendation = {
   templateName: recipe.name,
   sourceRecipeId: recipe.id,
+  sourceStatus: "reference",
   doseGrams: 15,
   waterGrams: 250,
   ratio: 16.7,
@@ -123,7 +125,7 @@ test("Clever loading order remains explicit", () => {
   assert.equal(cleverLoadingOrder(recipe), "water-first");
 });
 
-test("Clever separates immersion and drawdown timing", () => {
+test("reference Clever separates immersion and drawdown timing", () => {
   assert.deepEqual(cleverTiming(recipe), {
     immersionSeconds: 120,
     drawdownMinSeconds: 45,
@@ -133,7 +135,7 @@ test("Clever separates immersion and drawdown timing", () => {
   });
 });
 
-test("Clever immersion offset changes only immersion and total timing", () => {
+test("reference Clever immersion offset changes only immersion and total timing", () => {
   assert.deepEqual(cleverTiming(recipe, 15), {
     immersionSeconds: 135,
     drawdownMinSeconds: 45,
@@ -153,13 +155,13 @@ test("Clever grind range stays near the converted start and inside safe bounds",
   assert.equal(cleverGrindRange(recommendation.grinder, grinder), "6.5~7.5");
 });
 
-test("Clever profile adds immersion-specific rules and cues", () => {
+test("reference Clever profile adds immersion-specific rules and cues", () => {
   const result = applyCleverRecommendationProfile(recommendation, recipe, input);
   assert.equal(result.temperatureCelsius, 95);
   assert.equal(result.targetTimeMinSeconds, 165);
   assert.equal(result.targetTimeMaxSeconds, 195);
   assert.equal(result.grinder.displayRange, "6.5~7.5");
-  assert.match(result.steps[1].cue, /교반은.*1회/);
+  assert.match(result.steps[1].cue, /교반.*1회/);
   assert.match(result.steps[2].cue, /드로다운 45~75초/);
   assert.ok(result.reasons.some((reason) => reason.startsWith("[클레버 구조]")));
   assert.ok(result.reasons.some((reason) => reason.startsWith("[클레버 분쇄]")));
@@ -170,7 +172,7 @@ test("Clever profile adds immersion-specific rules and cues", () => {
   );
 });
 
-test("stored Clever technique offsets update the next recipe", () => {
+test("stored Clever technique offsets update the next reference recipe", () => {
   const result = applyCleverRecommendationProfile(recommendation, recipe, {
     ...input,
     recommendationOffset: {
@@ -182,4 +184,61 @@ test("stored Clever technique offsets update the next recipe", () => {
   assert.equal(result.targetTimeMaxSeconds, 210);
   assert.equal(result.steps[2].startSeconds, 135);
   assert.match(result.steps[1].cue, /교반 생략/);
+});
+
+test("verified Clever recipe preserves exact source timing and temperature", () => {
+  const official = baristaRecipes.find(
+    (candidate) => candidate.id === "clever-official-distributor-185",
+  );
+  assert.ok(official);
+  assert.equal(official.sourceStatus, "verified");
+  assert.deepEqual(cleverTiming(official), {
+    immersionSeconds: 75,
+    drawdownMinSeconds: 75,
+    drawdownMaxSeconds: 90,
+    totalMinSeconds: 150,
+    totalMaxSeconds: 165,
+  });
+
+  const result = applyCleverRecommendationProfile(
+    {
+      ...recommendation,
+      templateName: official.name,
+      sourceRecipeId: official.id,
+      sourceStatus: official.sourceStatus,
+      doseGrams: official.doseGrams,
+      waterGrams: official.waterGrams,
+      ratio: official.ratio,
+      temperatureCelsius: 96,
+      targetTimeMinSeconds: official.targetTimeMinSeconds,
+      targetTimeMaxSeconds: official.targetTimeMaxSeconds,
+      steps: official.steps,
+    },
+    official,
+    {
+      ...input,
+      preferences: {
+        ...input.preferences,
+        defaultDoseGrams: 19,
+        defaultWaterGrams: 318,
+      },
+    },
+  );
+
+  assert.equal(result.temperatureCelsius, 100);
+  assert.equal(result.targetTimeMinSeconds, 150);
+  assert.equal(result.targetTimeMaxSeconds, 165);
+  assert.equal(result.confidence, "medium");
+  assert.match(result.confidenceReason, /수치·절차가 일치/);
+  assert.match(result.steps.at(-1).cue, /75~90초/);
+  assert.ok(result.reasons.some((reason) => reason.startsWith("[공식 원본]")));
+  assert.ok(
+    result.appliedRules.some((rule) =>
+      rule.evidence.some(
+        (evidence) =>
+          evidence.kind === "manufacturer" &&
+          evidence.applicability === "direct",
+      ),
+    ),
+  );
 });
