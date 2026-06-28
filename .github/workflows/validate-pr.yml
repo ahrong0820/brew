@@ -36,8 +36,17 @@ jobs:
       - name: Run type check
         run: pnpm typecheck
 
+      - name: Diagnose matcher tests
+        run: node --experimental-strip-types --test test/barista-recipe-matcher.test.mjs
+
+      - name: Diagnose recommendation tests
+        run: node --experimental-strip-types --test test/barista-recipe-recommendation.test.mjs
+
+      - name: Diagnose selection tests
+        run: node --experimental-strip-types --test test/barista-recipe-selection.test.mjs
+
       - name: Run automated tests
-        run: pnpm test
+        run: node --experimental-strip-types --test
 
       - name: Write deployment metadata
         run: |
