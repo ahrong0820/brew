@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import copy
 import json
 import re
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -13,7 +15,9 @@ USER_AGENT = (
     "Chrome/126 Safari/537.36"
 )
 OUTPUT = Path("research")
+VARIANTS = OUTPUT / "variants"
 OUTPUT.mkdir(exist_ok=True)
+VARIANTS.mkdir(exist_ok=True)
 
 
 def fetch_text(url: str) -> str:
@@ -62,8 +66,7 @@ def extract_json_after(page: str, marker: str) -> dict[str, object]:
 
 def find_transcript_endpoint(value: object) -> dict[str, object] | None:
     if isinstance(value, dict):
-        endpoint = value.get("getTranscriptEndpoint")
-        if isinstance(endpoint, dict):
+        if isinstance(value.get("getTranscriptEndpoint"), dict):
             return value
         for child in value.values():
             found = find_transcript_endpoint(child)
@@ -103,82 +106,103 @@ page = fetch_text(WATCH_URL)
 (OUTPUT / "watch.html").write_text(page)
 
 api_key = find(r'"INNERTUBE_API_KEY":"([^"]+)"', page)
-client_version = find(r'"INNERTUBE_CLIENT_VERSION":"([^"]+)"', page)
-visitor_data = find(r'"VISITOR_DATA":"([^"]+)"', page)
 initial_data = extract_json_after(page, "var ytInitialData = ")
 continuation = find_transcript_endpoint(initial_data) or {}
 endpoint = continuation.get("getTranscriptEndpoint", {})
 params = endpoint.get("params", "") if isinstance(endpoint, dict) else ""
-click_tracking = continuation.get("clickTrackingParams", "")
+continuation_click = continuation.get("clickTrackingParams", "")
+context = extract_json_after(page, '"INNERTUBE_CONTEXT":')
+client = context.get("client", {}) if isinstance(context, dict) else {}
+client_version = client.get("clientVersion", "") if isinstance(client, dict) else ""
+visitor_data = client.get("visitorData", "") if isinstance(client, dict) else ""
+global_click = ""
+if isinstance(context, dict):
+    click = context.get("clickTracking", {})
+    if isinstance(click, dict):
+        global_click = click.get("clickTrackingParams", "")
 
-metadata = {
+metadata: dict[str, object] = {
     "videoId": VIDEO_ID,
     "apiKeyPresent": bool(api_key),
+    "exactContextPresent": bool(context),
     "clientVersion": client_version,
     "visitorDataPresent": bool(visitor_data),
     "paramsPresent": bool(params),
-    "clickTrackingPresent": bool(click_tracking),
+    "continuationClickPresent": bool(continuation_click),
+    "globalClickPresent": bool(global_click),
+    "variants": {},
 }
 
-body = {
-    "context": {
-        "client": {
-            "clientName": "WEB",
-            "clientVersion": client_version,
-            "hl": "ko",
-            "gl": "KR",
-            "visitorData": visitor_data,
-            "originalUrl": WATCH_URL,
-            "utcOffsetMinutes": 540,
-            "timeZone": "Asia/Seoul",
-        },
-        "request": {"useSsl": True},
-        "clickTracking": {"clickTrackingParams": click_tracking},
-    },
-    "params": params,
+param_variants = {
+    "raw": params,
+    "decoded": urllib.parse.unquote(params),
+    "decodedTwice": urllib.parse.unquote(urllib.parse.unquote(params)),
+}
+click_variants = {
+    "continuation": continuation_click,
+    "global": global_click,
+    "none": None,
 }
 headers = {
     "Content-Type": "application/json",
-    "User-Agent": USER_AGENT,
+    "User-Agent": str(client.get("userAgent", USER_AGENT)).replace(",gzip(gfe)", ""),
     "Origin": "https://www.youtube.com",
     "X-Origin": "https://www.youtube.com",
     "Referer": WATCH_URL,
     "X-YouTube-Client-Name": "1",
-    "X-YouTube-Client-Version": client_version,
-    "X-Goog-Visitor-Id": visitor_data,
+    "X-YouTube-Client-Version": str(client_version),
+    "X-Goog-Visitor-Id": str(visitor_data),
+    "X-Youtube-Bootstrap-Logged-In": "false",
+    "X-Goog-AuthUser": "0",
 }
-request = urllib.request.Request(
-    f"https://www.youtube.com/youtubei/v1/get_transcript"
-    f"?key={api_key}&prettyPrint=false",
-    data=json.dumps(body).encode(),
-    headers=headers,
-    method="POST",
-)
 
-try:
-    with urllib.request.urlopen(request, timeout=40) as response:
-        raw = response.read()
-        metadata["httpStatus"] = response.status
-    payload = json.loads(raw)
-    (OUTPUT / "transcript-response.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2)
-    )
-    segments: list[dict[str, object]] = []
-    collect_segments(payload, segments)
-    metadata["segmentCount"] = len(segments)
-    (OUTPUT / "transcript.json").write_text(
-        json.dumps(segments, ensure_ascii=False, indent=2)
-    )
-    (OUTPUT / "transcript.txt").write_text(
-        "\n".join(
-            f"{segment['startMs']}\t{segment['text']}" for segment in segments
+for param_label, param_value in param_variants.items():
+    for click_label, click_value in click_variants.items():
+        label = f"{param_label}-{click_label}"
+        request_context = copy.deepcopy(context)
+        if click_value is None:
+            request_context.pop("clickTracking", None)
+        else:
+            request_context["clickTracking"] = {
+                "clickTrackingParams": click_value,
+            }
+        body = {"context": request_context, "params": param_value}
+        request = urllib.request.Request(
+            f"https://www.youtube.com/youtubei/v1/get_transcript"
+            f"?key={api_key}&prettyPrint=false",
+            data=json.dumps(body).encode(),
+            headers=headers,
+            method="POST",
         )
-    )
-except urllib.error.HTTPError as error:
-    metadata["httpStatus"] = error.code
-    metadata["errorBody"] = error.read().decode(errors="ignore")
-except Exception as error:
-    metadata["error"] = repr(error)
+        result: dict[str, object] = {}
+        try:
+            with urllib.request.urlopen(request, timeout=40) as response:
+                raw = response.read()
+                result["httpStatus"] = response.status
+            payload = json.loads(raw)
+            (VARIANTS / f"{label}.json").write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2)
+            )
+            segments: list[dict[str, object]] = []
+            collect_segments(payload, segments)
+            result["segmentCount"] = len(segments)
+            if segments:
+                (OUTPUT / "transcript.json").write_text(
+                    json.dumps(segments, ensure_ascii=False, indent=2)
+                )
+                (OUTPUT / "transcript.txt").write_text(
+                    "\n".join(
+                        f"{segment['startMs']}\t{segment['text']}"
+                        for segment in segments
+                    )
+                )
+                result["selected"] = True
+        except urllib.error.HTTPError as error:
+            result["httpStatus"] = error.code
+            result["errorBody"] = error.read().decode(errors="ignore")
+        except Exception as error:
+            result["error"] = repr(error)
+        metadata["variants"][label] = result
 
 (OUTPUT / "metadata.json").write_text(
     json.dumps(metadata, ensure_ascii=False, indent=2)
