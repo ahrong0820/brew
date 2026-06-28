@@ -142,14 +142,20 @@ test("body matching favors the stronger-ratio 4:6 reference", () => {
   assert.equal(match.recipe.grindIntent.targetFlow, "fast");
 });
 
-test("unsupported brewer and drink-style scopes return no false match", () => {
-  assert.deepEqual(
-    rankBaristaRecipes({
-      ...baseInput,
-      brewerType: "clever",
-    }),
-    [],
-  );
+test("Clever HOT matching returns the reference immersion recipe", () => {
+  const match = selectBaristaRecipe({
+    ...baseInput,
+    brewerType: "clever",
+    doseGrams: 15,
+  });
+
+  assert.ok(match);
+  assert.equal(match.recipe.id, "clever-balanced-reference");
+  assert.equal(match.recipe.sourceStatus, "reference");
+  assert.equal(match.recipe.grindIntent.targetFlow, "moderate");
+});
+
+test("unsupported drink style returns no false match", () => {
   assert.deepEqual(
     rankBaristaRecipes({
       ...baseInput,

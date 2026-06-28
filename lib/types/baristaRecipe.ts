@@ -1,6 +1,8 @@
 import type {
   BrewerType,
   DrinkStyle,
+  OriginCountry,
+  OriginGroup,
   ProcessMethod,
   RoastLevel,
   TasteGoal,
@@ -64,6 +66,10 @@ export interface BaristaRecipeMatchInput {
   tasteGoal: TasteGoal;
   doseGrams: number;
   flavorNotes?: readonly string[];
+  originCountry?: OriginCountry;
+  originGroup?: OriginGroup;
+  originRegions?: readonly string[];
+  variety?: string;
   /** Optional deterministic history fixture; browser recommendations fall back to Local Storage. */
   personalRecipeStatuses?: Readonly<
     Record<string, "provisional" | "stable">
