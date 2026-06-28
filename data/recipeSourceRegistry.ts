@@ -24,6 +24,7 @@ export const recipeSourceRegistry: readonly RecipeSourceRecord[] = [
   },
   { recipeId: "signature-cone", label: "기존 전사본", check: "unknown" },
   { recipeId: "deepblue-v60", label: "기존 전사본", check: "unknown" },
+  { recipeId: "clever-balanced-reference", label: "내부 참고 레시피", check: "unknown" },
 ] as const;
 
 export function sourceRecordForRecipe(recipeId: string) {
