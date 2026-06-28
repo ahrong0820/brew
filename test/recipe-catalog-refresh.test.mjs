@@ -24,6 +24,41 @@ test("removed and superseded public recipes are absent from catalog and registry
   }
 });
 
+test("official Anstar multi-serving video replaces the unverified 6888 label", () => {
+  const current = recipe("anstar-multiserve-20g-2024");
+  assert.ok(current);
+  assert.equal(current.name, "안스타 2인분 HOT (2024)");
+  assert.equal(current.sourceStatus, "partial");
+  assert.equal(
+    current.sourceUrl,
+    "https://www.youtube.com/watch?v=uZs78TPm7ws",
+  );
+  assert.equal(current.doseGrams, 20);
+  assert.equal(current.waterGrams, 300);
+  assert.equal(current.temperatureCelsius, undefined);
+  assert.deepEqual(
+    current.steps.map((step) => [step.startSeconds, step.targetWaterGrams]),
+    [
+      [0, 60],
+      [30, 140],
+      [60, 220],
+      [90, 300],
+      [120, 300],
+    ],
+  );
+  assert.ok(
+    current.steps.slice(0, 4).every((step) =>
+      step.cue.includes("기존 앱 전사 시작값"),
+    ),
+  );
+
+  const source = recipeSourceRegistry.find(
+    (record) => record.recipeId === current.id,
+  );
+  assert.ok(source);
+  assert.equal(source.check, "partial");
+});
+
 test("Jung In-sung Ver 2.0 preserves the official 18g HOT structure", () => {
   const current = recipe("jis-ver2-hot");
   assert.ok(current);
@@ -86,7 +121,7 @@ test("Tetsu THE NEO BREW encodes ten 30g pours at 15 second intervals", () => {
   assert.match(current.grindIntent.originalDescription, /40~45클릭.*극굵은/);
 });
 
-test("catalog audit records the Clever 1:12 to 1:11 supersession", async () => {
+test("catalog audit records source boundaries and superseded Clever ratio", async () => {
   const audit = await readFile(
     new URL(
       "../docs/source-audits/recipe-catalog-refresh-2026-06.md",
@@ -95,6 +130,9 @@ test("catalog audit records the Clever 1:12 to 1:11 supersession", async () => {
     "utf8",
   );
 
+  assert.match(audit, /40g HOT와 40g ICE의 물 온도는 모두 86℃/);
+  assert.match(audit, /20g HOT의 정확한 온도/);
+  assert.match(audit, /기존 앱 전사 시작값/);
   assert.match(audit, /20g\/240g, 1:12/);
   assert.match(audit, /20g\/220g, 1:11/);
   assert.match(audit, /활성 레시피는 `jis-clever-1-11`만 유지/);
