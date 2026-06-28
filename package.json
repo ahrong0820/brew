@@ -12,7 +12,8 @@
     "#barista-recipes": "./data/baristaRecipes.ts",
     "#brew-session-clock": "./lib/timer/brewSessionClock.ts",
     "#k-ultra-official-range": "./lib/recommendation/kUltraOfficialRange.ts",
-    "#origin-region-matching": "./lib/recommendation/originRegionMatching.ts"
+    "#origin-region-matching": "./lib/recommendation/originRegionMatching.ts",
+    "#ranking-boost": "./lib/recommendation/rankingBoost.ts"
   },
   "scripts": {
     "dev": "vinext dev",

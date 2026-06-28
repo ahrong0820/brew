@@ -64,6 +64,10 @@ export interface BaristaRecipeMatchInput {
   tasteGoal: TasteGoal;
   doseGrams: number;
   flavorNotes?: readonly string[];
+  /** Optional deterministic history fixture; browser recommendations fall back to Local Storage. */
+  personalRecipeStatuses?: Readonly<
+    Record<string, "provisional" | "stable">
+  >;
 }
 
 export interface BaristaRecipeMatch {
