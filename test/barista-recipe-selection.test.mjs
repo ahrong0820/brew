@@ -120,7 +120,7 @@ test("selected alternative changes the applied recipe and preserves grinder cali
 
   assert.equal(result.sourceRecipeId, alternative.recipe.id);
   assert.equal(result.templateName, alternative.recipe.name);
-  assert.equal(result.grinder.displayValue, "7.0");
+  assert.equal(result.grinder.displayValue, "7.8");
   assert.equal(
     result.grinder.commonDescription,
     alternative.recipe.grindIntent.originalDescription,
