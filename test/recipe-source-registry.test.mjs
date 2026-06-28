@@ -16,9 +16,17 @@ test("source records cover the recipe catalog", () => {
   );
 });
 
-test("non-exact source checks keep reference status", () => {
-  assert.ok(recipeSourceRegistry.every((record) => record.check !== "exact"));
-  assert.ok(expandedRecipes.every((recipe) => recipe.sourceStatus === "reference"));
+test("only exact source checks promote recipes to verified", () => {
+  for (const recipe of expandedRecipes) {
+    const source = recipeSourceRegistry.find(
+      (record) => record.recipeId === recipe.id,
+    );
+    assert.ok(source);
+    assert.equal(
+      recipe.sourceStatus,
+      source.check === "exact" ? "verified" : "reference",
+    );
+  }
 });
 
 test("audited labels replace the legacy generic label", () => {

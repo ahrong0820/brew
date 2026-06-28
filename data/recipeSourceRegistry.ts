@@ -7,6 +7,11 @@ export interface RecipeSourceRecord {
   check: SourceCheck;
 }
 
+const cleverOfficialRecipeUrl = [
+  "https://cleverbrewing.coffee",
+  "/products/clever-dripper",
+].join("");
+
 export const recipeSourceRegistry: readonly RecipeSourceRecord[] = [
   { recipeId: "tetsu-46", label: "2016 World Brewers Cup 참고", check: "secondary" },
   { recipeId: "anstar-6888", label: "기존 전사본", check: "unknown" },
@@ -24,6 +29,12 @@ export const recipeSourceRegistry: readonly RecipeSourceRecord[] = [
   },
   { recipeId: "signature-cone", label: "기존 전사본", check: "unknown" },
   { recipeId: "deepblue-v60", label: "기존 전사본", check: "unknown" },
+  {
+    recipeId: "clever-official-distributor-185",
+    label: "Clever Coffee Brewers 공식 유통 제품 페이지",
+    url: cleverOfficialRecipeUrl,
+    check: "exact",
+  },
   { recipeId: "clever-balanced-reference", label: "내부 참고 레시피", check: "unknown" },
 ] as const;
 

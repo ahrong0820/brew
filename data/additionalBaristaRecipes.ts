@@ -1,6 +1,8 @@
+import { verifiedCleverRecipes } from "./verifiedCleverRecipes.ts";
 import type { BaristaRecipe } from "@/lib/types/baristaRecipe";
 
 export const additionalBaristaRecipes: readonly BaristaRecipe[] = [
+  ...verifiedCleverRecipes,
   {
     id: "clever-balanced-reference",
     name: "클레버 균형형 침출 기본 참조",
