@@ -249,7 +249,7 @@ export function applyCleverRecommendationProfile(
         ...step,
         cue:
           agitationCount === 0
-            ? `${step.cue} 개인 조정값으로 이번 추출은 교반을 생략합니다.`
+            ? `${step.cue} 개인 조정값으로 이번 추출은 교반 생략을 적용합니다.`
             : `${step.cue} 개인 조정값으로 교반 ${agitationCount}회를 적용합니다.`,
       };
     }
@@ -284,7 +284,7 @@ export function applyCleverRecommendationProfile(
       ...recommendation.reasons,
       `[클레버 구조] ${orderLabel} 투입, ${agitationLabel}, 침출 ${timing.immersionSeconds}초를 분리해 적용했습니다.`,
       `[클레버 드로다운] 배출 ${timing.drawdownMinSeconds}~${timing.drawdownMaxSeconds}초를 별도 평가합니다.`,
-      `[클레버 분쇄 변환] ${input.grinder.displayName}의 변환 시작값 주변 ${grindRange}는 원본 레시피 수치가 아닌 앱 변환값입니다.`,
+      `[클레버 분쇄] ${input.grinder.displayName}의 변환 시작값 주변 ${grindRange}는 원본 레시피 수치가 아닌 앱 변환값입니다.`,
       ...sourceReasons,
     ],
     confidence: verified ? "medium" : "reference",
