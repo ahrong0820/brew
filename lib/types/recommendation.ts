@@ -88,6 +88,8 @@ export interface BrewRecommendation {
   templateName: string;
   /** Original barista recipe ID when the recommendation comes from the catalog. */
   sourceRecipeId?: string;
+  /** Audited source state for the selected recipe. */
+  sourceStatus?: "verified" | "reference";
   doseGrams: number;
   waterGrams: number;
   ratio: number;
