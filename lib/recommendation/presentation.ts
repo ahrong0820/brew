@@ -32,6 +32,9 @@ const categoryLabels = [
   "개인 성공",
   "난이도",
   "분쇄 변환",
+  "클레버 구조",
+  "클레버 드로다운",
+  "배전도 온도",
 ] as const;
 
 export type RecommendationReasonCategory =

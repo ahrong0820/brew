@@ -201,6 +201,7 @@ export function createSensoryAdjustmentSuggestion(
 
   const baseAction = decideAdjustmentAction({
     brewPaceAssessment: session.brewPaceAssessment,
+    brewerType: session.recipeSnapshot.brewerType,
     tastingResult: session.tastingResult,
   });
   const profile = beanBrewProfileStore.getById(session.profileId);

@@ -1,4 +1,5 @@
 import { selectBaristaRecipe } from "#barista-recipe-matcher";
+import { applyCleverRecommendationProfile } from "./cleverRecommendation.ts";
 import { applyPresentedRecipeGrindRecommendation } from "./grinderPresentationRecommendation.ts";
 import type { BaristaRecipe } from "@/lib/types/baristaRecipe";
 import type {
@@ -154,6 +155,7 @@ export function applyBaristaRecipeRecommendation(
     ...recommendation,
     templateName: recipe.name,
     sourceRecipeId: recipe.id,
+    sourceStatus: recipe.sourceStatus,
     waterGrams,
     ratio,
     temperatureCelsius,
@@ -170,9 +172,14 @@ export function applyBaristaRecipeRecommendation(
       "선택된 레시피는 현재 참고 카탈로그 단계입니다. 추출 후 속도와 맛 평가를 기록하면 같은 원두·장비 조건의 개인 맞춤값이 우선 적용됩니다.",
     appliedRules: recipeAppliedRules(recommendation, recipe),
   };
+  const brewerProfiledRecommendation = applyCleverRecommendationProfile(
+    recipeRecommendation,
+    recipe,
+    input,
+  );
 
   return applyPresentedRecipeGrindRecommendation(
-    recipeRecommendation,
+    brewerProfiledRecommendation,
     recipe,
     input,
   );
