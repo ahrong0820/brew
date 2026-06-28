@@ -37,7 +37,10 @@ export async function runRecommendationJourney(page) {
   await setRecommendation(dialog, 20, "바디감");
   await assertJisClever(dialog);
   await dialog.getByText("개인 성공 · 잠정", { exact: true }).waitFor();
-  await dialog.getByText(/\[개인 성공\]/).waitFor({ state: "attached" });
+  await dialog
+    .getByText(/\[개인 성공\]/)
+    .first()
+    .waitFor({ state: "attached" });
   await startRecommendationTimer(dialog);
   await saveSuccessfulFeedback(page);
 
