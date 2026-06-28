@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
-          mkdir -p research/pages
+          mkdir -p research/pages research/transcripts
           cat > research/video-ids.txt <<'EOF'
           Q3CbFCF5CD4
           i7Q-pvahrXw
@@ -49,6 +49,76 @@ jobs:
               -o "research/pages/${id}.oembed.json" || true
           done < research/video-ids.txt
 
+      - name: Fetch official transcripts
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          import urllib.parse
+          import urllib.request
+          from pathlib import Path
+
+          base = Path('research')
+          user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36'
+          for video_id in base.joinpath('video-ids.txt').read_text().splitlines():
+              page_path = base / 'pages' / f'{video_id}.html'
+              page = page_path.read_text(errors='ignore') if page_path.exists() else ''
+              def match(pattern):
+                  found = re.search(pattern, page)
+                  return found.group(1) if found else ''
+              api_key = match(r'"INNERTUBE_API_KEY":"([^"]+)"')
+              client_version = match(r'"INNERTUBE_CLIENT_VERSION":"([^"]+)"')
+              visitor_data = match(r'"VISITOR_DATA":"([^"]+)"')
+              params = match(r'"getTranscriptEndpoint":\{"params":"([^"]+)"')
+              result = {
+                  'videoId': video_id,
+                  'apiKeyPresent': bool(api_key),
+                  'clientVersion': client_version,
+                  'visitorDataPresent': bool(visitor_data),
+                  'paramsPresent': bool(params),
+              }
+              if not all([api_key, client_version, visitor_data, params]):
+                  result['error'] = 'missing transcript request metadata'
+              else:
+                  body = {
+                      'context': {
+                          'client': {
+                              'clientName': 'WEB',
+                              'clientVersion': client_version,
+                              'hl': 'ko',
+                              'gl': 'KR',
+                              'visitorData': visitor_data,
+                          },
+                          'request': {'useSsl': True},
+                      },
+                      'params': urllib.parse.unquote(params),
+                  }
+                  request = urllib.request.Request(
+                      f'https://www.youtube.com/youtubei/v1/get_transcript?key={api_key}&prettyPrint=false',
+                      data=json.dumps(body).encode(),
+                      headers={
+                          'Content-Type': 'application/json',
+                          'User-Agent': user_agent,
+                          'Origin': 'https://www.youtube.com',
+                          'Referer': f'https://www.youtube.com/watch?v={video_id}',
+                          'X-Youtube-Client-Name': '1',
+                          'X-Youtube-Client-Version': client_version,
+                          'X-Goog-Visitor-Id': visitor_data,
+                      },
+                      method='POST',
+                  )
+                  try:
+                      with urllib.request.urlopen(request, timeout=30) as response:
+                          payload = json.loads(response.read())
+                      result['response'] = payload
+                  except Exception as exc:
+                      result['error'] = repr(exc)
+              (base / 'transcripts' / f'{video_id}.json').write_text(
+                  json.dumps(result, ensure_ascii=False, indent=2)
+              )
+          PY
+
       - name: Build compact report
         shell: bash
         run: |
@@ -58,45 +128,64 @@ jobs:
           import re
           from pathlib import Path
 
+          base = Path('research')
           def decode_js_string(value):
               try:
-                  return json.loads('"' + value.replace('"', '\\"') + '"')
+                  return json.loads('"' + value + '"')
               except Exception:
                   return html.unescape(value.replace('\\n', '\n').replace('\\u0026', '&'))
 
-          def field(text, key):
+          def string_field(text, key):
               match = re.search(r'"' + re.escape(key) + r'":"((?:\\.|[^"\\])*)"', text)
               return decode_js_string(match.group(1)) if match else ''
 
+          def publish_date(text):
+              match = re.search(r'"publishDate":\{"simpleText":"([^"]+)"', text)
+              return match.group(1) if match else ''
+
+          def description(text):
+              match = re.search(r'"attributedDescription":\{"content":"((?:\\.|[^"\\])*)"', text)
+              return decode_js_string(match.group(1)) if match else ''
+
+          def walk_text(value, output):
+              if isinstance(value, dict):
+                  if isinstance(value.get('text'), str):
+                      output.append(value['text'])
+                  for child in value.values():
+                      walk_text(child, output)
+              elif isinstance(value, list):
+                  for child in value:
+                      walk_text(child, output)
+
           lines=[]
-          for id_path in Path('research/video-ids.txt').read_text().splitlines():
-              video_id=id_path.strip()
-              page_path=Path(f'research/pages/{video_id}.html')
+          for video_id in base.joinpath('video-ids.txt').read_text().splitlines():
+              page_path=base / 'pages' / f'{video_id}.html'
               page=page_path.read_text(errors='ignore') if page_path.exists() else ''
-              oembed_path=Path(f'research/pages/{video_id}.oembed.json')
+              oembed_path=base / 'pages' / f'{video_id}.oembed.json'
               try:
                   oembed=json.loads(oembed_path.read_text()) if oembed_path.exists() else {}
               except Exception:
                   oembed={}
-              title=oembed.get('title') or field(page, 'title')
-              author=oembed.get('author_name') or field(page, 'ownerChannelName')
-              description=field(page, 'shortDescription')
-              publish_date=field(page, 'publishDate')
-              upload_date=field(page, 'uploadDate')
-              channel_id=field(page, 'channelId')
+              transcript_path=base / 'transcripts' / f'{video_id}.json'
+              transcript_data=json.loads(transcript_path.read_text()) if transcript_path.exists() else {}
+              transcript=[]
+              walk_text(transcript_data.get('response', {}), transcript)
               lines.extend([
                   '='*80,
                   f'id: {video_id}',
-                  f'title: {title}',
-                  f'channel: {author}',
-                  f'channel_id: {channel_id}',
-                  f'publish_date: {publish_date}',
-                  f'upload_date: {upload_date}',
+                  f'title: {oembed.get("title") or string_field(page, "title")}',
+                  f'channel: {oembed.get("author_name") or string_field(page, "ownerChannelName")}',
+                  f'channel_id: {string_field(page, "channelId")}',
+                  f'publish_date: {publish_date(page)}',
                   f'url: https://www.youtube.com/watch?v={video_id}',
                   'description:',
-                  description,
+                  description(page),
+                  'transcript_error:',
+                  str(transcript_data.get('error', '')),
+                  'transcript_text:',
+                  '\n'.join(transcript),
               ])
-          Path('research/report.txt').write_text('\n'.join(lines))
+          base.joinpath('report.txt').write_text('\n'.join(lines))
           PY
 
       - name: Upload research
