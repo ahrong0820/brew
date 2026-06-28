@@ -86,6 +86,9 @@ export type BrewAdjustmentVariable =
   | "grind"
   | "temperature"
   | "ratio"
+  | "agitation"
+  | "immersion-time"
+  | "pour-structure"
   | "none";
 
 export type BrewAdjustmentAction =
@@ -95,7 +98,13 @@ export type BrewAdjustmentAction =
   | "hotter"
   | "cooler"
   | "less-water"
-  | "more-water";
+  | "more-water"
+  | "less-agitation"
+  | "more-agitation"
+  | "shorter-immersion"
+  | "longer-immersion"
+  | "gentler-pour"
+  | "stronger-pour";
 
 export type BrewAdjustmentOutcome = "improved" | "same" | "worse";
 
@@ -246,6 +255,9 @@ export interface BeanBrewProfile {
     grind?: number;
     temperature?: number;
     ratio?: number;
+    agitation?: number;
+    "immersion-time"?: number;
+    "pour-structure"?: number;
   };
   /** Bounded history of applied one-variable dial-in trials. */
   adjustmentHistory?: BrewAdjustmentTrial[];
