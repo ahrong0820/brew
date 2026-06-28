@@ -44,11 +44,8 @@ jobs:
 
           text = Path('source-research/watch.html').read_text(errors='replace')
 
-          def extract_object(marker: str):
-              start = text.find(marker)
-              if start < 0:
-                  raise RuntimeError(f'missing marker: {marker}')
-              start = text.find('{', start + len(marker))
+          def extract_object_at(marker_index: int):
+              start = text.find('{', marker_index)
               depth = 0
               in_string = False
               escaped = False
@@ -69,11 +66,26 @@ jobs:
                       elif char == '}':
                           depth -= 1
                           if depth == 0:
-                              return json.loads(text[start:index + 1])
-              raise RuntimeError(f'unterminated object: {marker}')
+                              return json.loads(text[start:index + 1]), index + 1
+              raise RuntimeError('unterminated object')
 
-          config = extract_object('ytcfg.set(')
-          initial = extract_object('var ytInitialData = ')
+          config = {}
+          position = 0
+          while True:
+              marker = text.find('ytcfg.set(', position)
+              if marker < 0:
+                  break
+              try:
+                  partial, position = extract_object_at(marker)
+                  config.update(partial)
+              except (json.JSONDecodeError, RuntimeError):
+                  position = marker + len('ytcfg.set(')
+
+          initial_marker = text.find('var ytInitialData = ')
+          if initial_marker < 0:
+              raise RuntimeError('ytInitialData missing')
+          initial, _ = extract_object_at(initial_marker)
+
           params = None
           for panel in initial.get('engagementPanels', []):
               renderer = panel.get('engagementPanelSectionListRenderer', {})
