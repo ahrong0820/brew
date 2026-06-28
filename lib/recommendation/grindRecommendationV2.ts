@@ -233,7 +233,11 @@ export function applyRecipeGrindRecommendation(
       ...recommendation,
       grinder: {
         ...recommendation.grinder,
+        displayValue: original,
+        displayRange: "변환 없음",
         commonDescription: original,
+        calibrationLabel: input.grinder.calibrationLabel,
+        isNumeric: false,
         note: `${recommendation.grinder.note} 원본 분쇄 표현은 “${original}”입니다. ${basisLabel}에서 안전한 숫자 변환 범위를 확인할 수 없어 숫자를 강제하지 않습니다.`,
       },
       reasons: [
