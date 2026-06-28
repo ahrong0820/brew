@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
@@ -16,63 +16,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
           show-progress: false
-
-      - name: Apply partial-source UI patch
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          clever_path = Path('lib/recommendation/cleverRecommendation.ts')
-          clever = clever_path.read_text()
-          clever = clever.replace('[클레버 분쇄 변환]', '[클레버 분쇄]')
-          clever = clever.replace(
-              '개인 조정값으로 이번 추출은 교반을 생략합니다.',
-              '개인 조정값으로 이번 추출은 교반 생략을 적용합니다.',
-          )
-          clever_path.write_text(clever)
-
-          recipe_path = Path('data/jisCleverRecipes.ts')
-          recipe = recipe_path.read_text().replace(
-              'sourceStatus: "reference",',
-              'sourceStatus: "partial",',
-              1,
-          )
-          recipe_path.write_text(recipe)
-
-          drawer_path = Path('app/RecommendationDrawerV2.tsx')
-          drawer = drawer_path.read_text()
-          old_prefixes = '''        "[클레버 분쇄]",
-          "[배전도 온도]",'''
-          new_prefixes = '''        "[클레버 분쇄]",
-          "[부분 검증 원본]",
-          "[원본과 앱 조정 분리]",
-          "[배전도 온도]",'''
-          assert old_prefixes in drawer
-          drawer = drawer.replace(old_prefixes, new_prefixes, 1)
-
-          marker = '''                          {recommendation.sourceStatus === "reference" && (
-                            <span className="rounded-full bg-[#fff4df] px-2.5 py-1 text-xs font-bold text-[#805d25]">
-                              참고 레시피
-                            </span>
-                          )}'''
-          partial = '''                          {recommendation.sourceStatus === "partial" && (
-                            <span className="rounded-full bg-[#e8eef8] px-2.5 py-1 text-xs font-bold text-[#34527a]">
-                              부분 검증
-                            </span>
-                          )}
-'''
-          assert marker in drawer
-          drawer = drawer.replace(marker, partial + marker, 1)
-          drawer_path.write_text(drawer)
-          PY
-
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add app/RecommendationDrawerV2.tsx data/jisCleverRecipes.ts lib/recommendation/cleverRecommendation.ts
-          git commit -m "feat: show partial Clever source state" || true
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
