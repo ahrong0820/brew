@@ -16,7 +16,7 @@ export const jisCleverRecipes: readonly BaristaRecipe[] = [
     ratio: 11,
     targetTimeMinSeconds: 200,
     targetTimeMaxSeconds: 220,
-    tasteProfile: { sweet: 5, bright: 2, balanced: 3, body: 5 },
+    tasteProfile: { sweet: 5, bright: 2, balanced: 4, body: 5 },
     suitableRoasts: ["light", "medium-light", "medium", "medium-dark"],
     suitableProcesses: ["washed", "natural", "honey", "fermented", "unknown"],
     flavorKeywords: ["진한 농도", "단맛", "바디", "묵직", "후가수"],
