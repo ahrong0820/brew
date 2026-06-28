@@ -116,11 +116,11 @@ export function applyCleverRecommendationProfile(
 
   const order = cleverLoadingOrder(recipe);
   const timing = cleverTiming(recipe);
+  const temperatureOffset = input.recommendationOffset?.temperature ?? 0;
+  const unadjustedFallback = recommendation.temperatureCelsius - temperatureOffset;
   const temperatureCelsius = clamp(
-    cleverTemperatureForRoast(
-      input.bean.roastLevel,
-      recommendation.temperatureCelsius,
-    ) + (input.recommendationOffset?.temperature ?? 0),
+    cleverTemperatureForRoast(input.bean.roastLevel, unadjustedFallback) +
+      temperatureOffset,
     82,
     96,
   );
