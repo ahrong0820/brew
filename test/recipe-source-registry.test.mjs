@@ -16,7 +16,7 @@ test("source records cover the recipe catalog", () => {
   );
 });
 
-test("only exact source checks promote recipes to verified", () => {
+test("source checks map to verified, partial and reference states", () => {
   for (const recipe of expandedRecipes) {
     const source = recipeSourceRegistry.find(
       (record) => record.recipeId === recipe.id,
@@ -24,7 +24,11 @@ test("only exact source checks promote recipes to verified", () => {
     assert.ok(source);
     assert.equal(
       recipe.sourceStatus,
-      source.check === "exact" ? "verified" : "reference",
+      source.check === "exact"
+        ? "verified"
+        : source.check === "partial"
+          ? "partial"
+          : "reference",
     );
   }
 });
