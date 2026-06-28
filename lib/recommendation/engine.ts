@@ -162,6 +162,10 @@ function resolvedBaristaRecipeId(input: RecommendationInput) {
       tasteGoal: input.tasteGoal,
       doseGrams: input.preferences.defaultDoseGrams,
       flavorNotes: input.bean.flavorNotes,
+      originCountry: input.bean.originCountry,
+      originGroup: input.bean.originGroup,
+      originRegions: input.bean.originRegions,
+      variety: input.bean.variety,
     },
     input.baristaRecipeId,
   )?.recipe.id;
