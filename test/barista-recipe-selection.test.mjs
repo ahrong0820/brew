@@ -86,11 +86,11 @@ function recommendationInput(baristaRecipeId) {
   };
 }
 
-test("ranked matching returns one primary recipe and two alternatives", () => {
+test("ranked matching returns one primary current recipe and two alternatives", () => {
   const matches = rankBaristaRecipes(matchInput, 3);
 
   assert.equal(matches.length, 3);
-  assert.equal(matches[0].recipe.id, "jis-4666");
+  assert.equal(matches[0].recipe.id, "tetsu-46");
   assert.ok(matches[0].score >= matches[1].score);
   assert.ok(matches[1].score >= matches[2].score);
   assert.equal(new Set(matches.map((match) => match.recipe.id)).size, 3);

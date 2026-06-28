@@ -81,22 +81,30 @@ test("Jung In-sung Clever recipe keeps only first-party confirmed values", () =>
   assert.match(recipe.steps[4].cue, /80~100g.*300~320g/);
 });
 
-test("source registry separates the Clever video from V60 recipes", () => {
+test("source registry keeps the latest Clever video separate from current V60 recipes", () => {
   const source = recipeSourceRegistry.find(
     (record) => record.recipeId === "jis-clever-1-11",
   );
   assert.ok(source);
   assert.equal(source.check, "partial");
-  assert.equal(source.url, "https://youtu.be/JWHanqQ5MsQ");
+  assert.equal(
+    source.url,
+    "https://www.youtube.com/watch?v=JWHanqQ5MsQ",
+  );
 
-  for (const recipeId of ["jis-4666", "jis-ver2-hot"]) {
-    const v60Source = recipeSourceRegistry.find(
-      (record) => record.recipeId === recipeId,
-    );
-    assert.ok(v60Source);
-    assert.equal(v60Source.url, undefined);
-    assert.match(v60Source.label, /Clever 영상과 분리/);
-  }
+  const v60Source = recipeSourceRegistry.find(
+    (record) => record.recipeId === "jis-ver2-hot",
+  );
+  assert.ok(v60Source);
+  assert.equal(v60Source.check, "partial");
+  assert.equal(
+    v60Source.url,
+    "https://www.youtube.com/watch?v=i7Q-pvahrXw",
+  );
+  assert.equal(
+    recipeSourceRegistry.some((record) => record.recipeId === "jis-4666"),
+    false,
+  );
 });
 
 test("body and sweet goals prefer 1:11 while balanced official dose prefers official", () => {

@@ -35,7 +35,7 @@ test("missing origin and variety metadata preserves the existing ranking", () =>
 
 test("East African Geisha metadata adds origin and variety evidence", () => {
   const baseline = rankBaristaRecipes(baseInput, 6).find(
-    (match) => match.recipe.id === "jis-4666",
+    (match) => match.recipe.id === "tetsu-46",
   );
   const connected = rankBaristaRecipes(
     {
@@ -46,7 +46,7 @@ test("East African Geisha metadata adds origin and variety evidence", () => {
       variety: "Geisha",
     },
     6,
-  ).find((match) => match.recipe.id === "jis-4666");
+  ).find((match) => match.recipe.id === "tetsu-46");
 
   assert.ok(baseline);
   assert.ok(connected);
@@ -63,7 +63,7 @@ test("East African Geisha metadata adds origin and variety evidence", () => {
   );
 });
 
-test("Latin American Bourbon metadata connects to sweet balanced recipes", () => {
+test("Latin American Bourbon metadata connects to the current low-dose recipe", () => {
   const matches = rankBaristaRecipes(
     {
       ...baseInput,
@@ -76,7 +76,9 @@ test("Latin American Bourbon metadata connects to sweet balanced recipes", () =>
     },
     6,
   );
-  const connected = matches.find((match) => match.recipe.id === "deepblue-v60");
+  const connected = matches.find(
+    (match) => match.recipe.id === "jis-484-15g-2026",
+  );
 
   assert.ok(connected);
   assert.ok(connected.reasons.some((reason) => reason.startsWith("[산지 연결]")));

@@ -10,7 +10,7 @@ import type {
 
 export type BaristaRecipeSourceStatus = "verified" | "partial" | "reference";
 
-export type BaristaRecipeDifficulty = "easy" | "medium" | "advanced";
+export type BaristaRecipeDifficulty = "easy" | "medium" | "advanced" | "hard";
 
 export type RecipeGrindFlow = "fast" | "moderate" | "slow";
 

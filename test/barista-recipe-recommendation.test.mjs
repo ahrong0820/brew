@@ -120,24 +120,25 @@ function createInput(overrides = {}) {
   };
 }
 
-test("HOT V60 recommendation applies the selected barista recipe structure", () => {
+test("HOT V60 recommendation applies the retained official 4:6 structure", () => {
   const result = applyBaristaRecipeRecommendation(
     baseRecommendation,
     createInput(),
   );
 
-  assert.equal(result.templateName, "정인성 4666 오리지널");
-  assert.equal(result.ratio, 16);
-  assert.equal(result.waterGrams, 320);
+  assert.equal(result.templateName, "테츠 카스야 4:6 기본형");
+  assert.equal(result.sourceRecipeId, "tetsu-46");
+  assert.equal(result.sourceStatus, "partial");
+  assert.equal(result.ratio, 15);
+  assert.equal(result.waterGrams, 300);
   assert.equal(result.temperatureCelsius, 92);
-  assert.equal(result.targetTimeMinSeconds, 130);
-  assert.equal(result.targetTimeMaxSeconds, 160);
+  assert.equal(result.targetTimeMinSeconds, 180);
+  assert.equal(result.targetTimeMaxSeconds, 210);
   assert.equal(result.steps.length, 5);
-  assert.equal(result.steps.at(-1).label, "후가수");
-  assert.equal(result.steps.at(-1).targetWaterGrams, 320);
-  assert.equal(result.grinder.displayValue, "7.8");
-  assert.equal(result.grinder.commonDescription, "중간보다 굵은 분쇄");
-  assert.ok(result.reasons[0].includes("정인성"));
+  assert.equal(result.steps.at(-1).label, "4차 추출");
+  assert.equal(result.steps.at(-1).targetWaterGrams, 300);
+  assert.ok(result.grinder.commonDescription.includes("중굵은 분쇄"));
+  assert.ok(result.reasons[0].includes("Tetsu Kasuya"));
   assert.ok(
     result.appliedRules.some(
       (rule) => rule.id === "recipe.hot-v60.barista-catalog-match.v1",
@@ -156,7 +157,7 @@ test("HOT V60 recommendation applies the selected barista recipe structure", () 
   );
 });
 
-test("sweet goal selects the matching recipe and keeps personal offsets", () => {
+test("sweet goal selects THE NEO BREW and keeps personal offsets", () => {
   const result = applyBaristaRecipeRecommendation(
     { ...baseRecommendation, doseGrams: 18 },
     createInput({
@@ -178,11 +179,43 @@ test("sweet goal selects the matching recipe and keeps personal offsets", () => 
     }),
   );
 
+  assert.equal(result.templateName, "테츠 카스야 THE NEO BREW 2026");
+  assert.equal(result.sourceRecipeId, "tetsu-neo-2026");
+  assert.equal(result.ratio, 15.5);
+  assert.equal(result.waterGrams, 280);
+  assert.equal(result.temperatureCelsius, 96);
+  assert.equal(result.steps.length, 10);
+  assert.equal(result.steps.at(-1).targetWaterGrams, 280);
+});
+
+test("preferred current Jung Ver 2.0 recipe preserves its audited structure", () => {
+  const result = applyBaristaRecipeRecommendation(
+    { ...baseRecommendation, doseGrams: 18 },
+    createInput({
+      baristaRecipeId: "jis-ver2-hot",
+      bean: {
+        roastLevel: "medium-light",
+        process: "natural",
+        flavorNotes: ["단맛"],
+      },
+      preferences: {
+        defaultDoseGrams: 18,
+        defaultWaterGrams: 300,
+        defaultTasteGoal: "sweet",
+      },
+      tasteGoal: "sweet",
+    }),
+  );
+
   assert.equal(result.templateName, "정인성 국룰 Ver 2.0 HOT");
-  assert.equal(result.ratio, 17.2);
-  assert.equal(result.waterGrams, 310);
-  assert.equal(result.temperatureCelsius, 92);
-  assert.equal(result.steps.at(-1).targetWaterGrams, 310);
+  assert.equal(result.sourceStatus, "partial");
+  assert.equal(result.ratio, 16.7);
+  assert.equal(result.waterGrams, 300);
+  assert.equal(result.temperatureCelsius, 90);
+  assert.deepEqual(
+    result.steps.map((step) => step.targetWaterGrams),
+    [40, 100, 160, 220, 300],
+  );
 });
 
 test("unsupported scopes and doses keep the existing recommendation", () => {
