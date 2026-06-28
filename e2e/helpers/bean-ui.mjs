@@ -1,9 +1,16 @@
 import { field } from "./recommendation-ui.mjs";
 
-export async function registerBrazilWashedBean(page, name) {
-  await page.getByRole("button", { name: /내 원두 열기/ }).click();
+async function openBeanLibrary(page) {
+  const nav = page.locator('nav[data-mobile-coffee-nav="true"]');
+  await nav.waitFor({ state: "visible" });
+  await nav.getByRole("button", { name: "원두", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "내 원두" });
   await dialog.waitFor({ state: "visible" });
+  return dialog;
+}
+
+export async function registerBrazilWashedBean(page, name) {
+  const dialog = await openBeanLibrary(page);
   await dialog
     .getByRole("button", { name: "첫 원두 등록", exact: true })
     .click();
@@ -17,8 +24,7 @@ export async function registerBrazilWashedBean(page, name) {
 }
 
 export async function verifyPersistedBean(page, name) {
-  await page.getByRole("button", { name: /내 원두 열기/ }).click();
-  const dialog = page.getByRole("dialog", { name: "내 원두" });
+  const dialog = await openBeanLibrary(page);
   await dialog.getByText(name, { exact: true }).waitFor();
   await dialog.getByRole("button", { name: "내 원두 닫기" }).click();
 }
