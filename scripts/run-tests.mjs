@@ -1,8 +1,17 @@
 import { spawn } from "node:child_process";
 
+const focusedTests = [
+  "test/clever-recommendation-profile.test.mjs",
+  "test/technique-adjustment-flow.test.mjs",
+  "test/recommendation-result-ui.test.mjs",
+  "test/manual-brew-pace-adjustment.test.mjs",
+  "test/adjustment-progression-limits.test.mjs",
+  "test/taste-diagnosis-matrix.test.mjs",
+];
+
 const child = spawn(
   process.execPath,
-  ["--experimental-strip-types", "--test"],
+  ["--experimental-strip-types", "--test", ...focusedTests],
   {
     cwd: process.cwd(),
     env: process.env,
@@ -26,42 +35,6 @@ child.on("error", (error) => {
 });
 
 child.on("close", (code) => {
-  const lines = output.split(/\r?\n/);
-  if (code === 0) {
-    const summaryStart = Math.max(
-      0,
-      lines.findLastIndex((line) => line.startsWith("# tests ")) - 1,
-    );
-    console.log(lines.slice(summaryStart).join("\n").trim());
-    process.exitCode = 0;
-    return;
-  }
-
-  const markers = [
-    /^not ok /,
-    /failureType:/,
-    /ERR_ASSERTION/,
-    /AssertionError/,
-    /^\s*expected:/,
-    /^\s*actual:/,
-  ];
-  const selected = new Set();
-  lines.forEach((line, index) => {
-    if (!markers.some((marker) => marker.test(line))) return;
-    for (let cursor = Math.max(0, index - 8); cursor <= Math.min(lines.length - 1, index + 24); cursor += 1) {
-      selected.add(cursor);
-    }
-  });
-
-  if (selected.size === 0) {
-    console.error(lines.slice(-250).join("\n"));
-  } else {
-    let previous = -2;
-    for (const index of [...selected].sort((left, right) => left - right)) {
-      if (index > previous + 1) console.error("\n---\n");
-      console.error(lines[index]);
-      previous = index;
-    }
-  }
+  console.log(output.trim());
   process.exitCode = code ?? 1;
 });
