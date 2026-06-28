@@ -3,7 +3,9 @@ export function field(dialog, text, selector) {
 }
 
 export async function openRecommendation(page) {
-  await page.getByRole("button", { name: "맞춤 추천", exact: true }).click();
+  const nav = page.locator('nav[data-mobile-coffee-nav="true"]');
+  await nav.waitFor({ state: "visible" });
+  await nav.getByRole("button", { name: "추천", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "원두 맞춤 추천" });
   await dialog.waitFor({ state: "visible" });
   return dialog;
