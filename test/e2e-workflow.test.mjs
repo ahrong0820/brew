@@ -31,7 +31,10 @@ test("mobile browser E2E covers the current regression-prone flows", () => {
   assert.match(scenario, /data-mobile-coffee-nav/);
   assert.match(scenario, /개인 레시피 버전/);
   assert.match(scenario, /blank dose must remain editable/);
-  assert.match(scenario, /out-of-range dose must clamp on blur/);
+  assert.match(scenario, /valid dose must update immediately/);
+  assert.match(scenario, /low dose must clamp on blur/);
+  assert.match(scenario, /high dose must clamp on blur/);
+  assert.match(scenario, /recipe selection must synchronize dose draft/);
   assert.match(scenario, /data-recipe-row/);
   assert.match(scenario, /mobile navigation must stay hidden while paused/);
   assert.match(scenario, /viewport: \{ width: 390, height: 844 \}/);
