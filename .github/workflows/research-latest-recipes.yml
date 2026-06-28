@@ -19,14 +19,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install yt-dlp
-        run: python -m pip install yt-dlp
-
       - name: Fetch official candidate metadata
         shell: bash
         run: |
           set -uo pipefail
-          mkdir -p research/videos
+          mkdir -p research/pages
           cat > research/video-ids.txt <<'EOF'
           Q3CbFCF5CD4
           i7Q-pvahrXw
@@ -43,33 +40,61 @@ jobs:
           gC8K40kZ_6E
           EOF
           while read -r id; do
-            yt-dlp "https://www.youtube.com/watch?v=${id}" \
-              --skip-download \
-              --write-description \
-              --write-info-json \
-              --output "research/videos/%(id)s.%(ext)s" || true
+            curl -L --fail --retry 2 \
+              -A 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36' \
+              "https://www.youtube.com/watch?v=${id}&hl=ko" \
+              -o "research/pages/${id}.html" || true
+            curl -L --fail --retry 2 \
+              "https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${id}&format=json" \
+              -o "research/pages/${id}.oembed.json" || true
           done < research/video-ids.txt
 
       - name: Build compact report
         shell: bash
         run: |
           python - <<'PY'
+          import html
           import json
+          import re
           from pathlib import Path
+
+          def decode_js_string(value):
+              try:
+                  return json.loads('"' + value.replace('"', '\\"') + '"')
+              except Exception:
+                  return html.unescape(value.replace('\\n', '\n').replace('\\u0026', '&'))
+
+          def field(text, key):
+              match = re.search(r'"' + re.escape(key) + r'":"((?:\\.|[^"\\])*)"', text)
+              return decode_js_string(match.group(1)) if match else ''
+
           lines=[]
-          for path in sorted(Path('research/videos').glob('*.info.json')):
-              data=json.loads(path.read_text())
+          for id_path in Path('research/video-ids.txt').read_text().splitlines():
+              video_id=id_path.strip()
+              page_path=Path(f'research/pages/{video_id}.html')
+              page=page_path.read_text(errors='ignore') if page_path.exists() else ''
+              oembed_path=Path(f'research/pages/{video_id}.oembed.json')
+              try:
+                  oembed=json.loads(oembed_path.read_text()) if oembed_path.exists() else {}
+              except Exception:
+                  oembed={}
+              title=oembed.get('title') or field(page, 'title')
+              author=oembed.get('author_name') or field(page, 'ownerChannelName')
+              description=field(page, 'shortDescription')
+              publish_date=field(page, 'publishDate')
+              upload_date=field(page, 'uploadDate')
+              channel_id=field(page, 'channelId')
               lines.extend([
                   '='*80,
-                  f"id: {data.get('id')}",
-                  f"title: {data.get('title')}",
-                  f"channel: {data.get('channel')}",
-                  f"channel_id: {data.get('channel_id')}",
-                  f"upload_date: {data.get('upload_date')}",
-                  f"timestamp: {data.get('timestamp')}",
-                  f"webpage_url: {data.get('webpage_url')}",
+                  f'id: {video_id}',
+                  f'title: {title}',
+                  f'channel: {author}',
+                  f'channel_id: {channel_id}',
+                  f'publish_date: {publish_date}',
+                  f'upload_date: {upload_date}',
+                  f'url: https://www.youtube.com/watch?v={video_id}',
                   'description:',
-                  data.get('description') or '',
+                  description,
               ])
           Path('research/report.txt').write_text('\n'.join(lines))
           PY
