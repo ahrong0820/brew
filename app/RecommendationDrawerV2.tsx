@@ -69,6 +69,16 @@ function normalizedDose(value: number) {
     : 15;
 }
 
+function confidenceLabel(recommendation: BrewRecommendation) {
+  if (recommendation.confidence === "high") return "높음";
+  if (recommendation.confidence === "medium") return "보통";
+  return "참고";
+}
+
+function reasonText(reason: string) {
+  return reason.replace(/^\[[^\]]+\]\s*/, "");
+}
+
 export default function RecommendationDrawerV2() {
   const [open, setOpen] = useState(false);
   const [beans, setBeans] = useState<Bean[]>([]);
@@ -92,6 +102,22 @@ export default function RecommendationDrawerV2() {
   const dose = normalizedDose(preferences?.defaultDoseGrams ?? 15);
   const baseRatio = recommendedRatioForTaste(tasteGoal);
   const calculatedWater = recommendedWaterGrams(dose, baseRatio);
+  const originAndVarietyReasons =
+    recommendation?.reasons.filter(
+      (reason) =>
+        reason.startsWith("[산지 연결]") || reason.startsWith("[품종 연결]"),
+    ) ?? [];
+  const changedVariableReasons =
+    recommendation?.reasons.filter((reason) =>
+      [
+        "[개인 성공]",
+        "[클레버 구조]",
+        "[클레버 드로다운]",
+        "[클레버 분쇄]",
+        "[배전도 온도]",
+        "[푸어 구조]",
+      ].some((prefix) => reason.startsWith(prefix)),
+    ) ?? [];
 
   function loadData() {
     initializeCoffeeStorage();
@@ -439,58 +465,137 @@ export default function RecommendationDrawerV2() {
 
                   {recommendation && selectedBean && selectedGrinder && (
                     <section className="rounded-xl border border-[#c9d7c7] bg-white p-4 shadow-sm sm:p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-xs font-semibold text-[#2f6f5f]">추천 결과</p>
-                          <h3 className="mt-1 text-lg font-bold">{recommendation.templateName}</h3>
-                          <p className="mt-1 text-xs text-[#687168]">
-                            {selectedBean.name} · {selectedGrinder.displayName}
-                          </p>
+                      <div className="sticky top-0 z-10 -mx-4 -mt-4 border-b border-[#d7ded4] bg-white/95 px-4 pb-4 pt-4 backdrop-blur sm:-mx-5 sm:-mt-5 sm:px-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold text-[#2f6f5f]">추천 결과</p>
+                            <h3 className="mt-1 text-lg font-bold">{recommendation.templateName}</h3>
+                            <p className="mt-1 text-xs text-[#687168]">
+                              {selectedBean.name} · {selectedGrinder.displayName}
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-[#eef5ef] px-2.5 py-1 text-xs font-semibold text-[#2f6f5f]">
+                            신뢰도 {confidenceLabel(recommendation)}
+                          </span>
                         </div>
-                        <span className="rounded-full bg-[#eef5ef] px-2.5 py-1 text-xs font-semibold text-[#2f6f5f]">
-                          신뢰도 {recommendation.confidence === "medium" ? "보통" : "참고"}
-                        </span>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {recommendation.sourceStatus === "verified" && (
+                            <span className="rounded-full bg-[#e5f2ea] px-2.5 py-1 text-xs font-bold text-[#245647]">
+                              공식·검증
+                            </span>
+                          )}
+                          {recommendation.sourceStatus === "reference" && (
+                            <span className="rounded-full bg-[#fff4df] px-2.5 py-1 text-xs font-bold text-[#805d25]">
+                              참고 레시피
+                            </span>
+                          )}
+                          {!recommendation.sourceStatus && (
+                            <span className="rounded-full bg-[#eef1ed] px-2.5 py-1 text-xs font-bold text-[#526055]">
+                              내부 기본
+                            </span>
+                          )}
+                          {recommendation.grinder.personalRecipeStatus && (
+                            <span className="rounded-full bg-[#f1eaf4] px-2.5 py-1 text-xs font-bold text-[#654b70]">
+                              개인 성공 · {recommendation.grinder.personalRecipeStatus === "stable" ? "안정" : "잠정"}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                          <div className="rounded-lg bg-[#f8faf7] p-3">
+                            <p className="text-xs text-[#687168]">원두 / 물</p>
+                            <p className="mt-1 font-bold">
+                              {recommendation.doseGrams}g / {recommendation.waterGrams}g
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-[#f8faf7] p-3">
+                            <p className="text-xs text-[#687168]">비율</p>
+                            <p className="mt-1 font-bold">1:{recommendation.ratio}</p>
+                          </div>
+                          <div className="rounded-lg bg-[#f8faf7] p-3">
+                            <p className="flex items-center gap-1 text-xs text-[#687168]">
+                              <Thermometer size={13} /> 온도
+                            </p>
+                            <p className="mt-1 font-bold">{recommendation.temperatureCelsius}℃</p>
+                          </div>
+                          <div className="rounded-lg bg-[#f8faf7] p-3">
+                            <p className="flex items-center gap-1 text-xs text-[#687168]">
+                              <Gauge size={13} /> 목표 시간
+                            </p>
+                            <p className="mt-1 font-bold">
+                              {formatTime(recommendation.targetTimeMinSeconds)}~{formatTime(recommendation.targetTimeMaxSeconds)}
+                            </p>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        <div className="rounded-lg bg-[#f8faf7] p-3">
-                          <p className="text-xs text-[#687168]">원두 / 물</p>
-                          <p className="mt-1 font-bold">
-                            {recommendation.doseGrams}g / {recommendation.waterGrams}g
+                      {changedVariableReasons.length > 0 && (
+                        <div className="mt-5 rounded-lg border border-[#c9d7c7] bg-[#eef5ef] p-4">
+                          <p className="text-xs font-bold text-[#245647]">이번 추출에서 적용된 변경</p>
+                          <ul className="mt-2 space-y-1 text-xs leading-5 text-[#526055]">
+                            {changedVariableReasons.map((reason) => (
+                              <li key={reason}>• {reasonText(reason)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-lg border border-[#d7ded4] bg-[#f8faf7] p-4">
+                          <p className="text-xs font-semibold text-[#526055]">원본 레시피 표현</p>
+                          <p className="mt-2 text-lg font-bold text-[#2f3931]">
+                            {recommendation.grinder.originalDescription ?? recommendation.grinder.commonDescription}
+                          </p>
+                          <p className="mt-2 text-xs leading-5 text-[#687168]">
+                            원본의 언어 표현을 보존하며 숫자 변환값과 구분합니다.
                           </p>
                         </div>
-                        <div className="rounded-lg bg-[#f8faf7] p-3">
-                          <p className="text-xs text-[#687168]">비율</p>
-                          <p className="mt-1 font-bold">1:{recommendation.ratio}</p>
-                        </div>
-                        <div className="rounded-lg bg-[#f8faf7] p-3">
-                          <p className="flex items-center gap-1 text-xs text-[#687168]">
-                            <Thermometer size={13} /> 온도
+                        <div className="rounded-lg border border-[#ead9c7] bg-[#fff8ee] p-4">
+                          <p className="text-xs font-semibold text-[#8a623d]">현재 그라인더 변환 시작값</p>
+                          <p className="mt-2 text-2xl font-bold text-[#51351f]">
+                            {recommendation.grinder.displayValue}
                           </p>
-                          <p className="mt-1 font-bold">{recommendation.temperatureCelsius}℃</p>
-                        </div>
-                        <div className="rounded-lg bg-[#f8faf7] p-3">
-                          <p className="flex items-center gap-1 text-xs text-[#687168]">
-                            <Gauge size={13} /> 목표 시간
-                          </p>
-                          <p className="mt-1 font-bold">
-                            {formatTime(recommendation.targetTimeMinSeconds)}~{formatTime(recommendation.targetTimeMaxSeconds)}
+                          <p className="mt-1 text-xs text-[#806448]">
+                            탐색 범위 {recommendation.grinder.displayRange}
                           </p>
                         </div>
                       </div>
 
-                      <div className="mt-4 rounded-lg border border-[#ead9c7] bg-[#fff8ee] p-4">
-                        <p className="text-xs font-semibold text-[#8a623d]">추천 분쇄도</p>
-                        <p className="mt-2 text-2xl font-bold text-[#51351f]">
-                          {recommendation.grinder.displayValue}
-                        </p>
-                        <p className="mt-1 text-xs text-[#806448]">
-                          범위 {recommendation.grinder.displayRange} · {recommendation.grinder.commonDescription}
-                        </p>
-                        <p className="mt-3 text-xs leading-5 text-[#806448]">
-                          {recommendation.grinder.note}
-                        </p>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                        <div className="rounded-lg bg-[#f8faf7] px-3 py-2.5">
+                          <p className="text-[11px] text-[#687168]">변환 근거</p>
+                          <p className="mt-1 text-xs font-semibold">
+                            {recommendation.grinder.conversionSourceLabel ?? "참고 변환"}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-[#f8faf7] px-3 py-2.5">
+                          <p className="text-[11px] text-[#687168]">영점 기준</p>
+                          <p className="mt-1 text-xs font-semibold">
+                            {recommendation.grinder.calibrationBasisLabel ?? recommendation.grinder.calibrationLabel}
+                          </p>
+                        </div>
+                        <div className="rounded-lg bg-[#f8faf7] px-3 py-2.5">
+                          <p className="text-[11px] text-[#687168]">모델 안전 범위</p>
+                          <p className="mt-1 text-xs font-semibold">
+                            {recommendation.grinder.safeRangeLabel ?? "미확인"}
+                          </p>
+                        </div>
                       </div>
+                      <p className="mt-3 rounded-lg bg-[#fff8ee] px-3 py-2 text-xs leading-5 text-[#806448]">
+                        {recommendation.grinder.note}
+                      </p>
+
+                      {originAndVarietyReasons.length > 0 && (
+                        <div className="mt-4 rounded-lg border border-[#d8d0e3] bg-[#f6f2f8] p-4">
+                          <p className="text-xs font-bold text-[#654b70]">산지·품종 추천 영향</p>
+                          <ul className="mt-2 space-y-1 text-xs leading-5 text-[#6f6578]">
+                            {originAndVarietyReasons.map((reason) => (
+                              <li key={reason}>• {reasonText(reason)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
                       <ol className="mt-5 divide-y divide-[#edf1ea] rounded-lg border border-[#d7ded4]">
                         {recommendation.steps.map((step) => (
