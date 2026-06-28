@@ -1,5 +1,5 @@
 import { selectBaristaRecipe } from "#barista-recipe-matcher";
-import { applyRecipeGrindRecommendation } from "./grindRecommendationV2.ts";
+import { applyPresentedRecipeGrindRecommendation } from "./grinderPresentationRecommendation.ts";
 import type { BaristaRecipe } from "@/lib/types/baristaRecipe";
 import type {
   AppliedRecommendationRule,
@@ -167,5 +167,9 @@ export function applyBaristaRecipeRecommendation(
     appliedRules: recipeAppliedRules(recommendation, recipe),
   };
 
-  return applyRecipeGrindRecommendation(recipeRecommendation, recipe, input);
+  return applyPresentedRecipeGrindRecommendation(
+    recipeRecommendation,
+    recipe,
+    input,
+  );
 }
