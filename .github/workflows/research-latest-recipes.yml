@@ -14,7 +14,7 @@ permissions:
 jobs:
   research:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -22,35 +22,57 @@ jobs:
       - name: Install yt-dlp
         run: python -m pip install yt-dlp
 
-      - name: Search official recipe videos
+      - name: Fetch official candidate metadata
         shell: bash
         run: |
           set -uo pipefail
-          mkdir -p research
-          queries=(
-            "정인성의 커피생활 국룰 레시피 V60"
-            "정인성 4666 커피 레시피"
-            "정인성 클레버 레시피"
-            "안스타 6888 커피 레시피"
-            "안스타 핸드드립 레시피 최신"
-            "Tetsu Kasuya 4:6 method official"
-            "Tetsu Kasuya latest V60 recipe"
-          )
-          : > research/search-results.txt
-          for query in "${queries[@]}"; do
-            echo "===== ${query} =====" | tee -a research/search-results.txt
-            yt-dlp "ytsearch12:${query}" --flat-playlist --print '%(id)s\t%(title)s\t%(channel)s\t%(channel_id)s\t%(timestamp)s\t%(webpage_url)s' 2>&1 | tee -a research/search-results.txt || true
-          done
-
-      - name: Fetch candidate metadata
-        shell: bash
-        run: |
-          set -uo pipefail
-          awk -F '\t' 'NF >= 6 && $1 ~ /^[A-Za-z0-9_-]{11}$/ {print $1}' research/search-results.txt | sort -u > research/video-ids.txt
           mkdir -p research/videos
+          cat > research/video-ids.txt <<'EOF'
+          Q3CbFCF5CD4
+          i7Q-pvahrXw
+          bVh1yP9imQk
+          JWHanqQ5MsQ
+          4p597xbd-ns
+          60vTtLWWztA
+          uZs78TPm7ws
+          ewqza63GXh0
+          k0YQ8vKRD4s
+          wmCW8xSWGZY
+          lJNPp-onikk
+          k0nsShguOsU
+          gC8K40kZ_6E
+          EOF
           while read -r id; do
-            yt-dlp "https://www.youtube.com/watch?v=${id}" --skip-download --write-description --write-info-json --output "research/videos/%(id)s.%(ext)s" || true
+            yt-dlp "https://www.youtube.com/watch?v=${id}" \
+              --skip-download \
+              --write-description \
+              --write-info-json \
+              --output "research/videos/%(id)s.%(ext)s" || true
           done < research/video-ids.txt
+
+      - name: Build compact report
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          lines=[]
+          for path in sorted(Path('research/videos').glob('*.info.json')):
+              data=json.loads(path.read_text())
+              lines.extend([
+                  '='*80,
+                  f"id: {data.get('id')}",
+                  f"title: {data.get('title')}",
+                  f"channel: {data.get('channel')}",
+                  f"channel_id: {data.get('channel_id')}",
+                  f"upload_date: {data.get('upload_date')}",
+                  f"timestamp: {data.get('timestamp')}",
+                  f"webpage_url: {data.get('webpage_url')}",
+                  'description:',
+                  data.get('description') or '',
+              ])
+          Path('research/report.txt').write_text('\n'.join(lines))
+          PY
 
       - name: Upload research
         uses: actions/upload-artifact@v4
