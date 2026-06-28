@@ -7,7 +7,7 @@ const workflow = await readFile(
   "utf8",
 );
 const scenario = await readFile(
-  new URL("./e2e/user-flow.cjs", import.meta.url),
+  new URL("./e2e/user-flow.mjs", import.meta.url),
   "utf8",
 );
 
@@ -19,6 +19,7 @@ test("PR validation builds the static export before browser E2E", () => {
   assert.ok(exportIndex > buildIndex);
   assert.ok(e2eIndex > exportIndex);
   assert.match(workflow, /playwright install --with-deps chromium/);
+  assert.match(workflow, /node test\/e2e\/user-flow\.mjs/);
 });
 
 test("browser E2E covers persistence, verified source, feedback and isolation", () => {
