@@ -24,7 +24,10 @@ test("active custom recipes cannot be deleted", async () => {
 
 test("dose, filters and toggles expose bounded and accessible state", async () => {
   const page = await readPage();
-  assert.match(page, /setDose\(clampNumber\(nextDose, 8, 40\)\)/);
+  assert.match(page, /const \[doseInput, setDoseInput\] = useState/);
+  assert.match(page, /nextDose >= 8 && nextDose <= 40/);
+  assert.match(page, /syncTimerDose\(clampNumber\(Number\(doseInput\), 8, 40\)\)/);
+  assert.match(page, /onBlur=\{commitTimerDoseInput\}/);
   assert.match(page, /aria-label="레시피 검색"/);
   assert.match(page, /aria-pressed=\{filter === option\}/);
   assert.match(page, /aria-pressed=\{alertsEnabled\}/);
