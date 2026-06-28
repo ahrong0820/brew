@@ -76,11 +76,11 @@ jobs:
 
       - name: Install Playwright Chromium
         run: |
-          pnpm add --global playwright@1.55.0
-          playwright install --with-deps chromium
+          pnpm add --save-dev --lockfile=false playwright@1.55.0
+          pnpm exec playwright install --with-deps chromium
 
       - name: Run mobile browser E2E
-        run: NODE_PATH="$(pnpm root -g)" node test/e2e/user-flow.cjs
+        run: node test/e2e/user-flow.mjs
 
       - name: Upload E2E diagnostics
         if: failure()
