@@ -140,7 +140,7 @@ async function run() {
     assert.equal(await doseInput.inputValue(), "4", "partial out-of-range input must remain editable");
     await doseInput.press("Tab");
     await page.waitForTimeout(100);
-    assert.equal(await doseInput.inputValue(), "22", "invalid dose must restore the last valid value");
+    assert.equal(await doseInput.inputValue(), "8", "out-of-range dose must clamp on blur");
 
     const recipeRows = page.locator('[data-recipe-row="true"]');
     await waitForCount(recipeRows, 2);
