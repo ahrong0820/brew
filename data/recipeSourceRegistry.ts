@@ -18,20 +18,30 @@ const cleverOfficialRecipeUrl = [
 ].join("");
 
 export const recipeSourceRegistry: readonly RecipeSourceRecord[] = [
-  { recipeId: "tetsu-46", label: "2016 World Brewers Cup 참고", check: "secondary" },
-  { recipeId: "anstar-6888", label: "기존 전사본", check: "unknown" },
   {
-    recipeId: "jis-4666",
-    label: "기존 V60 전사본 — Clever 영상과 분리",
-    check: "reference",
+    recipeId: "tetsu-46",
+    label: "테츠 카스야 공식 YouTube 4:6 메서드 해설",
+    url: "https://www.youtube.com/watch?v=lJNPp-onikk",
+    check: "partial",
+  },
+  {
+    recipeId: "tetsu-neo-2026",
+    label: "테츠 카스야 공식 YouTube THE NEO BREW 2026 설명",
+    url: "https://www.youtube.com/watch?v=k0nsShguOsU",
+    check: "partial",
   },
   {
     recipeId: "jis-ver2-hot",
-    label: "기존 V60 전사본 — Clever 영상과 분리",
-    check: "reference",
+    label: "정인성의 커피생활 공식 YouTube 국룰 Ver 2.0 설명",
+    url: "https://www.youtube.com/watch?v=i7Q-pvahrXw",
+    check: "partial",
   },
-  { recipeId: "signature-cone", label: "기존 전사본", check: "unknown" },
-  { recipeId: "deepblue-v60", label: "기존 전사본", check: "unknown" },
+  {
+    recipeId: "jis-484-15g-2026",
+    label: "정인성의 커피생활 공식 YouTube 15g 484 업데이트 설명",
+    url: "https://www.youtube.com/watch?v=Q3CbFCF5CD4",
+    check: "partial",
+  },
   {
     recipeId: "clever-official-distributor-185",
     label: "Clever Coffee Brewers 공식 유통 제품 페이지",
@@ -40,8 +50,8 @@ export const recipeSourceRegistry: readonly RecipeSourceRecord[] = [
   },
   {
     recipeId: "jis-clever-1-11",
-    label: "정인성의 커피생활 공식 YouTube 영상 설명",
-    url: "https://youtu.be/JWHanqQ5MsQ",
+    label: "정인성의 커피생활 공식 YouTube 최신 Clever 설명",
+    url: "https://www.youtube.com/watch?v=JWHanqQ5MsQ",
     check: "partial",
   },
   {
