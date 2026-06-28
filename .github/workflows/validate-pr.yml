@@ -80,7 +80,7 @@ jobs:
           pnpm exec playwright install --with-deps chromium
 
       - name: Run mobile browser E2E
-        run: node e2e/user-flow.mjs
+        run: node e2e/mobile-flow.mjs
 
       - name: Upload E2E diagnostics
         if: failure()
