@@ -10,6 +10,8 @@ import type {
   RecommendationStep,
 } from "@/lib/types/recommendation";
 
+const jisCleverRecipeId = "jis-clever-1-11";
+
 const replacedParameters = new Set([
   "water",
   "ratio",
@@ -30,17 +32,23 @@ function roundWater(value: number) {
   return Math.round(value / 5) * 5;
 }
 
+function roundTenth(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
 function scaleRecipeSteps(
   recipe: BaristaRecipe,
   waterGrams: number,
 ): RecommendationStep[] {
   const scale = waterGrams / recipe.waterGrams;
+  const preservesBypass = recipe.id === jisCleverRecipeId;
 
   return recipe.steps.map((step, index) => ({
     label: step.label,
     startSeconds: step.startSeconds,
-    targetWaterGrams:
-      index === recipe.steps.length - 1
+    targetWaterGrams: preservesBypass
+      ? roundTenth(step.targetWaterGrams * scale)
+      : index === recipe.steps.length - 1
         ? waterGrams
         : Math.min(waterGrams, roundWater(step.targetWaterGrams * scale)),
     cue: step.cue,
@@ -53,17 +61,23 @@ function recipeRule(
   description: string,
   recipe: BaristaRecipe,
 ): AppliedRecommendationRule {
+  const verified = recipe.sourceStatus === "verified";
+  const partial = recipe.id === jisCleverRecipeId;
   return {
     id,
     parameter,
     description,
     evidence: [
       {
-        kind: "heuristic",
+        kind: verified ? "manufacturer" : partial ? "expert" : "heuristic",
         sourceId: `barista-recipe:${recipe.id}`,
-        role: "context",
-        applicability: "partial",
-        note: `${recipe.sourceLabel}. 원본 출처 직접 검증 전까지 참고 레시피로 적용합니다.`,
+        role: verified || partial ? "supports" : "context",
+        applicability: verified ? "direct" : "partial",
+        note: verified
+          ? `${recipe.sourceLabel}. 공식 수치와 절차를 직접 적용합니다.`
+          : partial
+            ? `${recipe.sourceLabel}. 설명에서 확인된 1:11 수치와 핵심 절차만 적용하고 미확인 값은 별도 휴리스틱으로 표시합니다.`
+            : `${recipe.sourceLabel}. 원본 출처 직접 검증 전까지 참고 레시피로 적용합니다.`,
       },
     ],
   };
@@ -94,13 +108,17 @@ function recipeAppliedRules(
     recipeRule(
       "water.barista-recipe-dose-scaling.v1",
       "water",
-      "사용자 원두량에 맞춰 원본 레시피 물량과 단계별 누적 물량을 비례 조정",
+      recipe.id === jisCleverRecipeId
+        ? "사용자 원두량에 맞춰 원본 1:11 추출수와 2배 초기 적심·4~5배 후가수를 0.1g 단위로 비례 조정"
+        : "사용자 원두량에 맞춰 원본 레시피 물량과 단계별 누적 물량을 비례 조정",
       recipe,
     ),
     recipeRule(
       "temperature.barista-recipe-original.v1",
       "temperature",
-      "선택한 바리스타 레시피의 원본 물 온도를 시작점으로 적용",
+      recipe.temperatureCelsius === undefined
+        ? "원본 온도 미확인으로 배전도 기반 앱 시작 온도를 별도 적용"
+        : "선택한 바리스타 레시피의 원본 물 온도를 시작점으로 적용",
       recipe,
     ),
     recipeRule(
@@ -136,12 +154,15 @@ export function applyBaristaRecipeRecommendation(
   if (!match) return applyTechniqueOffsetRecommendation(recommendation, input);
 
   const recipe = match.recipe;
+  const isJisClever = recipe.id === jisCleverRecipeId;
   const ratio = clamp(
     roundRatio(recipe.ratio + (input.recommendationOffset?.ratio ?? 0)),
-    13,
+    isJisClever ? 11 : 13,
     18,
   );
-  const waterGrams = roundWater(recommendation.doseGrams * ratio);
+  const waterGrams = isJisClever
+    ? roundTenth(recommendation.doseGrams * ratio)
+    : roundWater(recommendation.doseGrams * ratio);
   const temperatureCelsius =
     recipe.temperatureCelsius === undefined
       ? recommendation.temperatureCelsius
@@ -166,7 +187,9 @@ export function applyBaristaRecipeRecommendation(
     reasons: [
       `${recipe.author}의 ${recipe.name}을 원본 템플릿으로 선택했습니다.`,
       ...match.reasons,
-      `원본 ${recipe.doseGrams}g/${recipe.waterGrams}g 구성을 ${recommendation.doseGrams}g/${waterGrams}g으로 비례 조정했습니다.`,
+      isJisClever
+        ? `원본 추출 비율 1:11을 유지해 ${recommendation.doseGrams}g/${waterGrams}g으로 조정했습니다. 후가수 4~5배는 추출수와 분리합니다.`
+        : `원본 ${recipe.doseGrams}g/${recipe.waterGrams}g 구성을 ${recommendation.doseGrams}g/${waterGrams}g으로 비례 조정했습니다.`,
     ],
     confidence: "reference",
     confidenceReason:
