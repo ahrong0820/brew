@@ -6,7 +6,7 @@ import type {
   TastingResult,
 } from "@/lib/types/coffee";
 
-const maxRepeatedImprovedGrindAdjustments = 2;
+const maxRepeatedGrindAdjustments = 2;
 
 function reverseAction(action: Exclude<BrewAdjustmentAction, "hold">) {
   if (action === "finer") return "coarser" as const;
@@ -52,14 +52,14 @@ function alternateAction(input: {
   return next === "hold" ? input.baseAction : next;
 }
 
-function repeatedImprovedActionCount(
+function repeatedNonWorseActionCount(
   history: readonly BrewAdjustmentTrial[] | undefined,
   action: Exclude<BrewAdjustmentAction, "hold">,
 ) {
   let count = 0;
   for (const trial of [...(history ?? [])].reverse()) {
     if (!trial.outcome) continue;
-    if (trial.action === action && trial.outcome === "improved") {
+    if (trial.action === action && trial.outcome !== "worse") {
       count += 1;
       continue;
     }
@@ -89,13 +89,13 @@ export function decideAdjustmentProgression(input: {
     if (actionVariable(input.baseAction) !== previous.variable) {
       return { action: input.baseAction };
     }
-    const repeatedCount = repeatedImprovedActionCount(
+    const repeatedCount = repeatedNonWorseActionCount(
       input.history,
       previous.action,
     );
     if (
       previous.variable === "grind" &&
-      repeatedCount >= maxRepeatedImprovedGrindAdjustments
+      repeatedCount >= maxRepeatedGrindAdjustments
     ) {
       const action = alternateAction({
         previous,
@@ -106,7 +106,7 @@ export function decideAdjustmentProgression(input: {
       return {
         action,
         reason:
-          "분쇄도를 같은 방향으로 두 번 연속 조정했으므로 추가 분쇄 변경 대신 온도 또는 비율 한 변수로 전환합니다.",
+          "분쇄도를 같은 방향으로 두 번 연속 시험했고 개선이 제한적이므로 추가 분쇄 변경 대신 온도 또는 비율 한 변수로 전환합니다.",
       };
     }
     return {
