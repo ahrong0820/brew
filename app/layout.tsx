@@ -4,9 +4,11 @@ import BrewHistoryDrawer from "./BrewHistoryDrawer";
 import BrewSessionFeedbackTracker from "./BrewSessionFeedbackTracker";
 import GrindMicronDrawer from "./GrindMicronDrawer";
 import MobileCoffeeNav from "./MobileCoffeeNav";
+import MobileOverlayCoordinator from "./MobileOverlayCoordinator";
 import MobileRecipeEnhancer from "./MobileRecipeEnhancer";
 import NextBrewAdjustmentDrawer from "./NextBrewAdjustmentDrawer";
 import OriginRegionDrawer from "./OriginRegionDrawer";
+import PersonalRecipeVersionDrawer from "./PersonalRecipeVersionDrawer";
 import RecommendationDrawer from "./RecommendationDrawerV2";
 import RecommendationEvidenceStatus from "./RecommendationEvidenceStatus";
 import "./globals.css";
@@ -34,9 +36,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
+        <MobileOverlayCoordinator />
         <MobileRecipeEnhancer />
         <GrindMicronDrawer />
         <BrewHistoryDrawer />
+        <PersonalRecipeVersionDrawer />
         <RecommendationDrawer />
         <RecommendationEvidenceStatus />
         <BeanLibraryDrawer />
