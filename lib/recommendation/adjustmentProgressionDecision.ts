@@ -6,6 +6,8 @@ import type {
   TastingResult,
 } from "@/lib/types/coffee";
 
+const maxRepeatedImprovedGrindAdjustments = 2;
+
 function reverseAction(action: Exclude<BrewAdjustmentAction, "hold">) {
   if (action === "finer") return "coarser" as const;
   if (action === "coarser") return "finer" as const;
@@ -50,9 +52,26 @@ function alternateAction(input: {
   return next === "hold" ? input.baseAction : next;
 }
 
+function repeatedImprovedActionCount(
+  history: readonly BrewAdjustmentTrial[] | undefined,
+  action: Exclude<BrewAdjustmentAction, "hold">,
+) {
+  let count = 0;
+  for (const trial of [...(history ?? [])].reverse()) {
+    if (!trial.outcome) continue;
+    if (trial.action === action && trial.outcome === "improved") {
+      count += 1;
+      continue;
+    }
+    break;
+  }
+  return count;
+}
+
 export function decideAdjustmentProgression(input: {
   baseAction: BrewAdjustmentAction;
   previous?: BrewAdjustmentTrial;
+  history?: readonly BrewAdjustmentTrial[];
   brewPaceAssessment?: BrewPaceAssessment;
   tastingResult: TastingResult;
 }) {
@@ -67,12 +86,33 @@ export function decideAdjustmentProgression(input: {
     };
   }
   if (previous.outcome === "improved") {
-    return actionVariable(input.baseAction) === previous.variable
-      ? {
-          action: previous.action,
-          reason: "직전 조정 후 개선되어 같은 방향을 한 단계 더 시험합니다.",
-        }
-      : { action: input.baseAction };
+    if (actionVariable(input.baseAction) !== previous.variable) {
+      return { action: input.baseAction };
+    }
+    const repeatedCount = repeatedImprovedActionCount(
+      input.history,
+      previous.action,
+    );
+    if (
+      previous.variable === "grind" &&
+      repeatedCount >= maxRepeatedImprovedGrindAdjustments
+    ) {
+      const action = alternateAction({
+        previous,
+        baseAction: input.baseAction,
+        pace: input.brewPaceAssessment,
+        taste: input.tastingResult,
+      });
+      return {
+        action,
+        reason:
+          "분쇄도를 같은 방향으로 두 번 연속 조정했으므로 추가 분쇄 변경 대신 온도 또는 비율 한 변수로 전환합니다.",
+      };
+    }
+    return {
+      action: previous.action,
+      reason: "직전 조정 후 개선되어 같은 방향을 한 단계 더 시험합니다.",
+    };
   }
   if (actionVariable(input.baseAction) !== previous.variable) {
     return { action: input.baseAction };
