@@ -11,5 +11,8 @@ export async function saveSuccessfulFeedback(page) {
   await dialog
     .getByText("추출 속도와 맛 평가를 저장했습니다.", { exact: true })
     .waitFor();
-  await dialog.waitFor({ state: "hidden", timeout: 5_000 });
+  await dialog
+    .getByRole("button", { name: "추출 결과 기록 닫기", exact: true })
+    .click();
+  await dialog.waitFor({ state: "hidden" });
 }
