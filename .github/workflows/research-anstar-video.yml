@@ -1,0 +1,153 @@
+name: Research Anstar recipe video
+
+on:
+  push:
+    branches:
+      - refresh-recipe-catalog
+
+permissions:
+  contents: read
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Query YouTube player clients
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p research/player research/captions research/media
+          python - <<'PY'
+          import json
+          import re
+          import urllib.request
+          from pathlib import Path
+
+          video_id = "uZs78TPm7ws"
+          ua = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36"
+          req = urllib.request.Request(
+              f"https://www.youtube.com/watch?v={video_id}&hl=ko",
+              headers={"User-Agent": ua},
+          )
+          with urllib.request.urlopen(req, timeout=40) as response:
+              page = response.read().decode(errors="ignore")
+          Path("research/watch.html").write_text(page)
+
+          def extract(pattern, default=""):
+              match = re.search(pattern, page)
+              return match.group(1) if match else default
+
+          api_key = extract(r'"INNERTUBE_API_KEY":"([^"]+)"')
+          visitor_data = extract(r'"VISITOR_DATA":"([^"]+)"')
+          web_version = extract(r'"INNERTUBE_CLIENT_VERSION":"([^"]+)"', "2.20260620.01.00")
+
+          clients = [
+              ("WEB", {"clientName": "WEB", "clientVersion": web_version, "hl": "ko", "gl": "KR", "visitorData": visitor_data}),
+              ("WEB_EMBEDDED", {"clientName": "WEB_EMBEDDED_PLAYER", "clientVersion": web_version, "hl": "ko", "gl": "KR", "clientScreen": "EMBED"}),
+              ("ANDROID", {"clientName": "ANDROID", "clientVersion": "19.44.38", "androidSdkVersion": 30, "hl": "ko", "gl": "KR", "userAgent": "com.google.android.youtube/19.44.38 (Linux; U; Android 11) gzip"}),
+              ("ANDROID_VR", {"clientName": "ANDROID_VR", "clientVersion": "1.60.19", "androidSdkVersion": 30, "hl": "ko", "gl": "KR"}),
+              ("IOS", {"clientName": "IOS", "clientVersion": "19.45.4", "deviceMake": "Apple", "deviceModel": "iPhone16,2", "osName": "iPhone", "osVersion": "18.1.0.22B83", "hl": "ko", "gl": "KR"}),
+              ("TV", {"clientName": "TVHTML5", "clientVersion": "7.20241010.18.00", "hl": "ko", "gl": "KR"}),
+          ]
+
+          report = []
+          for label, client in clients:
+              body = {
+                  "context": {"client": client},
+                  "videoId": video_id,
+                  "contentCheckOk": True,
+                  "racyCheckOk": True,
+              }
+              headers = {
+                  "Content-Type": "application/json",
+                  "User-Agent": client.get("userAgent", ua),
+                  "Origin": "https://www.youtube.com",
+                  "Referer": f"https://www.youtube.com/watch?v={video_id}",
+              }
+              if visitor_data:
+                  headers["X-Goog-Visitor-Id"] = visitor_data
+              request = urllib.request.Request(
+                  f"https://www.youtube.com/youtubei/v1/player?key={api_key}&prettyPrint=false",
+                  data=json.dumps(body).encode(),
+                  headers=headers,
+                  method="POST",
+              )
+              try:
+                  with urllib.request.urlopen(request, timeout=40) as response:
+                      payload = json.loads(response.read())
+                  status = response.status
+              except urllib.error.HTTPError as exc:
+                  status = exc.code
+                  payload = {"httpError": exc.read().decode(errors="ignore")}
+              except Exception as exc:
+                  status = 0
+                  payload = {"error": repr(exc)}
+              Path(f"research/player/{label}.json").write_text(
+                  json.dumps(payload, ensure_ascii=False, indent=2)
+              )
+              play = payload.get("playabilityStatus", {})
+              details = payload.get("videoDetails", {})
+              tracks = (
+                  payload.get("captions", {})
+                  .get("playerCaptionsTracklistRenderer", {})
+                  .get("captionTracks", [])
+              )
+              story = (
+                  payload.get("storyboards", {})
+                  .get("playerStoryboardSpecRenderer", {})
+                  .get("spec", "")
+              )
+              formats = payload.get("streamingData", {}).get("formats", [])
+              report.extend([
+                  "=" * 80,
+                  f"client: {label}",
+                  f"http: {status}",
+                  f"playability: {play.get('status')} {play.get('reason', '')}",
+                  f"title: {details.get('title', '')}",
+                  f"author: {details.get('author', '')}",
+                  f"length: {details.get('lengthSeconds', '')}",
+                  f"caption_tracks: {len(tracks)}",
+                  f"storyboard_present: {bool(story)}",
+                  f"progressive_formats: {len(formats)}",
+              ])
+              for index, track in enumerate(tracks):
+                  url = track.get("baseUrl", "")
+                  report.append(f"caption_{index}: {track.get('languageCode')} {url}")
+                  if url:
+                      try:
+                          cap_req = urllib.request.Request(url + "&fmt=json3", headers={"User-Agent": ua})
+                          with urllib.request.urlopen(cap_req, timeout=40) as cap_response:
+                              Path(f"research/captions/{label}-{index}.json").write_bytes(cap_response.read())
+                      except Exception as exc:
+                          Path(f"research/captions/{label}-{index}.error.txt").write_text(repr(exc))
+              if story:
+                  Path(f"research/player/{label}.storyboard.txt").write_text(story)
+              for index, fmt in enumerate(formats):
+                  if fmt.get("url"):
+                      report.append(f"format_{index}: {fmt.get('itag')} {fmt.get('qualityLabel')} {fmt.get('mimeType')} {fmt.get('url')}")
+          Path("research/report.txt").write_text("\n".join(report))
+          PY
+
+      - name: Try yt-dlp Android extraction
+        shell: bash
+        run: |
+          python -m pip install --quiet yt-dlp
+          yt-dlp "https://www.youtube.com/watch?v=uZs78TPm7ws" \
+            --extractor-args "youtube:player_client=android,web_embedded" \
+            --skip-download \
+            --write-info-json \
+            --write-auto-subs \
+            --sub-langs "ko.*" \
+            --sub-format json3 \
+            --output "research/media/%(id)s.%(ext)s" \
+            2>&1 | tee research/yt-dlp.log || true
+
+      - name: Upload research
+        uses: actions/upload-artifact@v4
+        with:
+          name: anstar-video-research-${{ github.run_id }}
+          path: research
+          retention-days: 3
