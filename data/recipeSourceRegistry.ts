@@ -1,4 +1,9 @@
-export type SourceCheck = "exact" | "partial" | "secondary" | "unknown";
+export type SourceCheck =
+  | "exact"
+  | "partial"
+  | "reference"
+  | "secondary"
+  | "unknown";
 
 export interface RecipeSourceRecord {
   recipeId: string;
@@ -17,15 +22,13 @@ export const recipeSourceRegistry: readonly RecipeSourceRecord[] = [
   { recipeId: "anstar-6888", label: "기존 전사본", check: "unknown" },
   {
     recipeId: "jis-4666",
-    label: "정인성 바리스타 공개 영상 참고",
-    url: "https://youtu.be/JWHanqQ5MsQ",
-    check: "partial",
+    label: "기존 V60 전사본 — Clever 영상과 분리",
+    check: "reference",
   },
   {
     recipeId: "jis-ver2-hot",
-    label: "정인성 바리스타 공개 영상 참고",
-    url: "https://youtu.be/JWHanqQ5MsQ",
-    check: "partial",
+    label: "기존 V60 전사본 — Clever 영상과 분리",
+    check: "reference",
   },
   { recipeId: "signature-cone", label: "기존 전사본", check: "unknown" },
   { recipeId: "deepblue-v60", label: "기존 전사본", check: "unknown" },
@@ -35,7 +38,17 @@ export const recipeSourceRegistry: readonly RecipeSourceRecord[] = [
     url: cleverOfficialRecipeUrl,
     check: "exact",
   },
-  { recipeId: "clever-balanced-reference", label: "내부 참고 레시피", check: "unknown" },
+  {
+    recipeId: "jis-clever-1-11",
+    label: "정인성의 커피생활 공식 YouTube 영상 설명",
+    url: "https://youtu.be/JWHanqQ5MsQ",
+    check: "partial",
+  },
+  {
+    recipeId: "clever-balanced-reference",
+    label: "내부 참고 레시피",
+    check: "reference",
+  },
 ] as const;
 
 export function sourceRecordForRecipe(recipeId: string) {
