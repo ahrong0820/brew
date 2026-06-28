@@ -1,3 +1,4 @@
+// Coffee brewing quantities use grams; coffee bean amounts support 0.1g precision.
 import { grinderSafeRange } from "./grindRecommendationV2.ts";
 import type { GrinderProfile, TasteGoal } from "@/lib/types/coffee";
 import type {
@@ -7,7 +8,7 @@ import type {
 } from "@/lib/types/recommendation";
 
 export const recommendationLimits = {
-  doseGrams: { min: 8, max: 40, step: 1 },
+  doseGrams: { min: 8, max: 40, step: 0.1 },
   waterGrams: { min: 0, max: 2_000, step: 5 },
   ratio: { min: 13, max: 18, step: 0.5 },
   temperatureCelsius: { min: 82, max: 96, step: 1 },
