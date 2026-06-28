@@ -1,6 +1,7 @@
 import { selectBaristaRecipe } from "#barista-recipe-matcher";
 import { applyCleverRecommendationProfile } from "./cleverRecommendation.ts";
 import { applyPresentedRecipeGrindRecommendation } from "./grinderPresentationRecommendation.ts";
+import { applyTechniqueOffsetRecommendation } from "./techniqueOffsetRecommendation.ts";
 import type { BaristaRecipe } from "@/lib/types/baristaRecipe";
 import type {
   AppliedRecommendationRule,
@@ -132,7 +133,7 @@ export function applyBaristaRecipeRecommendation(
     input.baristaRecipeId,
   );
 
-  if (!match) return recommendation;
+  if (!match) return applyTechniqueOffsetRecommendation(recommendation, input);
 
   const recipe = match.recipe;
   const ratio = clamp(
@@ -177,9 +178,13 @@ export function applyBaristaRecipeRecommendation(
     recipe,
     input,
   );
+  const techniqueProfiledRecommendation = applyTechniqueOffsetRecommendation(
+    brewerProfiledRecommendation,
+    input,
+  );
 
   return applyPresentedRecipeGrindRecommendation(
-    brewerProfiledRecommendation,
+    techniqueProfiledRecommendation,
     recipe,
     input,
   );
