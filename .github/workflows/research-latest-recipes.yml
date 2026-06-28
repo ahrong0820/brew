@@ -19,156 +19,100 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Fetch player metadata and captions
+      - name: Query public video API mirrors
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p research/videos research/captions
+          ids=(Q3CbFCF5CD4 60vTtLWWztA uZs78TPm7ws i7Q-pvahrXw JWHanqQ5MsQ k0nsShguOsU)
+          instances=(
+            https://inv.nadeko.net
+            https://invidious.nerdvpn.de
+            https://invidious.tiekoetter.com
+            https://invidious.f5.si
+            https://inv.zoomerville.com
+          )
+          : > research/mirror-log.txt
+          for id in "${ids[@]}"; do
+            for instance in "${instances[@]}"; do
+              echo "${id} ${instance}" >> research/mirror-log.txt
+              if curl -L --fail --connect-timeout 10 --max-time 30 \
+                -A 'Mozilla/5.0' \
+                "${instance}/api/v1/videos/${id}" \
+                -o "research/videos/${id}.json" 2>> research/mirror-log.txt; then
+                echo "SUCCESS ${id} ${instance}" >> research/mirror-log.txt
+                python - "$id" "$instance" <<'PY'
+          import json, sys, urllib.parse
+          from pathlib import Path
+          video_id, instance = sys.argv[1:]
+          path = Path(f'research/videos/{video_id}.json')
+          data = json.loads(path.read_text())
+          data['_mirror'] = instance
+          path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+          PY
+                break
+              fi
+            done
+          done
+
+      - name: Download available captions
         shell: bash
         run: |
           python - <<'PY'
           import json
-          import re
-          import urllib.parse
-          import urllib.request
+          import subprocess
           from pathlib import Path
-
-          video_ids = [
-              'Q3CbFCF5CD4',
-              '60vTtLWWztA',
-              'uZs78TPm7ws',
-              'i7Q-pvahrXw',
-              'JWHanqQ5MsQ',
-              'k0nsShguOsU',
-          ]
-          base = Path('research')
-          pages = base / 'pages'
-          players = base / 'players'
-          captions = base / 'captions'
-          for directory in [pages, players, captions]:
-              directory.mkdir(parents=True, exist_ok=True)
-
-          user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126 Safari/537.36'
-
-          def request_json(url, body=None, headers=None):
-              request = urllib.request.Request(
-                  url,
-                  data=json.dumps(body).encode() if body is not None else None,
-                  headers=headers or {},
-                  method='POST' if body is not None else 'GET',
-              )
-              try:
-                  with urllib.request.urlopen(request, timeout=40) as response:
-                      return {'status': response.status, 'body': json.loads(response.read())}
-              except urllib.error.HTTPError as exc:
-                  return {'status': exc.code, 'errorBody': exc.read().decode(errors='ignore')}
-              except Exception as exc:
-                  return {'status': 0, 'error': repr(exc)}
-
-          for video_id in video_ids:
-              page_request = urllib.request.Request(
-                  f'https://www.youtube.com/watch?v={video_id}&hl=ko',
-                  headers={'User-Agent': user_agent},
-              )
-              with urllib.request.urlopen(page_request, timeout=40) as response:
-                  page = response.read().decode(errors='ignore')
-              (pages / f'{video_id}.html').write_text(page)
-
-              def match(pattern):
-                  found = re.search(pattern, page)
-                  return found.group(1) if found else ''
-
-              api_key = match(r'"INNERTUBE_API_KEY":"([^"]+)"')
-              client_version = match(r'"INNERTUBE_CLIENT_VERSION":"([^"]+)"')
-              visitor_data = match(r'"VISITOR_DATA":"([^"]+)"')
-              headers = {
-                  'Content-Type': 'application/json',
-                  'User-Agent': user_agent,
-                  'Origin': 'https://www.youtube.com',
-                  'Referer': f'https://www.youtube.com/watch?v={video_id}',
-                  'X-Youtube-Client-Name': '1',
-                  'X-Youtube-Client-Version': client_version,
-                  'X-Goog-Visitor-Id': visitor_data,
-              }
-              body = {
-                  'context': {
-                      'client': {
-                          'clientName': 'WEB',
-                          'clientVersion': client_version,
-                          'hl': 'ko',
-                          'gl': 'KR',
-                          'visitorData': visitor_data,
-                      },
-                      'request': {'useSsl': True},
-                  },
-                  'videoId': video_id,
-                  'contentCheckOk': True,
-                  'racyCheckOk': True,
-              }
-              result = request_json(
-                  f'https://www.youtube.com/youtubei/v1/player?key={api_key}&prettyPrint=false',
-                  body,
-                  headers,
-              )
-              (players / f'{video_id}.json').write_text(
-                  json.dumps(result, ensure_ascii=False, indent=2)
-              )
-              payload = result.get('body', {})
-              tracks = (
-                  payload.get('captions', {})
-                  .get('playerCaptionsTracklistRenderer', {})
-                  .get('captionTracks', [])
-              )
-              for index, track in enumerate(tracks):
-                  url = track.get('baseUrl')
+          for path in Path('research/videos').glob('*.json'):
+              data=json.loads(path.read_text())
+              video_id=path.stem
+              mirror=data.get('_mirror','')
+              for index, caption in enumerate(data.get('captions') or []):
+                  label=caption.get('label') or caption.get('languageCode') or caption.get('name') or ''
+                  url=caption.get('url') or caption.get('baseUrl') or ''
+                  if url.startswith('/'):
+                      url=mirror+url
+                  if not url and mirror and label:
+                      from urllib.parse import quote
+                      url=f'{mirror}/api/v1/captions/{video_id}?label={quote(str(label))}'
                   if not url:
                       continue
-                  caption_request = urllib.request.Request(
-                      url + ('&' if '?' in url else '?') + 'fmt=json3',
-                      headers={'User-Agent': user_agent},
+                  output=Path(f'research/captions/{video_id}-{index}.txt')
+                  result=subprocess.run(
+                      ['curl','-L','--fail','--connect-timeout','10','--max-time','30','-A','Mozilla/5.0',url],
+                      capture_output=True,
                   )
-                  try:
-                      with urllib.request.urlopen(caption_request, timeout=40) as response:
-                          raw = response.read()
-                      (captions / f'{video_id}-{index}.json').write_bytes(raw)
-                  except Exception as exc:
-                      (captions / f'{video_id}-{index}.error.txt').write_text(repr(exc))
+                  if result.returncode == 0:
+                      output.write_bytes(result.stdout)
+                  else:
+                      output.with_suffix('.error.txt').write_bytes(result.stderr)
+          PY
 
+      - name: Build compact report
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
           lines=[]
-          for video_id in video_ids:
-              result=json.loads((players / f'{video_id}.json').read_text())
-              payload=result.get('body', {})
-              details=payload.get('videoDetails', {})
-              status=payload.get('playabilityStatus', {})
-              tracks=(payload.get('captions', {})
-                      .get('playerCaptionsTracklistRenderer', {})
-                      .get('captionTracks', []))
+          for path in sorted(Path('research/videos').glob('*.json')):
+              data=json.loads(path.read_text())
               lines.extend([
                   '='*80,
-                  f'id: {video_id}',
-                  f'http_status: {result.get("status")}',
-                  f'playability: {status.get("status")} {status.get("reason", "")}',
-                  f'title: {details.get("title", "")}',
-                  f'author: {details.get("author", "")}',
-                  f'length_seconds: {details.get("lengthSeconds", "")}',
-                  f'caption_tracks: {len(tracks)}',
+                  f'id: {path.stem}',
+                  f'mirror: {data.get("_mirror")}',
+                  f'title: {data.get("title")}',
+                  f'author: {data.get("author")}',
+                  f'authorId: {data.get("authorId")}',
+                  f'published: {data.get("published")}',
+                  f'lengthSeconds: {data.get("lengthSeconds")}',
+                  f'captions: {json.dumps(data.get("captions") or [], ensure_ascii=False)}',
+                  'description:',
+                  data.get('description') or '',
               ])
-              for index, track in enumerate(tracks):
-                  name=''.join(run.get('text','') for run in track.get('name',{}).get('runs',[]))
-                  lines.append(f'caption_{index}: {track.get("languageCode")} {name} {track.get("kind", "")}')
-                  caption_path=captions / f'{video_id}-{index}.json'
-                  if caption_path.exists():
-                      try:
-                          caption_json=json.loads(caption_path.read_text())
-                          transcript=[]
-                          for event in caption_json.get('events', []):
-                              text=''.join(segment.get('utf8','') for segment in event.get('segs', []))
-                              if text.strip():
-                                  transcript.append(f'{event.get("tStartMs",0)}\t{text.strip()}')
-                          lines.extend(['transcript:', '\n'.join(transcript)])
-                      except Exception as exc:
-                          lines.append(f'caption_parse_error: {exc!r}')
-              if result.get('errorBody'):
-                  lines.append('error_body: '+result['errorBody'])
-              if result.get('error'):
-                  lines.append('error: '+result['error'])
-          (base / 'player-report.txt').write_text('\n'.join(lines))
+              for caption in sorted(Path('research/captions').glob(f'{path.stem}-*.txt')):
+                  lines.extend([f'caption_file: {caption.name}', caption.read_text(errors='ignore')])
+          lines.extend(['='*80, 'mirror_log:', Path('research/mirror-log.txt').read_text(errors='ignore')])
+          Path('research/report.txt').write_text('\n'.join(lines))
           PY
 
       - name: Upload research
