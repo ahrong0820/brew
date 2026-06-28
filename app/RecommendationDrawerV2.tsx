@@ -1,5 +1,6 @@
 "use client";
 
+// Coffee bean amounts are entered in grams and support 0.1g precision.
 import {
   Coffee,
   Droplets,
@@ -65,7 +66,7 @@ function formatTime(seconds: number) {
 
 function normalizedDose(value: number) {
   return Number.isFinite(value)
-    ? Math.min(40, Math.max(8, Math.round(value)))
+    ? Math.min(40, Math.max(8, Math.round(value * 10) / 10))
     : 15;
 }
 
@@ -327,16 +328,38 @@ export default function RecommendationDrawerV2() {
                           type="number"
                           min={8}
                           max={40}
-                          step={1}
-                          value={preferences?.defaultDoseGrams ?? 15}
-                          onChange={(event) =>
-                            updatePreference(
-                              "defaultDoseGrams",
-                              Number(event.target.value),
-                            )
-                          }
+                          step={0.1}
+                          inputMode="decimal"
+                          defaultValue={normalizedDose(
+                            preferences?.defaultDoseGrams ?? 15,
+                          )}
+                          onChange={(event) => {
+                            const value = event.currentTarget.valueAsNumber;
+                            setRecommendation(null);
+                            setMessage(null);
+                            if (Number.isFinite(value)) {
+                              setPreferences((current) =>
+                                current
+                                  ? { ...current, defaultDoseGrams: value }
+                                  : current,
+                              );
+                            }
+                          }}
+                          onBlur={(event) => {
+                            const value = event.currentTarget.valueAsNumber;
+                            const safeDose = normalizedDose(
+                              Number.isFinite(value)
+                                ? value
+                                : (preferences?.defaultDoseGrams ?? 15),
+                            );
+                            event.currentTarget.value = String(safeDose);
+                            updatePreference("defaultDoseGrams", safeDose);
+                          }}
                           className={fieldClass}
                         />
+                        <span className="mt-1.5 block text-xs text-[#687168]">
+                          8~40g 범위에서 0.1g 단위로 입력할 수 있습니다.
+                        </span>
                       </label>
 
                       <label>
