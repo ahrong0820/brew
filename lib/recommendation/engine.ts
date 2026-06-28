@@ -38,6 +38,7 @@ import {
   beanBrewProfileStore,
   brewSessionStore,
 } from "@/lib/storage/coffeeData";
+import type { BeanBrewProfile } from "@/lib/types/coffee";
 import type {
   AppliedRecommendationRule,
   BrewRecommendation,
@@ -166,6 +167,23 @@ function resolvedBaristaRecipeId(input: RecommendationInput) {
   )?.recipe.id;
 }
 
+function latestPersonalRecipeGrind(profile: BeanBrewProfile | undefined) {
+  const personalRecipe = profile?.personalRecipe;
+  if (!personalRecipe || personalRecipe.versions.length === 0) return undefined;
+  const version =
+    personalRecipe.versions.find(
+      (candidate) => candidate.version === personalRecipe.version,
+    ) ??
+    [...personalRecipe.versions].sort(
+      (left, right) => right.version - left.version,
+    )[0];
+  if (!version) return undefined;
+  return {
+    displayValue: version.grindDisplayValue,
+    status: personalRecipe.status,
+  };
+}
+
 export function createRecommendation(
   input: RecommendationInput,
 ): BrewRecommendation {
@@ -186,7 +204,15 @@ export function createRecommendation(
   );
   const recommendationOffset =
     input.recommendationOffset ?? profile?.recommendationOffset;
-  const recommendationInput = { ...scopedInput, recommendationOffset };
+  const personalGrind = latestPersonalRecipeGrind(profile);
+  const recommendationInput: RecommendationInput = {
+    ...scopedInput,
+    recommendationOffset,
+    personalRecipeGrindDisplayValue:
+      input.personalRecipeGrindDisplayValue ?? personalGrind?.displayValue,
+    personalRecipeGrindStatus:
+      input.personalRecipeGrindStatus ?? personalGrind?.status,
+  };
   const generated = createPersonalizedRecommendation(recommendationInput);
   const initialRatio = appliesV60FoundationRatio(recommendationInput)
     ? v60FoundationRatio
