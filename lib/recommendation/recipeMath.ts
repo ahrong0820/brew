@@ -1,3 +1,4 @@
+// Coffee bean amount and water-ratio helpers.
 export {
   applyRatioAndWater,
   normalizeDoseGrams,
