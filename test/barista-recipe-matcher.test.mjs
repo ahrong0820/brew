@@ -17,19 +17,32 @@ const baseInput = {
   flavorNotes: [],
 };
 
-test("initial catalog contains HOT V60 references with grind intent", () => {
-  assert.equal(baristaRecipes.length, 6);
+const removedRecipeIds = [
+  "signature-cone",
+  "deepblue-v60",
+  "jis-4666",
+  "anstar-6888",
+];
+
+test("active V60 catalog contains only source-audited current recipes", () => {
+  assert.equal(baristaRecipes.length, 4);
   assert.ok(
     baristaRecipes.every(
       (recipe) =>
         recipe.brewerType === "v60" &&
         recipe.drinkStyle === "hot" &&
-        recipe.grindIntent.originalDescription.length > 0,
+        recipe.grindIntent.originalDescription.length > 0 &&
+        recipe.sourceUrl,
+    ),
+  );
+  assert.ok(
+    removedRecipeIds.every(
+      (recipeId) => !baristaRecipes.some((recipe) => recipe.id === recipeId),
     ),
   );
 });
 
-test("bright light-roast matching uses flavor notes to break close candidates", () => {
+test("bright light-roast matching uses the retained official 4:6 reference", () => {
   const match = selectBaristaRecipe({
     ...baseInput,
     roastLevel: "light",
@@ -38,8 +51,8 @@ test("bright light-roast matching uses flavor notes to break close candidates", 
   });
 
   assert.ok(match);
-  assert.equal(match.recipe.id, "jis-4666");
-  assert.ok(match.score >= 90);
+  assert.equal(match.recipe.id, "tetsu-46");
+  assert.ok(match.score >= 80);
   assert.ok(match.reasons.some((reason) => reason.includes("산미·향미")));
   assert.ok(match.reasons.some((reason) => reason.includes("클린")));
 });
@@ -57,7 +70,7 @@ test("sweet matching prefers the recipe whose cup profile and dose align", () =>
   assert.ok(match.reasons.some((reason) => reason.includes("원본 18g")));
 });
 
-test("balanced 15g matching selects the closest reproducible home recipe", () => {
+test("balanced 15g matching selects the current low-dose 484 recipe", () => {
   const matches = rankBaristaRecipes(
     {
       ...baseInput,
@@ -69,67 +82,66 @@ test("balanced 15g matching selects the closest reproducible home recipe", () =>
   );
 
   assert.equal(matches.length, 3);
-  assert.equal(matches[0].recipe.id, "deepblue-v60");
+  assert.equal(matches[0].recipe.id, "jis-484-15g-2026");
   assert.ok(matches[0].score > matches[1].score);
 });
 
 test("ranking remains unchanged when no personal history is supplied", () => {
-  const first = rankBaristaRecipes(baseInput, 6).map((match) => match.recipe.id);
+  const first = rankBaristaRecipes(baseInput, 4).map((match) => match.recipe.id);
   const second = rankBaristaRecipes(
     { ...baseInput, personalRecipeStatuses: {} },
-    6,
+    4,
   ).map((match) => match.recipe.id);
 
   assert.deepEqual(second, first);
 });
 
-test("provisional personal history adds 10 points and raises only that recipe", () => {
-  const baseline = rankBaristaRecipes(baseInput, 6);
+test("provisional personal history adds 10 points only to that current recipe", () => {
+  const baseline = rankBaristaRecipes(baseInput, 4);
   const boosted = rankBaristaRecipes(
     {
       ...baseInput,
-      personalRecipeStatuses: { "anstar-6888": "provisional" },
+      personalRecipeStatuses: { "tetsu-neo-2026": "provisional" },
     },
-    6,
+    4,
   );
-  const baselineIndex = baseline.findIndex(
-    (match) => match.recipe.id === "anstar-6888",
+  const baselineMatch = baseline.find(
+    (match) => match.recipe.id === "tetsu-neo-2026",
   );
-  const boostedIndex = boosted.findIndex(
-    (match) => match.recipe.id === "anstar-6888",
+  const boostedMatch = boosted.find(
+    (match) => match.recipe.id === "tetsu-neo-2026",
   );
-  const baselineScore = baseline[baselineIndex].score;
-  const boostedMatch = boosted[boostedIndex];
 
-  assert.equal(boostedMatch.score, baselineScore + 10);
-  assert.ok(boostedIndex < baselineIndex);
+  assert.ok(baselineMatch);
+  assert.ok(boostedMatch);
+  assert.equal(boostedMatch.score, Math.min(100, baselineMatch.score + 10));
   assert.ok(
     boostedMatch.reasons.some((reason) => reason.includes("[개인 성공] 잠정")),
   );
 });
 
-test("stable personal history adds 20 points and can promote the recipe to first", () => {
-  const baseline = rankBaristaRecipes(baseInput, 6);
+test("stable personal history can promote the latest NEO recipe to first", () => {
+  const baseline = rankBaristaRecipes(baseInput, 4);
   const boosted = rankBaristaRecipes(
     {
       ...baseInput,
-      personalRecipeStatuses: { "anstar-6888": "stable" },
+      personalRecipeStatuses: { "tetsu-neo-2026": "stable" },
     },
-    6,
+    4,
   );
   const baselineMatch = baseline.find(
-    (match) => match.recipe.id === "anstar-6888",
+    (match) => match.recipe.id === "tetsu-neo-2026",
   );
 
   assert.ok(baselineMatch);
-  assert.equal(boosted[0].recipe.id, "anstar-6888");
+  assert.equal(boosted[0].recipe.id, "tetsu-neo-2026");
   assert.equal(boosted[0].score, Math.min(100, baselineMatch.score + 20));
   assert.ok(
     boosted[0].reasons.some((reason) => reason.includes("[개인 성공] 안정")),
   );
 });
 
-test("body matching favors the stronger-ratio 4:6 reference", () => {
+test("medium-roast body matching retains the classic 4:6 reference", () => {
   const match = selectBaristaRecipe({
     ...baseInput,
     roastLevel: "medium",
