@@ -135,7 +135,10 @@ export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
     );
   }
 
-  if (input.tastingResult && typeof window !== "undefined") {
+  if (
+    (input.tastingResult || input.adjustmentOutcome) &&
+    typeof window !== "undefined"
+  ) {
     window.dispatchEvent(
       new CustomEvent<BrewFeedbackSavedDetail>(brewFeedbackSavedEvent, {
         detail: { sessionId: savedSession.id },
