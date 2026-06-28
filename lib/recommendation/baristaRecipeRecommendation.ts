@@ -41,12 +41,13 @@ function scaleRecipeSteps(
   waterGrams: number,
 ): RecommendationStep[] {
   const scale = waterGrams / recipe.waterGrams;
-  const preservesBypass = recipe.id === jisCleverRecipeId;
+  const preservesExactScale =
+    recipe.sourceStatus === "verified" || recipe.id === jisCleverRecipeId;
 
   return recipe.steps.map((step, index) => ({
     label: step.label,
     startSeconds: step.startSeconds,
-    targetWaterGrams: preservesBypass
+    targetWaterGrams: preservesExactScale
       ? roundTenth(step.targetWaterGrams * scale)
       : index === recipe.steps.length - 1
         ? waterGrams
@@ -110,7 +111,9 @@ function recipeAppliedRules(
       "water",
       recipe.id === jisCleverRecipeId
         ? "사용자 원두량에 맞춰 원본 1:11 추출수와 2배 초기 적심·4~5배 후가수를 0.1g 단위로 비례 조정"
-        : "사용자 원두량에 맞춰 원본 레시피 물량과 단계별 누적 물량을 비례 조정",
+        : recipe.sourceStatus === "verified"
+          ? "공식 원두량·물량 관계와 단계별 물량을 0.1g 단위로 비례 조정"
+          : "사용자 원두량에 맞춰 원본 레시피 물량과 단계별 누적 물량을 비례 조정",
       recipe,
     ),
     recipeRule(
@@ -155,14 +158,26 @@ export function applyBaristaRecipeRecommendation(
 
   const recipe = match.recipe;
   const isJisClever = recipe.id === jisCleverRecipeId;
-  const ratio = clamp(
-    roundRatio(recipe.ratio + (input.recommendationOffset?.ratio ?? 0)),
-    isJisClever ? 11 : 13,
-    18,
-  );
-  const waterGrams = isJisClever
-    ? roundTenth(recommendation.doseGrams * ratio)
-    : roundWater(recommendation.doseGrams * ratio);
+  const isVerifiedSource = recipe.sourceStatus === "verified";
+  const ratioOffset = input.recommendationOffset?.ratio ?? 0;
+  const ratio =
+    isVerifiedSource && ratioOffset === 0
+      ? recipe.ratio
+      : clamp(
+          isJisClever
+            ? roundTenth(recipe.ratio + ratioOffset)
+            : roundRatio(recipe.ratio + ratioOffset),
+          isJisClever ? 11 : 13,
+          18,
+        );
+  const waterGrams =
+    isVerifiedSource && ratioOffset === 0
+      ? roundTenth(
+          recipe.waterGrams * (recommendation.doseGrams / recipe.doseGrams),
+        )
+      : isJisClever
+        ? roundTenth(recommendation.doseGrams * ratio)
+        : roundWater(recommendation.doseGrams * ratio);
   const temperatureCelsius =
     recipe.temperatureCelsius === undefined
       ? recommendation.temperatureCelsius
