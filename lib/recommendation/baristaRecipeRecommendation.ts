@@ -155,6 +155,7 @@ export function applyBaristaRecipeRecommendation(
     ...recommendation,
     templateName: recipe.name,
     sourceRecipeId: recipe.id,
+    sourceStatus: recipe.sourceStatus,
     waterGrams,
     ratio,
     temperatureCelsius,
