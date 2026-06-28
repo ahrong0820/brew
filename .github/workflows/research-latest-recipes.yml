@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - refresh-recipe-catalog
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
