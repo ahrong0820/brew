@@ -2,6 +2,7 @@ import type {
   Bean,
   BeanBrewProfile,
   GrinderProfile,
+  PersonalRecipeStatus,
   RecommendationConfidence,
   TasteGoal,
   UserPreferences,
@@ -15,6 +16,10 @@ export interface RecommendationInput {
   recommendationOffset?: BeanBrewProfile["recommendationOffset"];
   /** Optional user-selected recipe from the ranked barista recipe candidates. */
   baristaRecipeId?: string;
+  /** Latest successful recipe-scoped grind value, already expressed in this grinder profile. */
+  personalRecipeGrindDisplayValue?: string;
+  /** Whether the recipe-scoped successful grind is provisional or stable. */
+  personalRecipeGrindStatus?: PersonalRecipeStatus;
 }
 
 export interface RecommendationStep {

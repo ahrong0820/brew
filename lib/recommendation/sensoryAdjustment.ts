@@ -2,6 +2,7 @@ import type { BrewAdjustmentSuggestion } from "@/lib/recommendation/adjustment";
 import { decideAdjustmentAction } from "@/lib/recommendation/adjustmentPolicy";
 import { latestEvaluatedAdjustment } from "@/lib/recommendation/adjustmentProgression";
 import { decideAdjustmentProgression } from "@/lib/recommendation/adjustmentProgressionDecision";
+import { grinderSafeRange } from "@/lib/recommendation/grindRecommendationV2";
 import {
   beanBrewProfileStore,
   brewSessionStore,
@@ -61,16 +62,8 @@ function grindStep(profile: GrinderProfile) {
 }
 
 function settingBounds(profile: GrinderProfile) {
-  const points = profile.micronReference?.points ?? [];
-  if (points.length > 0) {
-    return {
-      min: Math.min(...points.map((point) => point.step)) + profile.personalOffset,
-      max: Math.max(...points.map((point) => point.step)) + profile.personalOffset,
-    };
-  }
-  if (profile.model === "1zpresso-k-ultra") return { min: 5.5, max: 8.5 };
-  if (profile.model === "baratza-encore") return { min: 8, max: 32 };
-  return null;
+  const range = grinderSafeRange(profile);
+  return range ? { min: range.min, max: range.max } : null;
 }
 
 function grindSuggestion(
@@ -214,6 +207,7 @@ export function createSensoryAdjustmentSuggestion(
   const decision = decideAdjustmentProgression({
     baseAction,
     previous: latestEvaluatedAdjustment(profile?.adjustmentHistory),
+    history: profile?.adjustmentHistory,
     brewPaceAssessment: session.brewPaceAssessment,
     tastingResult: session.tastingResult,
   });

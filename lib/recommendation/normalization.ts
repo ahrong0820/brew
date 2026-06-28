@@ -1,3 +1,4 @@
+import { grinderSafeRange } from "./grindRecommendationV2.ts";
 import type { GrinderProfile, TasteGoal } from "@/lib/types/coffee";
 import type {
   BrewRecommendation,
@@ -76,20 +77,9 @@ export function normalizeTimeSeconds(value: number, fallback: number) {
 }
 
 export function grinderSettingBounds(grinder: GrinderProfile) {
-  const points = grinder.micronReference?.points ?? [];
-  if (points.length > 0) {
-    return {
-      min: Math.min(...points.map((point) => point.step)) + grinder.personalOffset,
-      max: Math.max(...points.map((point) => point.step)) + grinder.personalOffset,
-    };
-  }
-
-  if (grinder.model === "1zpresso-k-ultra") {
-    return { min: 5.5, max: 8.5 };
-  }
-
-  if (grinder.model === "baratza-encore") {
-    return { min: 8, max: 32 };
+  const safeRange = grinderSafeRange(grinder);
+  if (safeRange) {
+    return { min: safeRange.min, max: safeRange.max };
   }
 
   return {
@@ -118,15 +108,7 @@ export function grinderDisplayRange(
 }
 
 function grinderRangeWidth(grinder: GrinderProfile) {
-  if (grinder.model === "1zpresso-k-ultra") {
-    return 0.2;
-  }
-
-  if (grinder.model === "baratza-encore") {
-    return 2;
-  }
-
-  return (grinder.displayStep ?? 1) * 2;
+  return grinderSafeRange(grinder)?.width ?? (grinder.displayStep ?? 1) * 2;
 }
 
 function formatGrinderSetting(value: number, grinder: GrinderProfile) {

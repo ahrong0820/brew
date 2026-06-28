@@ -135,7 +135,7 @@ test("HOT V60 recommendation applies the selected barista recipe structure", () 
   assert.equal(result.steps.length, 5);
   assert.equal(result.steps.at(-1).label, "후가수");
   assert.equal(result.steps.at(-1).targetWaterGrams, 320);
-  assert.equal(result.grinder.displayValue, "7.0");
+  assert.equal(result.grinder.displayValue, "7.8");
   assert.equal(result.grinder.commonDescription, "중간보다 굵은 분쇄");
   assert.ok(result.reasons[0].includes("정인성"));
   assert.ok(
