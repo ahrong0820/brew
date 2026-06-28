@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 import test from "node:test";
 
 const workflow = await readFile(
-  new URL("../.github/workflows/validate-pr.yml", import.meta.url),
+  path.resolve(process.cwd(), ".github/workflows/validate-pr.yml"),
   "utf8",
 );
 const scenario = await readFile(
-  new URL("./e2e/user-flow.mjs", import.meta.url),
+  path.resolve(process.cwd(), "e2e/user-flow.mjs"),
   "utf8",
 );
 
@@ -19,7 +20,7 @@ test("PR validation builds the static export before browser E2E", () => {
   assert.ok(exportIndex > buildIndex);
   assert.ok(e2eIndex > exportIndex);
   assert.match(workflow, /playwright install --with-deps chromium/);
-  assert.match(workflow, /node test\/e2e\/user-flow\.mjs/);
+  assert.match(workflow, /node e2e\/user-flow\.mjs/);
 });
 
 test("browser E2E covers persistence, verified source, feedback and isolation", () => {
