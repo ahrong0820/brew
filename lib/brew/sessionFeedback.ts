@@ -83,6 +83,20 @@ function finalizeAdjustmentTrial(
   }
 }
 
+function diagnosticFeedbackChanged(
+  session: BrewSession,
+  input: BrewFeedbackInput,
+  trimmedNote: string | undefined,
+) {
+  if (input.tastingResult === undefined) return false;
+  return (
+    input.tastingResult !== session.tastingResult ||
+    (input.brewPaceAssessment !== undefined &&
+      input.brewPaceAssessment !== session.brewPaceAssessment) ||
+    (input.note !== undefined && trimmedNote !== session.note)
+  );
+}
+
 export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
   const session = brewSessionStore.getById(input.sessionId);
   if (!session) {
@@ -93,6 +107,14 @@ export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
   const adjustment = pendingTrial(profile);
   const actualTimeSeconds = normalizeActualTime(input.actualTimeSeconds);
   const trimmedNote = input.note?.trim();
+  const hasDiagnosticChange = diagnosticFeedbackChanged(
+    session,
+    input,
+    trimmedNote,
+  );
+  const hasOutcomeChange =
+    input.adjustmentOutcome !== undefined &&
+    input.adjustmentOutcome !== session.adjustmentOutcome;
   const nextTastingResult = input.tastingResult ?? session.tastingResult;
   const nextStatus: BrewSessionStatus =
     input.tastingResult === undefined
@@ -116,18 +138,18 @@ export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
     status: nextStatus,
   });
   const savedSession =
-    input.tastingResult === "good"
+    input.tastingResult === "good" && hasDiagnosticChange
       ? promoteCurrentBestSession(nextSession)
       : nextSession;
 
   if (
-    input.tastingResult !== "good" &&
+    !(input.tastingResult === "good" && hasDiagnosticChange) &&
     !brewSessionStore.upsert(savedSession)
   ) {
     throw new Error("추출 기록을 저장하지 못했습니다.");
   }
 
-  if (adjustment && input.adjustmentOutcome) {
+  if (adjustment && input.adjustmentOutcome && hasOutcomeChange) {
     finalizeAdjustmentTrial(
       session.profileId,
       adjustment.id,
@@ -137,8 +159,8 @@ export function saveBrewFeedback(input: BrewFeedbackInput): BrewSession {
   }
 
   const eventKind = feedbackEventKind({
-    hasTastingResult: input.tastingResult !== undefined,
-    hasAdjustmentOutcome: input.adjustmentOutcome !== undefined,
+    hasTastingResult: hasDiagnosticChange,
+    hasAdjustmentOutcome: hasOutcomeChange,
   });
   if (eventKind && typeof window !== "undefined") {
     window.dispatchEvent(
