@@ -18,6 +18,22 @@ jobs:
         with:
           show-progress: false
 
+      - name: Upload temporary source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-source-${{ github.run_id }}
+          path: |
+            app/RecommendationDrawerV2.tsx
+            app/BrewSessionFeedbackTracker.tsx
+            app/PersonalRecipeVersionDrawer.tsx
+            e2e/mobile-flow.mjs
+            lib/brew
+            lib/recommendation
+            lib/storage
+            data
+            test
+          retention-days: 3
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
