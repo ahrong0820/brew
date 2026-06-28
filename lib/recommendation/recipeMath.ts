@@ -1,5 +1,5 @@
-import { applyRatioAndWater as applyNormalizedRatioAndWater } from "@/lib/recommendation/normalization";
-import type { BrewRecommendation } from "@/lib/types/recommendation";
+import { applyRatioAndWater as applyNormalizedRatioAndWater } from "./normalization.ts";
+import type { BrewRecommendation } from "../types/recommendation.ts";
 
 export {
   normalizeDoseGrams,
@@ -12,7 +12,7 @@ export {
   recommendationLimits,
   roundToStep,
   roundWaterGrams,
-} from "@/lib/recommendation/normalization";
+} from "./normalization.ts";
 
 export function applyRatioAndWater(
   recommendation: BrewRecommendation,
