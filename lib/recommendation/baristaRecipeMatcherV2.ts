@@ -37,6 +37,53 @@ function flavorMatches(recipe: BaristaRecipe, notes: readonly string[]) {
   });
 }
 
+function originConnection(
+  recipe: BaristaRecipe,
+  input: BaristaRecipeMatchInput,
+) {
+  const group = input.originGroup;
+  if (!group || group === "unknown" || group === "other") return null;
+  if (group === "east-africa" && recipe.tasteProfile.bright >= 4) {
+    return { score: 4, reason: "동아프리카 원두의 선명한 향미 방향과 연결됩니다." };
+  }
+  if (
+    (group === "latin-america" || group === "brazil") &&
+    (recipe.tasteProfile.sweet >= 4 || recipe.tasteProfile.balanced >= 4)
+  ) {
+    return { score: 4, reason: "중남미·브라질 원두의 단맛과 균형 방향에 맞습니다." };
+  }
+  if (group === "asia" && (recipe.tasteProfile.body >= 4 || recipe.tasteProfile.sweet >= 4)) {
+    return { score: 3, reason: "아시아 원두의 바디와 단맛 방향에 맞습니다." };
+  }
+  if (group === "blend" && recipe.tasteProfile.balanced >= 4) {
+    return { score: 3, reason: "블렌드의 균형 중심 목표와 연결됩니다." };
+  }
+  return null;
+}
+
+function varietyConnection(
+  recipe: BaristaRecipe,
+  variety: string | undefined,
+) {
+  const normalized = variety?.trim().toLocaleLowerCase("en-US");
+  if (!normalized) return null;
+  if (
+    ["gesha", "geisha", "heirloom"].some((name) => normalized.includes(name)) &&
+    recipe.tasteProfile.bright >= 4
+  ) {
+    return { score: 4, reason: `${variety}의 향미 표현 방향과 연결됩니다.` };
+  }
+  if (
+    ["bourbon", "caturra", "catuai", "catuaí"].some((name) =>
+      normalized.includes(name),
+    ) &&
+    (recipe.tasteProfile.sweet >= 4 || recipe.tasteProfile.balanced >= 4)
+  ) {
+    return { score: 3, reason: `${variety}의 단맛·균형 방향과 연결됩니다.` };
+  }
+  return null;
+}
+
 function scoreRecipe(
   recipe: BaristaRecipe,
   input: BaristaRecipeMatchInput,
@@ -55,6 +102,17 @@ function scoreRecipe(
   else if (recipe.suitableProcesses.includes(input.process)) {
     score += 10;
     reasons.push(`[원두 적합] ${processLabels[input.process]} 가공에 맞습니다.`);
+  }
+
+  const origin = originConnection(recipe, input);
+  if (origin) {
+    score += origin.score;
+    reasons.push(`[산지 연결] ${origin.reason}`);
+  }
+  const variety = varietyConnection(recipe, input.variety);
+  if (variety) {
+    score += variety.score;
+    reasons.push(`[품종 연결] ${variety.reason}`);
   }
 
   const doseDifference = Math.abs(recipe.doseGrams - input.doseGrams);
