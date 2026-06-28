@@ -2,7 +2,7 @@ import {
   diagnoseTaste,
   type DiagnosisDirection,
   type SensoryIssue,
-} from "@/lib/recommendation/diagnosisMatrix";
+} from "./diagnosisMatrix.ts";
 import type {
   BrewPaceAssessment,
   BrewerType,
