@@ -36,17 +36,8 @@ jobs:
       - name: Run type check
         run: pnpm typecheck
 
-      - name: Diagnose V60 recipe application
-        run: node --experimental-strip-types --test --test-name-pattern="HOT V60 recommendation" test/barista-recipe-recommendation.test.mjs
-
-      - name: Diagnose sweet recipe application
-        run: node --experimental-strip-types --test --test-name-pattern="sweet goal" test/barista-recipe-recommendation.test.mjs
-
-      - name: Diagnose unsupported scopes
-        run: node --experimental-strip-types --test --test-name-pattern="unsupported scopes" test/barista-recipe-recommendation.test.mjs
-
       - name: Run automated tests
-        run: node --experimental-strip-types --test
+        run: pnpm test
 
       - name: Write deployment metadata
         run: |
