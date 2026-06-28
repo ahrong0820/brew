@@ -11,9 +11,13 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { recommendationTimerStartEvent } from "@/lib/timer/recommendationTimer";
+import {
+  readBrewSessionClock,
+  subscribeToBrewSessionClock,
+  type BrewSessionClock,
+} from "@/lib/timer/brewSessionClock";
 
-const activeSessionStorageKey = "brew.activeRecommendationSession.v1";
+const mobileNavRootSelector = '[data-mobile-coffee-nav="true"]';
 
 const launcherTargets = [
   { key: "recommendation", label: "맞춤 추천" },
@@ -22,6 +26,7 @@ const launcherTargets = [
   { key: "history", label: "추출 기록" },
   { key: "grind", label: "분쇄도 변환" },
   { key: "evidence", label: "근거 현황" },
+  { key: "personal-recipes", label: "개인 레시피" },
 ] as const;
 
 type LauncherKey = (typeof launcherTargets)[number]["key"];
@@ -30,28 +35,24 @@ function normalizedText(value: string | null) {
   return (value ?? "").replace(/\s+/g, " ").trim();
 }
 
-function readActiveSession() {
-  if (typeof window === "undefined") {
-    return false;
-  }
+function isActiveClock(clock: BrewSessionClock | null) {
+  return Boolean(clock && clock.status !== "completed");
+}
 
-  try {
-    const raw = window.sessionStorage.getItem(activeSessionStorageKey);
-    if (!raw) {
-      return false;
-    }
+function isMobileNavButton(button: HTMLButtonElement) {
+  return Boolean(button.closest(mobileNavRootSelector));
+}
 
-    const parsed = JSON.parse(raw) as { sessionId?: unknown };
-    return typeof parsed.sessionId === "string" && parsed.sessionId.length > 0;
-  } catch {
-    return false;
-  }
+function findLaunchers(key: LauncherKey) {
+  return Array.from(
+    document.querySelectorAll<HTMLButtonElement>(
+      `button[data-mobile-coffee-target="${key}"]`,
+    ),
+  ).filter((button) => !isMobileNavButton(button));
 }
 
 function findLauncher(key: LauncherKey) {
-  return document.querySelector<HTMLButtonElement>(
-    `button[data-mobile-coffee-target="${key}"]`,
-  );
+  return findLaunchers(key)[0] ?? null;
 }
 
 export default function MobileCoffeeNav() {
@@ -65,10 +66,18 @@ export default function MobileCoffeeNav() {
       const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("button"));
 
       for (const button of buttons) {
+        if (isMobileNavButton(button)) {
+          continue;
+        }
+
         const text = normalizedText(button.textContent);
         const target = launcherTargets.find((item) => text.startsWith(item.label));
 
         if (!target) {
+          if (button.dataset.mobileCoffeeTarget) {
+            button.style.removeProperty("display");
+            button.removeAttribute("data-mobile-coffee-target");
+          }
           continue;
         }
 
@@ -81,34 +90,32 @@ export default function MobileCoffeeNav() {
       }
     }
 
-    function syncActiveSession() {
-      setActiveBrew(readActiveSession());
-    }
-
-    function handleTimerStart() {
-      setActiveBrew(true);
-      setToolsOpen(false);
+    function syncActiveSession(clock = readBrewSessionClock()) {
+      const nextActive = isActiveClock(clock);
+      setActiveBrew(nextActive);
+      if (nextActive) {
+        setToolsOpen(false);
+      }
     }
 
     const observer = new MutationObserver(syncLegacyLaunchers);
     observer.observe(document.body, { childList: true, subtree: true });
     media.addEventListener("change", syncLegacyLaunchers);
-    window.addEventListener(recommendationTimerStartEvent, handleTimerStart);
 
     syncLegacyLaunchers();
     syncActiveSession();
-    const intervalId = window.setInterval(syncActiveSession, 500);
+    const unsubscribe = subscribeToBrewSessionClock(syncActiveSession);
 
     return () => {
       observer.disconnect();
       media.removeEventListener("change", syncLegacyLaunchers);
-      window.removeEventListener(recommendationTimerStartEvent, handleTimerStart);
-      window.clearInterval(intervalId);
+      unsubscribe();
 
       for (const target of launcherTargets) {
-        const button = findLauncher(target.key);
-        button?.style.removeProperty("display");
-        button?.removeAttribute("data-mobile-coffee-target");
+        for (const button of findLaunchers(target.key)) {
+          button.style.removeProperty("display");
+          button.removeAttribute("data-mobile-coffee-target");
+        }
       }
     };
   }, []);
@@ -130,6 +137,7 @@ export default function MobileCoffeeNav() {
   return (
     <>
       <nav
+        data-mobile-coffee-nav="true"
         aria-label="커피 기능 메뉴"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-[#d6ddd3] bg-white/96 px-2 pt-1.5 shadow-[0_-8px_30px_rgba(35,47,38,0.12)] backdrop-blur sm:hidden"
         style={{ paddingBottom: "max(0.4rem, env(safe-area-inset-bottom))" }}
@@ -171,7 +179,10 @@ export default function MobileCoffeeNav() {
       </nav>
 
       {toolsOpen && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/40 sm:hidden">
+        <div
+          data-mobile-coffee-nav="true"
+          className="fixed inset-0 z-50 flex items-end bg-black/40 sm:hidden"
+        >
           <button
             type="button"
             aria-label="도구 메뉴 닫기"
@@ -232,6 +243,22 @@ export default function MobileCoffeeNav() {
                 <strong className="block text-sm">세부 산지</strong>
                 <span className="mt-1 block text-xs leading-5 text-[#687168]">
                   저장 원두에 지역·주·구역 정보를 추가하거나 수정합니다.
+                </span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openLauncher("personal-recipes")}
+              className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-[#d7ded4] bg-white p-4 text-left shadow-sm"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f1eaf4] text-[#654b70]">
+                <History aria-hidden="true" size={21} />
+              </span>
+              <span>
+                <strong className="block text-sm">개인 레시피 버전</strong>
+                <span className="mt-1 block text-xs leading-5 text-[#687168]">
+                  저장된 개인 레시피 버전을 확인하고 이전 버전으로 복원합니다.
                 </span>
               </span>
             </button>
