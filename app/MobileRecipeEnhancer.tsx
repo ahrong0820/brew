@@ -4,6 +4,9 @@ import { useEffect } from "react";
 
 const mobileQuery = "(max-width: 1023px)";
 const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
+const timerDoseSelector = 'input[data-timer-dose-input="true"]';
+const timerDoseMin = 8;
+const timerDoseMax = 40;
 
 function getDirectChild<T extends Element>(
   parent: Element | null,
@@ -16,10 +19,55 @@ function getDirectChild<T extends Element>(
   return (Array.from(parent.children).find(predicate) as T | undefined) ?? null;
 }
 
+function isValidTimerDose(value: number) {
+  return Number.isFinite(value) && value >= timerDoseMin && value <= timerDoseMax;
+}
+
+function normalizeTimerDose(value: number, fallback: number) {
+  if (!Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.min(timerDoseMax, Math.max(timerDoseMin, Math.round(value)));
+}
+
+function setNativeInputValue(input: HTMLInputElement, value: string) {
+  const descriptor = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value",
+  );
+
+  if (descriptor?.set) {
+    descriptor.set.call(input, value);
+  } else {
+    input.value = value;
+  }
+}
+
+function findTimerDoseInput(timerPanel: HTMLElement | null) {
+  if (!timerPanel) {
+    return null;
+  }
+
+  return (
+    Array.from(
+      timerPanel.querySelectorAll<HTMLInputElement>('input[type="number"]'),
+    ).find(
+      (input) =>
+        input.min === String(timerDoseMin) &&
+        input.max === String(timerDoseMax) &&
+        input.closest("label")?.textContent?.includes("원두량"),
+    ) ?? null
+  );
+}
+
 // Adds mobile-only presentation behavior without changing recipe or timer state.
 export default function MobileRecipeEnhancer() {
   useEffect(() => {
     let customSection: HTMLElement | null = null;
+    let editingDoseInput: HTMLInputElement | null = null;
+    let editingDoseDraft = "";
+    const lastValidDose = new WeakMap<HTMLInputElement, number>();
 
     function updateToggle(button: HTMLButtonElement, open: boolean) {
       const expanded = String(open);
@@ -49,6 +97,19 @@ export default function MobileRecipeEnhancer() {
       }
     }
 
+    function syncTimerDoseInput(timerPanel: HTMLElement | null) {
+      const input = findTimerDoseInput(timerPanel);
+      if (!input) {
+        return;
+      }
+
+      input.dataset.timerDoseInput = "true";
+      const value = input.valueAsNumber;
+      if (isValidTimerDose(value) && document.activeElement !== input) {
+        lastValidDose.set(input, value);
+      }
+    }
+
     function syncDom() {
       const mainGrid = document.querySelector("main > header + div");
       const contentSection = getDirectChild<HTMLElement>(
@@ -62,6 +123,7 @@ export default function MobileRecipeEnhancer() {
 
       contentSection?.setAttribute("data-main-content", "true");
       timerPanel?.setAttribute("data-timer-panel", "true");
+      syncTimerDoseInput(timerPanel);
 
       if (!contentSection) {
         return;
@@ -127,6 +189,77 @@ export default function MobileRecipeEnhancer() {
       );
     }
 
+    function handleTimerDoseFocus(event: FocusEvent) {
+      if (!(event.target instanceof HTMLInputElement)) {
+        return;
+      }
+
+      const input = event.target;
+      if (!input.matches(timerDoseSelector)) {
+        return;
+      }
+
+      editingDoseInput = input;
+      editingDoseDraft = input.value;
+      if (isValidTimerDose(input.valueAsNumber)) {
+        lastValidDose.set(input, input.valueAsNumber);
+      }
+    }
+
+    function handleTimerDoseInput(event: Event) {
+      if (!(event.target instanceof HTMLInputElement)) {
+        return;
+      }
+
+      const input = event.target;
+      if (!input.matches(timerDoseSelector)) {
+        return;
+      }
+
+      editingDoseInput = input;
+      editingDoseDraft = input.value;
+      const value = input.valueAsNumber;
+
+      if (input.value === "" || !isValidTimerDose(value)) {
+        event.stopPropagation();
+        return;
+      }
+
+      lastValidDose.set(input, value);
+    }
+
+    function handleTimerDoseBlur(event: FocusEvent) {
+      if (!(event.target instanceof HTMLInputElement)) {
+        return;
+      }
+
+      const input = event.target;
+      if (!input.matches(timerDoseSelector)) {
+        return;
+      }
+
+      const fallback = lastValidDose.get(input) ?? timerDoseMin;
+      const normalized = normalizeTimerDose(input.valueAsNumber, fallback);
+      editingDoseInput = null;
+      editingDoseDraft = String(normalized);
+      lastValidDose.set(input, normalized);
+
+      if (input.value !== String(normalized)) {
+        setNativeInputValue(input, String(normalized));
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+
+    function maintainTimerDoseDraft() {
+      if (
+        editingDoseInput &&
+        document.activeElement === editingDoseInput &&
+        editingDoseInput.value !== editingDoseDraft
+      ) {
+        setNativeInputValue(editingDoseInput, editingDoseDraft);
+      }
+    }
+
     function handleClick(event: MouseEvent) {
       if (!(event.target instanceof Element)) {
         return;
@@ -173,7 +306,11 @@ export default function MobileRecipeEnhancer() {
 
     syncDom();
     document.addEventListener("click", handleClick);
+    document.addEventListener("focusin", handleTimerDoseFocus);
+    document.addEventListener("input", handleTimerDoseInput, true);
+    document.addEventListener("focusout", handleTimerDoseBlur);
 
+    const doseDraftInterval = window.setInterval(maintainTimerDoseDraft, 100);
     const observer = new MutationObserver(syncDom);
     const observerTarget = document.querySelector("main");
 
@@ -188,10 +325,17 @@ export default function MobileRecipeEnhancer() {
 
     return () => {
       observer.disconnect();
+      window.clearInterval(doseDraftInterval);
       document.removeEventListener("click", handleClick);
+      document.removeEventListener("focusin", handleTimerDoseFocus);
+      document.removeEventListener("input", handleTimerDoseInput, true);
+      document.removeEventListener("focusout", handleTimerDoseBlur);
       document
         .querySelectorAll("[data-custom-editor-toggle]")
         .forEach((element) => element.remove());
+      document
+        .querySelectorAll(timerDoseSelector)
+        .forEach((element) => element.removeAttribute("data-timer-dose-input"));
     };
   }, []);
 
