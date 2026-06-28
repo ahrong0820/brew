@@ -145,7 +145,15 @@ export function diagnoseTaste(input: TasteDiagnosisInput): TasteDiagnosis {
   }
 
   if (includesAll(issues, ["bitter", "astringent"])) {
-    return input.brewerType === "clever" && pace !== "slow"
+    if (pace === "slow") {
+      return {
+        variable: "grind",
+        direction: "coarser",
+        reason:
+          "느린 드로다운과 쓰고 떫은 맛이 함께 나타나 분쇄도를 한 단계 굵게 합니다.",
+      };
+    }
+    return input.brewerType === "clever"
       ? {
           variable: "agitation",
           direction: "less-agitation",
