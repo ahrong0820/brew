@@ -34,7 +34,9 @@ const categoryLabels = [
   "분쇄 변환",
   "클레버 구조",
   "클레버 드로다운",
+  "클레버 분쇄",
   "배전도 온도",
+  "푸어 구조",
 ] as const;
 
 export type RecommendationReasonCategory =
