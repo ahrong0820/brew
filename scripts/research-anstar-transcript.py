@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import http.cookiejar
 import json
 import re
 import urllib.error
@@ -19,11 +20,18 @@ VARIANTS = OUTPUT / "variants"
 OUTPUT.mkdir(exist_ok=True)
 VARIANTS.mkdir(exist_ok=True)
 
+cookie_jar = http.cookiejar.CookieJar()
+opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie_jar))
+
+
+def open_request(request: urllib.request.Request) -> bytes:
+    with opener.open(request, timeout=40) as response:
+        return response.read()
+
 
 def fetch_text(url: str) -> str:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=40) as response:
-        return response.read().decode(errors="ignore")
+    return open_request(request).decode(errors="ignore")
 
 
 def find(pattern: str, text: str) -> str:
@@ -102,6 +110,22 @@ def collect_segments(value: object, output: list[dict[str, object]]) -> None:
             collect_segments(child, output)
 
 
+def save_segments(payload: object, label: str) -> int:
+    segments: list[dict[str, object]] = []
+    collect_segments(payload, segments)
+    if segments:
+        (OUTPUT / "transcript.json").write_text(
+            json.dumps(segments, ensure_ascii=False, indent=2)
+        )
+        (OUTPUT / "transcript.txt").write_text(
+            "\n".join(
+                f"{segment['startMs']}\t{segment['text']}" for segment in segments
+            )
+        )
+        (OUTPUT / "selected-source.txt").write_text(label)
+    return len(segments)
+
+
 page = fetch_text(WATCH_URL)
 (OUTPUT / "watch.html").write_text(page)
 
@@ -123,6 +147,7 @@ if isinstance(context, dict):
 
 metadata: dict[str, object] = {
     "videoId": VIDEO_ID,
+    "cookieCount": len(cookie_jar),
     "apiKeyPresent": bool(api_key),
     "exactContextPresent": bool(context),
     "clientVersion": client_version,
@@ -131,18 +156,9 @@ metadata: dict[str, object] = {
     "continuationClickPresent": bool(continuation_click),
     "globalClickPresent": bool(global_click),
     "variants": {},
+    "timedtext": {},
 }
 
-param_variants = {
-    "raw": params,
-    "decoded": urllib.parse.unquote(params),
-    "decodedTwice": urllib.parse.unquote(urllib.parse.unquote(params)),
-}
-click_variants = {
-    "continuation": continuation_click,
-    "global": global_click,
-    "none": None,
-}
 headers = {
     "Content-Type": "application/json",
     "User-Agent": str(client.get("userAgent", USER_AGENT)).replace(",gzip(gfe)", ""),
@@ -156,16 +172,20 @@ headers = {
     "X-Goog-AuthUser": "0",
 }
 
+param_variants = {
+    "raw": params,
+    "decoded": urllib.parse.unquote(params),
+}
+click_variants = {
+    "continuation": continuation_click,
+    "global": global_click,
+}
+
 for param_label, param_value in param_variants.items():
     for click_label, click_value in click_variants.items():
         label = f"{param_label}-{click_label}"
         request_context = copy.deepcopy(context)
-        if click_value is None:
-            request_context.pop("clickTracking", None)
-        else:
-            request_context["clickTracking"] = {
-                "clickTrackingParams": click_value,
-            }
+        request_context["clickTracking"] = {"clickTrackingParams": click_value}
         body = {"context": request_context, "params": param_value}
         request = urllib.request.Request(
             f"https://www.youtube.com/youtubei/v1/get_transcript"
@@ -176,33 +196,85 @@ for param_label, param_value in param_variants.items():
         )
         result: dict[str, object] = {}
         try:
-            with urllib.request.urlopen(request, timeout=40) as response:
-                raw = response.read()
-                result["httpStatus"] = response.status
+            raw = open_request(request)
             payload = json.loads(raw)
             (VARIANTS / f"{label}.json").write_text(
                 json.dumps(payload, ensure_ascii=False, indent=2)
             )
-            segments: list[dict[str, object]] = []
-            collect_segments(payload, segments)
-            result["segmentCount"] = len(segments)
-            if segments:
-                (OUTPUT / "transcript.json").write_text(
-                    json.dumps(segments, ensure_ascii=False, indent=2)
-                )
-                (OUTPUT / "transcript.txt").write_text(
-                    "\n".join(
-                        f"{segment['startMs']}\t{segment['text']}"
-                        for segment in segments
-                    )
-                )
-                result["selected"] = True
+            result["httpStatus"] = 200
+            result["segmentCount"] = save_segments(payload, label)
         except urllib.error.HTTPError as error:
             result["httpStatus"] = error.code
             result["errorBody"] = error.read().decode(errors="ignore")
         except Exception as error:
             result["error"] = repr(error)
         metadata["variants"][label] = result
+
+for label, query in {
+    "youtube-json3": {
+        "v": VIDEO_ID,
+        "lang": "ko",
+        "kind": "asr",
+        "fmt": "json3",
+    },
+    "youtube-srv3": {
+        "v": VIDEO_ID,
+        "lang": "ko",
+        "kind": "asr",
+        "fmt": "srv3",
+    },
+    "google-json3": {
+        "v": VIDEO_ID,
+        "lang": "ko",
+        "kind": "asr",
+        "fmt": "json3",
+    },
+}.items():
+    host = "www.youtube.com" if label.startswith("youtube") else "video.google.com"
+    url = f"https://{host}/api/timedtext?{urllib.parse.urlencode(query)}"
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": USER_AGENT, "Referer": WATCH_URL},
+    )
+    result: dict[str, object] = {"url": url}
+    try:
+        raw = open_request(request)
+        (VARIANTS / f"{label}.txt").write_bytes(raw)
+        result["httpStatus"] = 200
+        result["bytes"] = len(raw)
+        if raw.startswith(b"{"):
+            payload = json.loads(raw)
+            transcript: list[dict[str, object]] = []
+            for event in payload.get("events", []):
+                text = "".join(
+                    segment.get("utf8", "") for segment in event.get("segs", [])
+                ).strip()
+                if text:
+                    transcript.append(
+                        {
+                            "startMs": event.get("tStartMs"),
+                            "durationMs": event.get("dDurationMs"),
+                            "text": text,
+                        }
+                    )
+            if transcript:
+                (OUTPUT / "transcript.json").write_text(
+                    json.dumps(transcript, ensure_ascii=False, indent=2)
+                )
+                (OUTPUT / "transcript.txt").write_text(
+                    "\n".join(
+                        f"{segment['startMs']}\t{segment['text']}"
+                        for segment in transcript
+                    )
+                )
+                (OUTPUT / "selected-source.txt").write_text(label)
+                result["segmentCount"] = len(transcript)
+    except urllib.error.HTTPError as error:
+        result["httpStatus"] = error.code
+        result["errorBody"] = error.read().decode(errors="ignore")
+    except Exception as error:
+        result["error"] = repr(error)
+    metadata["timedtext"][label] = result
 
 (OUTPUT / "metadata.json").write_text(
     json.dumps(metadata, ensure_ascii=False, indent=2)
