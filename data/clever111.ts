@@ -15,4 +15,11 @@ export const clever111 = {
   grind: "중간보다 살짝 굵게 시작값",
   totalTime: 220,
   notes: ["구버전 1:12를 20g/220g 1:11로 수정", "HOT 후가수 80~100g"],
+  steps: [
+    { label: "뜸들이기", start: 0, end: 30, targetWater: 40, cue: "40g을 붓고 즉시 고르게 젓기" },
+    { label: "본 물 붓기", start: 30, end: 60, targetWater: 220, cue: "180g을 추가해 누적 220g" },
+    { label: "2차 교반", start: 60, end: 150, targetWater: 220, cue: "1:00에 다시 젓고 2:30까지 침출" },
+    { label: "드로다운", start: 150, end: 220, targetWater: 220, cue: "2:30에 서버에 올리고 3:20~3:40 완료" },
+    { label: "농도 조절", start: 220, end: 220, targetWater: 220, displayTargetWater: { min: 300, max: 320 }, displayStepWater: { min: 80, max: 100 }, cue: "뜨거운 물 80~100g 추가" },
+  ],
 };
