@@ -1,8 +1,18 @@
 export const clever111 = {
   id: "jis-clever-1-11",
   name: "정인성 클레버 1:11",
+  origin: "정인성 공식 2023 업데이트",
   method: "Mr. Clever",
+  profile: "1:11 진한 침출과 후가수 밸런스",
+  tags: ["클레버", "침출", "국내", "단맛"],
   dose: 20,
   water: 300,
+  brewWater: 220,
+  bypassWater: { min: 80, max: 100 },
+  finalWater: { min: 300, max: 320 },
+  ratio: "1:11 / 최종 약 1:15~1:16",
+  temp: "공식 최신 설명 미확인",
+  grind: "중간보다 살짝 굵게 시작값",
   totalTime: 220,
+  notes: ["구버전 1:12를 20g/220g 1:11로 수정", "HOT 후가수 80~100g"],
 };
