@@ -15,4 +15,10 @@ export const recipe484 = {
   grind: "드리퍼에 맞춰 조절",
   totalTime: 170,
   notes: ["30-60-30g 추출 구조", "추출 후 뜨거운 물 100g 추가"],
+  steps: [
+    { label: "뜸들이기", start: 0, end: 40, targetWater: 30, cue: "30g으로 전체 적시기" },
+    { label: "1차 추출", start: 40, end: 70, targetWater: 90, cue: "60g 추가" },
+    { label: "2차 추출", start: 70, end: 150, targetWater: 120, cue: "30g 추가" },
+    { label: "HOT 후가수", start: 150, end: 170, targetWater: 120, displayTargetWater: 220, displayStepWater: 100, cue: "100g 추가" },
+  ],
 };
