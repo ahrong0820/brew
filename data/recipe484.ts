@@ -7,8 +7,12 @@ export const recipe484 = {
   tags: ["V60", "국내", "저도징"],
   dose: 15,
   water: 220,
+  brewWater: 120,
+  bypassWater: 100,
+  finalWater: 220,
   ratio: "1:14.7",
   temp: "공식 최신 설명 미확인",
   grind: "드리퍼에 맞춰 조절",
   totalTime: 170,
+  notes: ["30-60-30g 추출 구조", "추출 후 뜨거운 물 100g 추가"],
 };
