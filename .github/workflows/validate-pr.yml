@@ -19,7 +19,7 @@ jobs:
           ref: ${{ github.head_ref }}
           show-progress: false
 
-      - name: Materialize refreshed recipe list
+      - name: Load refreshed recipe data
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -27,10 +27,9 @@ jobs:
           text = path.read_text()
           text = text.replace(
               'const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";\n',
-              'import { preferredDefaultRecipeOrder, refreshedDefaultRecipes, removedDefaultRecipeIds } from "@/data/defaultRecipeRefresh";\n\nconst basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";\n',
+              'import "@/data/defaultRecipeRefresh";\n\nconst basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";\n',
               1,
           )
-          text = text.replace("const recipes: Recipe[] = [", "const legacyRecipes: Recipe[] = [", 1)
           path.write_text(text)
           PY
 
