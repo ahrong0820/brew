@@ -1,8 +1,8 @@
-import { anstarDefaultRecipe } from "./anstarDefaultRecipe";
-import { clever111 } from "./clever111";
-import { jisVer2Default } from "./jisVer2Default";
-import { recipe484 } from "./recipe484";
-import { tetsuDefault } from "./tetsuDefault";
+import { anstarDefaultRecipe } from "./anstarDefaultRecipe.ts";
+import { clever111 } from "./clever111.ts";
+import { jisVer2Default } from "./jisVer2Default.ts";
+import { recipe484 } from "./recipe484.ts";
+import { tetsuDefault } from "./tetsuDefault.ts";
 
 const refreshedDefaultRecipes = [
   anstarDefaultRecipe,
