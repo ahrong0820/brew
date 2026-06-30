@@ -48,6 +48,33 @@ jobs:
           path.write_text(text)
           PY
 
+      - name: Align Anstar display naming
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          changes = {
+              "data/baristaRecipes.ts": [
+                  ('name: "안스타 2인분 HOT (2024)",', 'name: "안스타 6888",'),
+                  ('sourceLabel: "안스타 공식 YouTube 2·4인분 레시피 + 기존 앱 전사 시작값",', 'sourceLabel: "안스타 공식 YouTube 2·4인분 레시피(통칭 6888) + 기존 앱 전사 시작값",'),
+              ],
+              "data/recipeSourceRegistry.ts": [
+                  ('label: "안스타 공식 YouTube 2·4인분 레시피와 제작자 고정 댓글",', 'label: "안스타 공식 YouTube 2·4인분 레시피(통칭 6888)와 제작자 고정 댓글",'),
+              ],
+              "test/barista-recipe-matcher.test.mjs": [
+                  ('assert.equal(match.recipe.name, "안스타 2인분 HOT (2024)");', 'assert.equal(match.recipe.name, "안스타 6888");'),
+              ],
+              "test/recipe-catalog-refresh.test.mjs": [
+                  ('assert.equal(current.name, "안스타 2인분 HOT (2024)");', 'assert.equal(current.name, "안스타 6888");'),
+              ],
+          }
+          for filename, pairs in changes.items():
+              path = Path(filename)
+              text = path.read_text()
+              for old, new in pairs:
+                  text = text.replace(old, new)
+              path.write_text(text)
+          PY
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
