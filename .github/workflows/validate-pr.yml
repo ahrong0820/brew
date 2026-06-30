@@ -34,6 +34,20 @@ jobs:
           path.write_text(text)
           PY
 
+      - name: Build current recipe array
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("app/page.tsx")
+          text = path.read_text()
+          text = text.replace(
+              "];\n\nconst filterOptions = [",
+              "];\n\nconst recipes: Recipe[] = buildDefaultRecipes(legacyRecipes);\n\nconst filterOptions = [",
+              1,
+          )
+          path.write_text(text)
+          PY
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
