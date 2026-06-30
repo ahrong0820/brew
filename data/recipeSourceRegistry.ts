@@ -26,7 +26,7 @@ export const recipeSourceRegistry: readonly RecipeSourceRecord[] = [
   },
   {
     recipeId: "anstar-multiserve-20g-2024",
-    label: "안스타 공식 YouTube 2·4인분 레시피와 제작자 고정 댓글",
+    label: "안스타 공식 YouTube 2·4인분 레시피(통칭 6888)와 제작자 고정 댓글",
     url: "https://www.youtube.com/watch?v=uZs78TPm7ws",
     check: "partial",
   },
