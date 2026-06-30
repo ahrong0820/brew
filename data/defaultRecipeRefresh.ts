@@ -34,7 +34,9 @@ const preferredDefaultRecipeOrder = [
 export function buildDefaultRecipes<T extends { id: string }>(legacyRecipes: readonly T[]) {
   const recipeById = new Map(legacyRecipes.map((recipe) => [recipe.id, recipe]));
   for (const recipeId of removedDefaultRecipeIds) recipeById.delete(recipeId);
-  for (const recipe of refreshedDefaultRecipes) recipeById.set(recipe.id, recipe as T);
+  for (const recipe of refreshedDefaultRecipes) {
+    recipeById.set(recipe.id, recipe as unknown as T);
+  }
   const preferredIds = new Set(preferredDefaultRecipeOrder);
   return [
     ...preferredDefaultRecipeOrder.flatMap((recipeId) => {
