@@ -66,9 +66,9 @@ export const baristaRecipes: readonly BaristaRecipe[] = [
   },
   {
     id: "anstar-multiserve-20g-2024",
-    name: "안스타 2인분 HOT (2024)",
+    name: "안스타 6888",
     author: "안스타",
-    sourceLabel: "안스타 공식 YouTube 2·4인분 레시피 + 기존 앱 전사 시작값",
+    sourceLabel: "안스타 공식 YouTube 2·4인분 레시피(통칭 6888) + 기존 앱 전사 시작값",
     sourceUrl: "https://www.youtube.com/watch?v=uZs78TPm7ws",
     sourceStatus: "partial",
     brewerType: "v60",

@@ -27,7 +27,7 @@ test("removed and superseded public recipes are absent from catalog and registry
 test("official Anstar multi-serving video replaces the unverified 6888 label", () => {
   const current = recipe("anstar-multiserve-20g-2024");
   assert.ok(current);
-  assert.equal(current.name, "안스타 2인분 HOT (2024)");
+  assert.equal(current.name, "안스타 6888");
   assert.equal(current.sourceStatus, "partial");
   assert.equal(
     current.sourceUrl,

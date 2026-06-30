@@ -36,6 +36,8 @@ import {
   type RecommendationTimerStartDetail,
 } from "@/lib/timer/recommendationTimer";
 
+import { buildDefaultRecipes } from "@/data/defaultRecipeRefresh";
+
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const heroImageSrc = `${basePath}/brewing-hero.png`;
 
@@ -107,7 +109,7 @@ const defaultDraftSteps: DraftStep[] = [
   },
 ];
 
-const recipes: Recipe[] = [
+const legacyRecipes: Recipe[] = [
   {
     id: "tetsu-46",
     name: "테츠 카스야 4:6 기본형",
@@ -642,6 +644,8 @@ const recipes: Recipe[] = [
     ],
   },
 ];
+
+const recipes: Recipe[] = buildDefaultRecipes(legacyRecipes);
 
 const filterOptions = [
   "전체",

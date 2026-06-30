@@ -99,7 +99,7 @@ test("the current Anstar multi-serving source can be selected explicitly", () =>
   );
 
   assert.ok(match);
-  assert.equal(match.recipe.name, "안스타 2인분 HOT (2024)");
+  assert.equal(match.recipe.name, "안스타 6888");
   assert.equal(match.recipe.sourceStatus, "partial");
   assert.match(match.recipe.steps[0].cue, /기존 앱 전사 시작값/);
 });

@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
@@ -16,75 +16,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref }}
           show-progress: false
-
-      - name: Load refreshed recipe data
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path("app/page.tsx")
-          text = path.read_text()
-          text = text.replace(
-              'const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";\n',
-              'import { buildDefaultRecipes } from "@/data/defaultRecipeRefresh";\n\nconst basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";\n',
-              1,
-          )
-          text = text.replace("const recipes: Recipe[] = [", "const legacyRecipes: Recipe[] = [", 1)
-          path.write_text(text)
-          PY
-
-      - name: Build current recipe array
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path("app/page.tsx")
-          text = path.read_text()
-          text = text.replace(
-              "];\n\nconst filterOptions = [",
-              "];\n\nconst recipes: Recipe[] = buildDefaultRecipes(legacyRecipes);\n\nconst filterOptions = [",
-              1,
-          )
-          path.write_text(text)
-          PY
-
-      - name: Align Anstar display naming
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          changes = {
-              "data/baristaRecipes.ts": [
-                  ('name: "안스타 2인분 HOT (2024)",', 'name: "안스타 6888",'),
-                  ('sourceLabel: "안스타 공식 YouTube 2·4인분 레시피 + 기존 앱 전사 시작값",', 'sourceLabel: "안스타 공식 YouTube 2·4인분 레시피(통칭 6888) + 기존 앱 전사 시작값",'),
-              ],
-              "data/recipeSourceRegistry.ts": [
-                  ('label: "안스타 공식 YouTube 2·4인분 레시피와 제작자 고정 댓글",', 'label: "안스타 공식 YouTube 2·4인분 레시피(통칭 6888)와 제작자 고정 댓글",'),
-              ],
-              "test/barista-recipe-matcher.test.mjs": [
-                  ('assert.equal(match.recipe.name, "안스타 2인분 HOT (2024)");', 'assert.equal(match.recipe.name, "안스타 6888");'),
-              ],
-              "test/recipe-catalog-refresh.test.mjs": [
-                  ('assert.equal(current.name, "안스타 2인분 HOT (2024)");', 'assert.equal(current.name, "안스타 6888");'),
-              ],
-          }
-          for filename, pairs in changes.items():
-              path = Path(filename)
-              text = path.read_text()
-              for old, new in pairs:
-                  text = text.replace(old, new)
-              path.write_text(text)
-          PY
-
-      - name: Persist refreshed source
-        run: |
-          rm -f refresh.py
-          git fetch origin main --depth=1
-          git checkout origin/main -- .github/workflows/validate-pr.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "feat: sync default recipe list"
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
