@@ -74,7 +74,7 @@ export default function PersonalRecipeVersionDrawer() {
           setMessage(null);
           setOpen(true);
         }}
-        className="fixed bottom-[17rem] right-4 z-40 flex h-12 items-center gap-2 rounded-full border border-[#80648c] bg-[#f5eff8] px-4 text-sm font-semibold text-[#654b70] shadow-lg transition hover:bg-[#ece2f1] focus:outline-none focus:ring-2 focus:ring-[#80648c] focus:ring-offset-2"
+        className="fixed bottom-[21rem] right-4 z-40 flex h-12 items-center gap-2 rounded-full border border-[#80648c] bg-[#f5eff8] px-4 text-sm font-semibold text-[#654b70] shadow-lg transition hover:bg-[#ece2f1] focus:outline-none focus:ring-2 focus:ring-[#80648c] focus:ring-offset-2"
         aria-label={`개인 레시피 버전 열기, 저장된 프로필 ${summaries.length}개`}
       >
         <History aria-hidden="true" size={18} />
@@ -158,75 +158,59 @@ export default function PersonalRecipeVersionDrawer() {
                         </div>
 
                         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                          <div className="rounded-lg bg-[#f8faf7] p-3">
-                            <p className="text-xs text-[#687168]">현재 버전</p>
-                            <p className="mt-1 text-lg font-bold">v{personal.version}</p>
+                          <div className="rounded-lg bg-[#f7f8f5] p-3">
+                            <span className="text-xs text-[#687168]">현재 버전</span>
+                            <strong className="mt-1 block">v{personal.version}</strong>
                           </div>
-                          <div className="rounded-lg bg-[#f8faf7] p-3">
-                            <p className="text-xs text-[#687168]">좋음 재현</p>
-                            <p className="mt-1 text-lg font-bold">{personal.successfulBrewCount}회</p>
+                          <div className="rounded-lg bg-[#f7f8f5] p-3">
+                            <span className="text-xs text-[#687168]">성공 기록</span>
+                            <strong className="mt-1 block">{personal.successfulSessionIds.length}회</strong>
                           </div>
-                          <div className="col-span-2 rounded-lg bg-[#f8faf7] p-3">
-                            <p className="text-xs text-[#687168]">승격 조건</p>
-                            <p className="mt-1 text-sm font-semibold">
-                              {personal.status === "stable"
-                                ? "같은 조건에서 좋음 2회 이상 재현 완료"
-                                : "같은 조건에서 좋음 1회 추가 시 안정으로 승격"}
-                            </p>
+                          <div className="rounded-lg bg-[#f7f8f5] p-3">
+                            <span className="text-xs text-[#687168]">비율</span>
+                            <strong className="mt-1 block">1:{currentVersion?.ratio ?? "-"}</strong>
+                          </div>
+                          <div className="rounded-lg bg-[#f7f8f5] p-3">
+                            <span className="text-xs text-[#687168]">물</span>
+                            <strong className="mt-1 block">{currentVersion?.waterGrams ?? "-"}g</strong>
                           </div>
                         </div>
 
-                        {currentVersion && (
-                          <div className="mt-4 rounded-lg border border-[#ccb9d4] bg-[#faf6fc] p-3">
-                            <p className="flex items-center gap-1.5 text-xs font-bold text-[#654b70]">
-                              <CheckCircle2 aria-hidden="true" size={14} /> 현재 베스트 v{currentVersion.version}
-                            </p>
-                            <div className="mt-2 flex flex-wrap gap-2 text-xs text-[#654b70]">
-                              <span className="rounded-md bg-white px-2 py-1">{currentVersion.grindDisplayValue}</span>
-                              <span className="rounded-md bg-white px-2 py-1">{currentVersion.temperatureCelsius}℃</span>
-                              <span className="rounded-md bg-white px-2 py-1">1:{currentVersion.ratio}</span>
-                            </div>
-                          </div>
-                        )}
-
                         <div className="mt-4 space-y-2">
-                          {[...personal.versions]
-                            .sort((left, right) => right.version - left.version)
-                            .map((version) => {
-                              const isCurrent = version.version === personal.version;
-                              const key = `${summary.profile.id}:${version.version}`;
-                              return (
-                                <div
-                                  key={version.version}
-                                  className="rounded-lg border border-[#dde3db] bg-[#f8faf7] p-3"
-                                >
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                      <p className="text-sm font-bold">
-                                        v{version.version} {isCurrent ? "· 현재" : ""}
-                                      </p>
-                                      <p className="mt-1 text-xs text-[#687168]">
-                                        {formatDate(version.createdAt)} · 당시 좋음 {version.successfulBrewCount}회
-                                      </p>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => restore(summary.profile.id, version.version)}
-                                      disabled={isCurrent || restoringKey === key}
-                                      className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[#80648c] bg-white px-3 text-xs font-bold text-[#654b70] disabled:cursor-not-allowed disabled:opacity-45"
-                                    >
-                                      <RotateCcw aria-hidden="true" size={14} />
-                                      {restoringKey === key ? "복원 중" : "복원"}
-                                    </button>
-                                  </div>
-                                  <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-[#687168]">
-                                    <span className="rounded-md bg-white px-2 py-1">{version.grindDisplayValue}</span>
-                                    <span className="rounded-md bg-white px-2 py-1">{version.temperatureCelsius}℃</span>
-                                    <span className="rounded-md bg-white px-2 py-1">1:{version.ratio}</span>
-                                  </div>
-                                </div>
-                              );
-                            })}
+                          {personal.versions.map((version) => (
+                            <div
+                              key={version.version}
+                              className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
+                                version.version === personal.version
+                                  ? "border-[#80648c] bg-[#f5eff8]"
+                                  : "border-[#d7ded4] bg-[#fbfcfa]"
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <p className="flex items-center gap-1.5 text-sm font-bold">
+                                  v{version.version}
+                                  {version.version === personal.version && (
+                                    <CheckCircle2 aria-hidden="true" size={15} className="text-[#654b70]" />
+                                  )}
+                                </p>
+                                <p className="mt-0.5 text-xs text-[#687168]">
+                                  {formatDate(version.createdAt)} · 1:{version.ratio} · {version.waterGrams}g · {version.targetTimeMinSeconds}~{version.targetTimeMaxSeconds}초
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => restore(summary.profile.id, version.version)}
+                                disabled={
+                                  version.version === personal.version ||
+                                  restoringKey === `${summary.profile.id}:${version.version}`
+                                }
+                                className="flex shrink-0 items-center gap-1 rounded-lg border border-[#80648c] px-2.5 py-1.5 text-xs font-bold text-[#654b70] disabled:cursor-not-allowed disabled:opacity-45"
+                              >
+                                <RotateCcw aria-hidden="true" size={14} />
+                                복원
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       </article>
                     );
