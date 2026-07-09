@@ -149,7 +149,8 @@ function migrateBeanBrewProfiles(storage: StorageLike, report: RecipeStorageMigr
 
     const migratedId = migrateDefaultRecipeId(value.sourceRecipeId);
     if (!migratedId) {
-      const { sourceRecipeId: _sourceRecipeId, ...rest } = value;
+      const rest = { ...value };
+      delete rest.sourceRecipeId;
       report.clearedProfileRecipeIds += 1;
       return rest;
     }
