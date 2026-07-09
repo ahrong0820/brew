@@ -25,7 +25,7 @@ export function buildDefaultRecipes<T extends Recipe>(legacyRecipes: readonly T[
   for (const recipe of refreshedDefaultRecipes) {
     recipeById.set(recipe.id, recipe);
   }
-  const preferredIds = new Set(preferredDefaultRecipeOrder);
+  const preferredIds = new Set<string>(preferredDefaultRecipeOrder);
   return [
     ...preferredDefaultRecipeOrder.flatMap((recipeId) => {
       const recipe = recipeById.get(recipeId);
