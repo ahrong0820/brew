@@ -1,3 +1,4 @@
+import { canonicalizeDefaultRecipeId } from "../recipes/defaultRecipeCatalog.ts";
 import type { BaristaRecipeMatchInput } from "@/lib/types/baristaRecipe";
 
 type PersonalRecipeStatus = "provisional" | "stable";
@@ -39,13 +40,17 @@ function storedProfiles(): StoredProfile[] {
 }
 
 export function rankingBoost(recipeId: string, input: BaristaRecipeMatchInput) {
-  const explicitStatus = input.personalRecipeStatuses?.[recipeId];
+  const canonicalRecipeId = canonicalizeDefaultRecipeId(recipeId);
+  const explicitStatus =
+    input.personalRecipeStatuses?.[canonicalRecipeId] ??
+    input.personalRecipeStatuses?.[recipeId];
   const explicitBoost = boostForStatus(explicitStatus);
   if (explicitBoost > 0) return explicitBoost;
 
   const matchingProfiles = storedProfiles().filter(
     (profile) =>
-      profile.sourceRecipeId === recipeId &&
+      typeof profile.sourceRecipeId === "string" &&
+      canonicalizeDefaultRecipeId(profile.sourceRecipeId) === canonicalRecipeId &&
       profile.brewerType === input.brewerType &&
       (profile.drinkStyle ?? "hot") === input.drinkStyle,
   );
