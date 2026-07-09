@@ -218,13 +218,26 @@ test("preferred current Jung Ver 2.0 recipe preserves its audited structure", ()
   );
 });
 
-test("unsupported scopes and doses keep the existing recommendation", () => {
+test("Clever brewer applies the catalog after bypass removal", () => {
   const clever = applyBaristaRecipeRecommendation(
     baseRecommendation,
     createInput({
       preferences: { defaultBrewer: "clever" },
     }),
   );
+
+  assert.notEqual(clever, baseRecommendation);
+  assert.equal(clever.sourceRecipeId, "clever-balanced-reference");
+  assert.equal(clever.templateName, "클레버 균형형 침출 기본 참조");
+  assert.equal(clever.sourceStatus, "reference");
+  assert.ok(
+    clever.appliedRules.some(
+      (rule) => rule.id === "recipe.hot-v60.barista-catalog-match.v1",
+    ),
+  );
+});
+
+test("unsupported drink styles and doses keep the existing recommendation", () => {
   const iced = applyBaristaRecipeRecommendation(
     baseRecommendation,
     createInput({
@@ -238,7 +251,6 @@ test("unsupported scopes and doses keep the existing recommendation", () => {
     }),
   );
 
-  assert.equal(clever, baseRecommendation);
   assert.equal(iced, baseRecommendation);
   assert.equal(oversized.templateName, baseRecommendation.templateName);
   assert.equal(oversized.steps, baseRecommendation.steps);
