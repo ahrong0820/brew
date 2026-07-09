@@ -1,0 +1,2 @@
+force-redeploy: 2026-07-09T02:40:00+09:00
+reason: verify recipe catalog deployment after PR #99
