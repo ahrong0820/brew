@@ -1,8 +1,6 @@
 import { canonicalizeDefaultRecipeId } from "../recipes/defaultRecipeCatalog.ts";
 import type { BaristaRecipeMatchInput } from "@/lib/types/baristaRecipe";
 
-type PersonalRecipeStatus = "provisional" | "stable";
-
 type StoredProfile = {
   sourceRecipeId?: unknown;
   brewerType?: unknown;
