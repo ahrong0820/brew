@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { baristaRecipes } from "../data/baristaRecipes.ts";
+import { baristaRecipes } from "../data/auditedBaristaRecipes.ts";
 import {
   rankBaristaRecipes,
   selectBaristaRecipe,
@@ -21,7 +21,7 @@ const removedRecipeIds = [
   "signature-cone",
   "deepblue-v60",
   "jis-4666",
-  "anstar-6888",
+  "anstar-multiserve-20g-2024",
 ];
 
 test("active V60 catalog contains only source-audited current recipes", () => {
@@ -40,9 +40,7 @@ test("active V60 catalog contains only source-audited current recipes", () => {
       (recipeId) => !baristaRecipes.some((recipe) => recipe.id === recipeId),
     ),
   );
-  const anstar = baristaRecipes.find(
-    (recipe) => recipe.id === "anstar-multiserve-20g-2024",
-  );
+  const anstar = baristaRecipes.find((recipe) => recipe.id === "anstar-6888");
   assert.ok(anstar);
   assert.equal(anstar.sourceStatus, "partial");
   assert.equal(anstar.temperatureCelsius, undefined);
@@ -92,11 +90,8 @@ test("balanced 15g matching selects the current low-dose 484 recipe", () => {
   assert.ok(matches[0].score > matches[1].score);
 });
 
-test("the current Anstar multi-serving source can be selected explicitly", () => {
-  const match = selectBaristaRecipe(
-    baseInput,
-    "anstar-multiserve-20g-2024",
-  );
+test("the current Anstar 6888 source can be selected explicitly", () => {
+  const match = selectBaristaRecipe(baseInput, "anstar-6888");
 
   assert.ok(match);
   assert.equal(match.recipe.name, "안스타 6888");
