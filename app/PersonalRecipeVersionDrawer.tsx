@@ -164,15 +164,15 @@ export default function PersonalRecipeVersionDrawer() {
                           </div>
                           <div className="rounded-lg bg-[#f7f8f5] p-3">
                             <span className="text-xs text-[#687168]">성공 기록</span>
-                            <strong className="mt-1 block">{personal.successfulSessionIds.length}회</strong>
+                            <strong className="mt-1 block">{personal.successfulBrewCount}회</strong>
                           </div>
                           <div className="rounded-lg bg-[#f7f8f5] p-3">
                             <span className="text-xs text-[#687168]">비율</span>
                             <strong className="mt-1 block">1:{currentVersion?.ratio ?? "-"}</strong>
                           </div>
                           <div className="rounded-lg bg-[#f7f8f5] p-3">
-                            <span className="text-xs text-[#687168]">물</span>
-                            <strong className="mt-1 block">{currentVersion?.waterGrams ?? "-"}g</strong>
+                            <span className="text-xs text-[#687168]">온도</span>
+                            <strong className="mt-1 block">{currentVersion?.temperatureCelsius ?? "-"}℃</strong>
                           </div>
                         </div>
 
@@ -194,7 +194,7 @@ export default function PersonalRecipeVersionDrawer() {
                                   )}
                                 </p>
                                 <p className="mt-0.5 text-xs text-[#687168]">
-                                  {formatDate(version.createdAt)} · 1:{version.ratio} · {version.waterGrams}g · {version.targetTimeMinSeconds}~{version.targetTimeMaxSeconds}초
+                                  {formatDate(version.createdAt)} · 1:{version.ratio} · {version.temperatureCelsius}℃ · {version.grindDisplayValue} · 성공 {version.successfulBrewCount}회
                                 </p>
                               </div>
                               <button
