@@ -230,9 +230,12 @@ test("Clever brewer applies the catalog after bypass removal", () => {
   assert.equal(clever.sourceRecipeId, "clever-balanced-reference");
   assert.equal(clever.templateName, "클레버 균형형 침출 기본 참조");
   assert.equal(clever.sourceStatus, "reference");
+  assert.ok(clever.reasons.some((reason) => reason.includes("클레버")));
   assert.ok(
     clever.appliedRules.some(
-      (rule) => rule.id === "recipe.hot-v60.barista-catalog-match.v1",
+      (rule) => rule.evidence?.some(
+        (evidence) => evidence.sourceId === "barista-recipe:clever-balanced-reference",
+      ),
     ),
   );
 });
