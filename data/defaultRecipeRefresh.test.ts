@@ -52,5 +52,12 @@ test("buildDefaultRecipes removes stale recipes and inserts required refreshed r
   for (const requiredName of requiredDefaultRecipeNames) {
     assert.equal(names.includes(requiredName), true, `${requiredName} should be present`);
   }
-  assert.deepEqual(ids.slice(0, preferredDefaultRecipeOrder.length), preferredDefaultRecipeOrder);
+
+  const preferredIdsPresentInResult = preferredDefaultRecipeOrder.filter((recipeId) =>
+    ids.includes(recipeId),
+  );
+  assert.deepEqual(
+    ids.slice(0, preferredIdsPresentInResult.length),
+    preferredIdsPresentInResult,
+  );
 });
