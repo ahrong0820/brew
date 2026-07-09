@@ -147,6 +147,11 @@ export default function PersonalRecipeVersionDrawer() {
                             <p className="mt-1 text-xs text-[#687168]">
                               {summary.profile.sourceRecipeId ?? "기본 추천"} · {summary.grinder?.displayName ?? "그라인더 미확인"}
                             </p>
+                            <p className="mt-2 text-xs font-semibold text-[#805d25]">
+                              {personal.status === "stable"
+                                ? "안정 개인 성공 상태입니다"
+                                : "좋음 1회 추가 시 안정으로 승격"}
+                            </p>
                           </div>
                           <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
                             personal.status === "stable"
