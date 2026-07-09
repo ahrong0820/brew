@@ -144,7 +144,8 @@ function writeStoredItems(items: unknown[]) {
 }
 
 function withoutCopyAction(recipe: LegacyCustomRecipe): LegacyCustomRecipe {
-  const { copyAction: _copyAction, ...storedRecipe } = recipe;
+  const storedRecipe = { ...recipe };
+  delete storedRecipe.copyAction;
   return storedRecipe;
 }
 
