@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import BeanLibraryDrawer from "./BeanLibraryDrawer";
 import BrewHistoryDrawer from "./BrewHistoryDrawer";
 import BrewSessionFeedbackTracker from "./BrewSessionFeedbackTracker";
+import DefaultRecipeStorageMigrator from "./DefaultRecipeStorageMigrator";
 import GrindMicronDrawer from "./GrindMicronDrawer";
 import MobileCoffeeNav from "./MobileCoffeeNav";
 import MobileOverlayCoordinator from "./MobileOverlayCoordinator";
@@ -36,6 +37,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
+        <DefaultRecipeStorageMigrator />
         <MobileOverlayCoordinator />
         <MobileRecipeEnhancer />
         <GrindMicronDrawer />

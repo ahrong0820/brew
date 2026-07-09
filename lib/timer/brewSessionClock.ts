@@ -1,3 +1,8 @@
+import {
+  canonicalizeDefaultRecipeId,
+  isRemovedDefaultRecipeId,
+  isRemovedDefaultRecipeName,
+} from "../recipes/defaultRecipeCatalog.ts";
 import type {
   RecommendationTimerStartDetail,
   TimerRecipe,
@@ -134,6 +139,40 @@ function parseLegacyClock(value: unknown): BrewSessionClock | null {
   };
 }
 
+function sanitizeClock(clock: BrewSessionClock | null): BrewSessionClock | null {
+  if (!clock) {
+    return null;
+  }
+
+  if (isRemovedDefaultRecipeName(clock.recipeName)) {
+    return null;
+  }
+
+  const recipeId = clock.recipe?.id;
+  if (!recipeId) {
+    return clock;
+  }
+
+  const canonicalRecipeId = canonicalizeDefaultRecipeId(recipeId);
+  if (isRemovedDefaultRecipeId(canonicalRecipeId)) {
+    return null;
+  }
+
+  if (canonicalRecipeId === recipeId) {
+    return clock;
+  }
+
+  return {
+    ...clock,
+    recipe: clock.recipe
+      ? {
+          ...clock.recipe,
+          id: canonicalRecipeId,
+        }
+      : undefined,
+  };
+}
+
 function emitClockChange(clock: BrewSessionClock | null) {
   if (typeof window === "undefined") {
     return;
@@ -183,7 +222,7 @@ export function readBrewSessionClock(): BrewSessionClock | null {
     }
 
     const parsed: unknown = JSON.parse(raw);
-    const clock = parseClock(parsed) ?? parseLegacyClock(parsed);
+    const clock = sanitizeClock(parseClock(parsed) ?? parseLegacyClock(parsed));
 
     if (!clock) {
       inMemoryClock = null;
@@ -192,6 +231,9 @@ export function readBrewSessionClock(): BrewSessionClock | null {
     }
 
     inMemoryClock = clock;
+    if (JSON.stringify(clock) !== raw) {
+      window.sessionStorage.setItem(activeBrewSessionStorageKey, JSON.stringify(clock));
+    }
     return clock;
   } catch {
     return inMemoryClock;

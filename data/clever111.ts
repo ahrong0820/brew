@@ -1,3 +1,5 @@
+import type { Recipe } from "../lib/types/defaultRecipe.ts";
+
 export const clever111 = {
   id: "jis-clever-1-11",
   name: "정인성 클레버 1:11",
@@ -22,4 +24,4 @@ export const clever111 = {
     { label: "드로다운", start: 150, end: 220, targetWater: 220, cue: "2:30에 서버에 올리고 3:20~3:40 완료" },
     { label: "농도 조절", start: 220, end: 220, targetWater: 220, displayTargetWater: { min: 300, max: 320 }, displayStepWater: { min: 80, max: 100 }, cue: "뜨거운 물 80~100g 추가" },
   ],
-};
+} satisfies Recipe;

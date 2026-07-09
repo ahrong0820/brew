@@ -1,3 +1,5 @@
+import type { Recipe } from "../lib/types/defaultRecipe.ts";
+
 export const recipe484 = {
   id: "jis-484-15g-2026",
   name: "정인성 484 15g (2026)",
@@ -21,4 +23,4 @@ export const recipe484 = {
     { label: "2차 추출", start: 70, end: 150, targetWater: 120, cue: "30g 추가" },
     { label: "HOT 후가수", start: 150, end: 170, targetWater: 120, displayTargetWater: 220, displayStepWater: 100, cue: "100g 추가" },
   ],
-};
+} satisfies Recipe;

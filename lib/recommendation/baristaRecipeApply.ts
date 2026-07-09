@@ -5,10 +5,6 @@ export function applyBaristaRecipeRecommendation(
   recommendation: BrewRecommendation,
   input: RecommendationInput,
 ): BrewRecommendation {
-  if (input.preferences.defaultBrewer === "clever" && !input.baristaRecipeId) {
-    return recommendation;
-  }
-
   const result = applyCurrent(recommendation, input);
   if (result === recommendation) return recommendation;
   if (input.preferences.defaultBrewer !== "v60") return result;

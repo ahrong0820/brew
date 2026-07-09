@@ -1,3 +1,5 @@
+import { canonicalizeDefaultRecipeId } from "../lib/recipes/defaultRecipeCatalog.ts";
+
 export type SourceCheck =
   | "exact"
   | "partial"
@@ -25,7 +27,7 @@ export const recipeSourceRegistry: readonly RecipeSourceRecord[] = [
     check: "partial",
   },
   {
-    recipeId: "anstar-multiserve-20g-2024",
+    recipeId: "anstar-6888",
     label: "안스타 공식 YouTube 2·4인분 레시피(통칭 6888)와 제작자 고정 댓글",
     url: "https://www.youtube.com/watch?v=uZs78TPm7ws",
     check: "partial",
@@ -68,5 +70,6 @@ export const recipeSourceRegistry: readonly RecipeSourceRecord[] = [
 ] as const;
 
 export function sourceRecordForRecipe(recipeId: string) {
-  return recipeSourceRegistry.find((record) => record.recipeId === recipeId);
+  const canonicalRecipeId = canonicalizeDefaultRecipeId(recipeId);
+  return recipeSourceRegistry.find((record) => record.recipeId === canonicalRecipeId);
 }

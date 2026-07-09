@@ -1,20 +1,25 @@
 import { baristaRecipes as catalogRecipes } from "./baristaRecipes.ts";
 import { sourceRecordForRecipe } from "./recipeSourceRegistry.ts";
+import { canonicalizeDefaultRecipeId } from "../lib/recipes/defaultRecipeCatalog.ts";
 import type { BaristaRecipe } from "@/lib/types/baristaRecipe";
 
 export function auditBaristaRecipeSource(recipe: BaristaRecipe): BaristaRecipe {
-  const source = sourceRecordForRecipe(recipe.id);
+  const canonicalRecipe: BaristaRecipe = {
+    ...recipe,
+    id: canonicalizeDefaultRecipeId(recipe.id),
+  };
+  const source = sourceRecordForRecipe(canonicalRecipe.id);
   if (!source) {
     return {
-      ...recipe,
+      ...canonicalRecipe,
       sourceStatus: "reference",
     };
   }
 
   return {
-    ...recipe,
+    ...canonicalRecipe,
     sourceLabel: source.label,
-    sourceUrl: source.url || recipe.sourceUrl,
+    sourceUrl: source.url || canonicalRecipe.sourceUrl,
     sourceStatus:
       source.check === "exact"
         ? "verified"

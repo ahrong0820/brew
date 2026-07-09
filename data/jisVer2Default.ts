@@ -1,3 +1,5 @@
+import type { Recipe } from "../lib/types/defaultRecipe.ts";
+
 export const jisVer2Default = {
   id: "jis-ver2-hot",
   name: "정인성 국룰 Ver 2.0 HOT",
@@ -33,4 +35,4 @@ export const jisVer2Default = {
       cue: "뜨거운 물 60~80g을 더해 최종 280~300g에서 농도 조절",
     },
   ],
-};
+} satisfies Recipe;

@@ -24,6 +24,7 @@
     "typecheck": "tsc --noEmit --pretty false",
     "test": "node scripts/run-tests.mjs",
     "validate:static-export": "node scripts/validate-static-export.mjs",
+    "validate:recipe-content": "node scripts/validate-recipe-content.mjs",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

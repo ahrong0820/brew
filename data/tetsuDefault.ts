@@ -1,3 +1,5 @@
+import type { Recipe } from "../lib/types/defaultRecipe.ts";
+
 export const tetsuDefault = {
   id: "tetsu-neo-2026",
   name: "테츠 카스야 THE NEO BREW 2026",
@@ -21,4 +23,4 @@ export const tetsuDefault = {
       ? "2:15에 누적 300g. 빠른 배출을 유지하며 최종 드로다운 확인"
       : "30g을 붓고 드리퍼 안에 물이 오래 머물지 않게 빠르게 배출",
   })),
-};
+} satisfies Recipe;
