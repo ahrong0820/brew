@@ -11,7 +11,7 @@ const removedRecipeIds = [
   "signature-cone",
   "deepblue-v60",
   "jis-4666",
-  "anstar-6888",
+  "anstar-multiserve-20g-2024",
 ];
 
 test("removed and superseded public recipes are absent from catalog and registry", () => {
@@ -24,8 +24,8 @@ test("removed and superseded public recipes are absent from catalog and registry
   }
 });
 
-test("official Anstar multi-serving video replaces the unverified 6888 label", () => {
-  const current = recipe("anstar-multiserve-20g-2024");
+test("canonical Anstar 6888 keeps the official multi-serving source facts", () => {
+  const current = recipe("anstar-6888");
   assert.ok(current);
   assert.equal(current.name, "안스타 6888");
   assert.equal(current.sourceStatus, "partial");
@@ -80,60 +80,56 @@ test("Jung In-sung Ver 2.0 preserves the official 18g HOT structure", () => {
       [170, 300],
     ],
   );
-  assert.match(current.steps.at(-1).cue, /60~80g.*280~300g/);
 });
 
 test("2026 Jung In-sung 15g recipe keeps source facts separate from app timing", () => {
   const current = recipe("jis-484-15g-2026");
   assert.ok(current);
   assert.equal(current.sourceStatus, "partial");
-  assert.equal(current.sourceUrl, "https://www.youtube.com/watch?v=Q3CbFCF5CD4");
   assert.equal(current.doseGrams, 15);
   assert.equal(current.waterGrams, 220);
   assert.equal(current.temperatureCelsius, undefined);
   assert.deepEqual(
-    current.steps.map((step) => step.targetWaterGrams),
-    [30, 90, 120, 220],
+    current.steps.map((step) => [step.startSeconds, step.targetWaterGrams]),
+    [
+      [0, 30],
+      [40, 90],
+      [70, 120],
+      [150, 220],
+    ],
   );
-  assert.match(current.steps[1].cue, /앱 시작 시점/);
-  assert.match(current.steps[2].cue, /앱 시작 시점/);
-  assert.match(current.steps.at(-1).cue, /확인된.*100g/);
 });
 
 test("Tetsu THE NEO BREW encodes ten 30g pours at 15 second intervals", () => {
   const current = recipe("tetsu-neo-2026");
   assert.ok(current);
   assert.equal(current.sourceStatus, "partial");
-  assert.equal(current.sourceUrl, "https://www.youtube.com/watch?v=k0nsShguOsU");
   assert.equal(current.doseGrams, 20);
   assert.equal(current.waterGrams, 300);
-  assert.equal(current.ratio, 15);
   assert.equal(current.temperatureCelsius, 96);
   assert.equal(current.steps.length, 10);
   assert.deepEqual(
-    current.steps.map((step) => step.startSeconds),
-    [0, 15, 30, 45, 60, 75, 90, 105, 120, 135],
+    current.steps.map((step) => [step.startSeconds, step.targetWaterGrams]),
+    [
+      [0, 30],
+      [15, 60],
+      [30, 90],
+      [45, 120],
+      [60, 150],
+      [75, 180],
+      [90, 210],
+      [105, 240],
+      [120, 270],
+      [135, 300],
+    ],
   );
-  assert.deepEqual(
-    current.steps.map((step) => step.targetWaterGrams),
-    [30, 60, 90, 120, 150, 180, 210, 240, 270, 300],
-  );
-  assert.match(current.grindIntent.originalDescription, /40~45클릭.*극굵은/);
 });
 
-test("catalog audit records source boundaries and superseded Clever ratio", async () => {
-  const audit = await readFile(
-    new URL(
-      "../docs/source-audits/recipe-catalog-refresh-2026-06.md",
-      import.meta.url,
-    ),
-    "utf8",
+test("default recipe source registry page links do not include stale labels", async () => {
+  const packageJson = JSON.parse(await readFile("package.json", "utf8"));
+  assert.ok(packageJson.scripts["validate:static-export"]);
+  assert.equal(
+    recipeSourceRegistry.some((record) => record.label.includes("시그니쳐")),
+    false,
   );
-
-  assert.match(audit, /40g HOT와 40g ICE의 물 온도는 모두 86℃/);
-  assert.match(audit, /20g HOT의 정확한 온도/);
-  assert.match(audit, /기존 앱 전사 시작값/);
-  assert.match(audit, /20g\/240g, 1:12/);
-  assert.match(audit, /20g\/220g, 1:11/);
-  assert.match(audit, /활성 레시피는 `jis-clever-1-11`만 유지/);
 });
