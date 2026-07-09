@@ -45,7 +45,8 @@ export function detachCustomRecipesFromSession(sessionId: string) {
     }
 
     changed = true;
-    const { sourceCurrentBestSessionId: _removed, ...rest } = item;
+    const rest = { ...item };
+    delete rest.sourceCurrentBestSessionId;
     return rest;
   });
 
