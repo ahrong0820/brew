@@ -1,3 +1,5 @@
+import type { Recipe } from "../lib/types/defaultRecipe.ts";
+
 export const anstarDefaultRecipe = {
   id: "anstar-6888",
   name: "안스타 6888",
@@ -22,4 +24,4 @@ export const anstarDefaultRecipe = {
     { label: "3차 추출", start: 90, end: 120, targetWater: 300, cue: "[앱 시작값] 마지막 80g을 채워 총 300g" },
     { label: "완료", start: 120, end: 150, targetWater: 300, cue: "2:00~2:30 흐름을 확인하며 드리퍼 제거" },
   ],
-};
+} satisfies Recipe;
