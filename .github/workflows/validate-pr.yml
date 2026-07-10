@@ -14,17 +14,17 @@ jobs:
     timeout-minutes: 35
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           show-progress: false
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6.0.9
         with:
           version: 11.7.0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22.13.0
           cache: pnpm
@@ -50,7 +50,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 3
 
-      - name: Write deployment metadata
+      - name: Write deployment metadata and recipe manifest
         run: |
           mkdir -p public/deployments
           cat > public/deployment.json <<EOF
@@ -63,6 +63,7 @@ jobs:
           }
           EOF
           cp public/deployment.json "public/deployments/${GITHUB_SHA}.json"
+          pnpm run write:recipe-manifest "$GITHUB_SHA"
 
       - name: Build GitHub Pages
         run: pnpm build:github
@@ -72,7 +73,9 @@ jobs:
           NEXT_PUBLIC_DEPLOYMENT_SHA: ${{ github.sha }}
 
       - name: Validate static export
-        run: pnpm run validate:static-export out "$GITHUB_SHA"
+        run: |
+          pnpm run validate:static-export out "$GITHUB_SHA"
+          pnpm run validate:recipe-content out/index.html
 
       - name: Install Playwright Chromium
         run: |
@@ -81,8 +84,7 @@ jobs:
 
       - name: Run mobile browser E2E
         run: |
-          node e2e/mobile-flow.mjs
-          node e2e/recommendation-flow.mjs
+          pnpm run test:e2e
 
       - name: Upload E2E diagnostics
         if: failure()
