@@ -1,8 +1,9 @@
 name: Apply audit remediation
 
 on:
-  push:
-    branches: ["fix/full-audit-remediation"]
+  pull_request:
+    branches: ["main"]
+    types: [synchronize]
 
 permissions:
   contents: write
@@ -13,6 +14,7 @@ concurrency:
 
 jobs:
   apply:
+    if: github.event.pull_request.head.ref == 'fix/full-audit-remediation'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout remediation branch
