@@ -30,17 +30,12 @@ jobs:
           base64 --decode /tmp/remediation.patch.gz.b64 | gunzip > /tmp/remediation.patch
           echo "9002a024c8e2850594ae57d7a6a911c5cbff3c2b1d2c01b0cec3b7ecd9e3d285  /tmp/remediation.patch" | sha256sum --check
 
-      - name: Apply eight ordered commits
+      - name: Build final non-workflow commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git am --3way /tmp/remediation.patch
-
-      - name: Remove temporary transfer tooling
-        run: |
-          rm -f .github/remediation.part.*
-          rm -f .github/workflows/apply-remediation.yml
-          rm -f .github/workflows/source-snapshot.yml
-          git add -A
-          git commit -m "chore: remove temporary remediation tooling"
+          git reset --soft origin/fix/full-audit-remediation
+          git restore --source=origin/fix/full-audit-remediation --staged --worktree .github/workflows .github/remediation.part.00 .github/remediation.part.01 .github/remediation.part.02 .github/remediation.part.03 .github/remediation.part.04 .github/remediation.part.05
+          git commit -m "fix: complete independent audit remediation"
           git push origin HEAD:fix/full-audit-remediation
