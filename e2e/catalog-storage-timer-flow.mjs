@@ -114,7 +114,7 @@ async function run() {
     assert.equal(await recipeRows.count(), 10, "9 defaults plus one valid custom recipe must render");
 
     for (const recipeName of expectedRecipeNames) {
-      await page.getByRole("button", { name: new RegExp(recipeName) }).first().waitFor();
+      await page.getByRole("button", { name: recipeName, exact: false }).first().waitFor();
     }
     for (const recipeName of removedRecipeNames) {
       assert.equal(await page.getByText(recipeName, { exact: false }).count(), 0, `${recipeName} must be absent`);
