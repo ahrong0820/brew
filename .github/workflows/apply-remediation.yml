@@ -1,0 +1,44 @@
+name: Apply audit remediation
+
+on:
+  push:
+    branches: ["fix/full-audit-remediation"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-audit-remediation
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout remediation branch
+        uses: actions/checkout@v7
+        with:
+          ref: fix/full-audit-remediation
+          fetch-depth: 0
+
+      - name: Reconstruct and verify patch
+        run: |
+          cat .github/remediation.part.* > /tmp/remediation.patch.gz.b64
+          echo "9f481c4e75c1c4d7d4786ec176cbf4f65f8e2ba65f5e53b8bf25521c51b70d5f  /tmp/remediation.patch.gz.b64" | sha256sum --check
+          base64 --decode /tmp/remediation.patch.gz.b64 | gunzip > /tmp/remediation.patch
+          echo "9002a024c8e2850594ae57d7a6a911c5cbff3c2b1d2c01b0cec3b7ecd9e3d285  /tmp/remediation.patch" | sha256sum --check
+
+      - name: Apply eight ordered commits
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git am --3way /tmp/remediation.patch
+
+      - name: Remove temporary transfer tooling
+        run: |
+          rm -f .github/remediation.part.*
+          rm -f .github/workflows/apply-remediation.yml
+          rm -f .github/workflows/source-snapshot.yml
+          git add -A
+          git commit -m "chore: remove temporary remediation tooling"
+          git push origin HEAD:fix/full-audit-remediation
