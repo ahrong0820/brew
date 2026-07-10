@@ -1,4 +1,5 @@
 import { readFile, stat } from "node:fs/promises";
+import { assertRecipeManifest } from "./recipe-manifest.mjs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -66,18 +67,21 @@ export async function validateStaticExport(outputDirectory, expectedSha) {
     "deployments",
     `${normalizedSha}.json`,
   );
+  const recipeManifestPath = path.join(outputRoot, "recipe-manifest.json");
 
   await Promise.all([
     assertFile(indexPath),
     assertDirectory(nextDirectory),
     assertFile(latestMarkerPath),
     assertFile(immutableMarkerPath),
+    assertFile(recipeManifestPath),
   ]);
 
-  const [html, latestRaw, immutableRaw] = await Promise.all([
+  const [html, latestRaw, immutableRaw, recipeManifestRaw] = await Promise.all([
     readFile(indexPath, "utf8"),
     readFile(latestMarkerPath, "utf8"),
     readFile(immutableMarkerPath, "utf8"),
+    readFile(recipeManifestPath, "utf8"),
   ]);
 
   if (latestRaw !== immutableRaw) {
@@ -85,6 +89,8 @@ export async function validateStaticExport(outputDirectory, expectedSha) {
   }
 
   const latestMetadata = parseDeploymentMetadata(latestRaw, latestMarkerPath);
+  const recipeManifest = parseDeploymentMetadata(recipeManifestRaw, recipeManifestPath);
+  assertRecipeManifest(recipeManifest, normalizedSha, recipeManifestPath);
   const immutableMetadata = parseDeploymentMetadata(
     immutableRaw,
     immutableMarkerPath,

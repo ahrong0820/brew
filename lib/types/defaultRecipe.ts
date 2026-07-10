@@ -1,3 +1,22 @@
+export type RecipeTemperature =
+  | {
+      status: "verified";
+      display: string;
+      celsius?: number;
+      note?: string;
+    }
+  | {
+      status: "app-default";
+      display: string;
+      celsius: number;
+      note: string;
+    }
+  | {
+      status: "unknown";
+      display: string;
+      note: string;
+    };
+
 export type WaterAmount = number | { min: number; max: number };
 
 export interface BrewStep {
@@ -24,6 +43,7 @@ export interface Recipe {
   finalWater?: WaterAmount;
   ratio: string;
   temp: string;
+  temperature?: RecipeTemperature;
   grind: string;
   totalTime: number;
   notes: string[];

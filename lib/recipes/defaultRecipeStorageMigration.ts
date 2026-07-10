@@ -4,6 +4,10 @@ import {
   isRemovedDefaultRecipeName,
   migrateDefaultRecipeId,
 } from "./defaultRecipeCatalog.ts";
+import {
+  parseStoredCustomRecipes,
+  quarantineRejectedCustomRecipes,
+} from "./customRecipeSchema.ts";
 
 const favoriteRecipeStorageKey = "coffee-recipe-favorites";
 const customRecipesStorageKey = "coffee-custom-recipes";
@@ -33,6 +37,8 @@ export interface RecipeStorageMigrationReport {
   migratedSessionRecipeIds: number;
   clearedActiveSession: boolean;
   migratedActiveSessionRecipeId: boolean;
+  clearedMalformedKeys: string[];
+  failedKeys: string[];
 }
 
 function emptyReport(): RecipeStorageMigrationReport {
@@ -47,6 +53,8 @@ function emptyReport(): RecipeStorageMigrationReport {
     migratedSessionRecipeIds: 0,
     clearedActiveSession: false,
     migratedActiveSessionRecipeId: false,
+    clearedMalformedKeys: [],
+    failedKeys: [],
   };
 }
 
@@ -61,11 +69,37 @@ function browserScope(): RecipeStorageMigrationScope | null {
   };
 }
 
-function readJson(storage: StorageLike, key: string): unknown {
-  const raw = storage.getItem(key);
+function markKey(list: string[], key: string) {
+  if (!list.includes(key)) list.push(key);
+}
+
+function readJson(
+  storage: StorageLike,
+  key: string,
+  report: RecipeStorageMigrationReport,
+): unknown {
+  let raw: string | null;
+  try {
+    raw = storage.getItem(key);
+  } catch {
+    markKey(report.failedKeys, key);
+    return null;
+  }
+
   if (!raw) return null;
 
-  return JSON.parse(raw) as unknown;
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    try {
+      storage.removeItem(key);
+      report.changed = true;
+      markKey(report.clearedMalformedKeys, key);
+    } catch {
+      markKey(report.failedKeys, key);
+    }
+    return null;
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -81,7 +115,7 @@ function writeJson(storage: StorageLike, key: string, value: unknown) {
 }
 
 function migrateFavoriteIds(storage: StorageLike, report: RecipeStorageMigrationReport) {
-  const parsed = readJson(storage, favoriteRecipeStorageKey);
+  const parsed = readJson(storage, favoriteRecipeStorageKey, report);
   if (!Array.isArray(parsed)) return;
 
   const nextIds: string[] = [];
@@ -113,22 +147,12 @@ function migrateFavoriteIds(storage: StorageLike, report: RecipeStorageMigration
 }
 
 function migrateCustomRecipes(storage: StorageLike, report: RecipeStorageMigrationReport) {
-  const parsed = readJson(storage, customRecipesStorageKey);
+  const parsed = readJson(storage, customRecipesStorageKey, report);
   if (!Array.isArray(parsed)) return;
 
-  const nextRecipes = parsed.filter((value) => {
-    if (!isRecord(value) || typeof value.id !== "string") {
-      report.removedCustomRecipeEntries += 1;
-      return false;
-    }
-
-    if (value.id.startsWith("custom-")) {
-      return true;
-    }
-
-    report.removedCustomRecipeEntries += 1;
-    return false;
-  });
+  const { recipes: nextRecipes, rejected } = parseStoredCustomRecipes(parsed);
+  report.removedCustomRecipeEntries += rejected.length;
+  if (rejected.length > 0) quarantineRejectedCustomRecipes(storage, rejected);
 
   if (!sameJson(parsed, nextRecipes)) {
     writeJson(storage, customRecipesStorageKey, nextRecipes);
@@ -137,7 +161,7 @@ function migrateCustomRecipes(storage: StorageLike, report: RecipeStorageMigrati
 }
 
 function migrateBeanBrewProfiles(storage: StorageLike, report: RecipeStorageMigrationReport) {
-  const parsed = readJson(storage, beanBrewProfilesStorageKey);
+  const parsed = readJson(storage, beanBrewProfilesStorageKey, report);
   if (!isRecord(parsed) || parsed.version !== 1 || !Array.isArray(parsed.items)) {
     return;
   }
@@ -171,7 +195,7 @@ function migrateBeanBrewProfiles(storage: StorageLike, report: RecipeStorageMigr
 }
 
 function migrateBrewSessions(storage: StorageLike, report: RecipeStorageMigrationReport) {
-  const parsed = readJson(storage, brewSessionsStorageKey);
+  const parsed = readJson(storage, brewSessionsStorageKey, report);
   if (!isRecord(parsed) || parsed.version !== 1 || !Array.isArray(parsed.items)) {
     return;
   }
@@ -212,7 +236,7 @@ function migrateActiveSession(
   storage: StorageLike,
   report: RecipeStorageMigrationReport,
 ) {
-  const parsed = readJson(storage, activeBrewSessionStorageKey);
+  const parsed = readJson(storage, activeBrewSessionStorageKey, report);
   if (!isRecord(parsed)) return;
 
   if (typeof parsed.recipeName === "string" && isRemovedDefaultRecipeName(parsed.recipeName)) {
@@ -252,18 +276,26 @@ export function migrateDefaultRecipeClientStorage(
   const report = emptyReport();
   if (!scope) return report;
 
-  try {
-    if (scope.localStorage) {
-      migrateFavoriteIds(scope.localStorage, report);
-      migrateCustomRecipes(scope.localStorage, report);
-      migrateBeanBrewProfiles(scope.localStorage, report);
-      migrateBrewSessions(scope.localStorage, report);
+  function runKeyMigration(
+    storage: StorageLike,
+    key: string,
+    migrate: (storage: StorageLike, report: RecipeStorageMigrationReport) => void,
+  ) {
+    try {
+      migrate(storage, report);
+    } catch {
+      markKey(report.failedKeys, key);
     }
-    if (scope.sessionStorage) {
-      migrateActiveSession(scope.sessionStorage, report);
-    }
-  } catch {
-    return report;
+  }
+
+  if (scope.localStorage) {
+    runKeyMigration(scope.localStorage, favoriteRecipeStorageKey, migrateFavoriteIds);
+    runKeyMigration(scope.localStorage, customRecipesStorageKey, migrateCustomRecipes);
+    runKeyMigration(scope.localStorage, beanBrewProfilesStorageKey, migrateBeanBrewProfiles);
+    runKeyMigration(scope.localStorage, brewSessionsStorageKey, migrateBrewSessions);
+  }
+  if (scope.sessionStorage) {
+    runKeyMigration(scope.sessionStorage, activeBrewSessionStorageKey, migrateActiveSession);
   }
 
   return report;

@@ -10,12 +10,19 @@ export const anstarDefaultRecipe = {
   dose: 20,
   water: 300,
   ratio: "1:15",
-  temp: "20g 원본 수치 미확인",
+  temp: "앱 시작값 93℃",
+  temperature: {
+    status: "app-default",
+    display: "93℃",
+    celsius: 93,
+    note: "공식 20g HOT 온도는 확인되지 않아 V60용 중간 시작값을 사용합니다.",
+  },
   grind: "굵은 분쇄 시작값",
   totalTime: 150,
   notes: [
     "공식 영상은 2·4인분 HOT/ICE 레시피이며 6888은 널리 쓰이는 통칭",
     "60-80-80-80과 시점은 기존 앱 전사 시작값으로 원두에 맞춰 조절",
+    "온도 93℃도 공식값이 아닌 앱 시작값이며 배전도에 따라 조절",
   ],
   steps: [
     { label: "블루밍", start: 0, end: 30, targetWater: 60, cue: "[앱 시작값] 60g으로 전체를 적시기" },
