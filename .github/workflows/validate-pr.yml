@@ -33,7 +33,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run lint
-        run: pnpm lint 2>&1 | tee lint.log
+        run: |
+          set -o pipefail
+          pnpm lint 2>&1 | tee lint.log
 
       - name: Run type check
         run: pnpm typecheck
