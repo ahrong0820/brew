@@ -33,7 +33,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run lint
-        run: pnpm lint
+        run: pnpm lint 2>&1 | tee lint.log
 
       - name: Run type check
         run: pnpm typecheck
@@ -45,8 +45,10 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-failure-${{ github.run_id }}
-          path: test-failure.log
+          name: validation-failure-${{ github.run_id }}
+          path: |
+            lint.log
+            test-failure.log
           if-no-files-found: ignore
           retention-days: 3
 
