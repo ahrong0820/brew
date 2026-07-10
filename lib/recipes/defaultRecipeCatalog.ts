@@ -1,3 +1,17 @@
+export const defaultRecipeCatalogVersion = "2026-07-10.1" as const;
+
+export const defaultRecipeCatalogEntries = [
+  { id: "tetsu-46", name: "테츠 카스야 4:6 기본형" },
+  { id: "tetsu-neo-2026", name: "테츠 카스야 THE NEO BREW 2026" },
+  { id: "anstar-6888", name: "안스타 6888" },
+  { id: "jis-ver2-hot", name: "정인성 국룰 Ver 2.0 HOT" },
+  { id: "jis-484-15g-2026", name: "정인성 484 15g (2026)" },
+  { id: "yong-light", name: "용챔 라이트로스트 15g" },
+  { id: "switch-devil", name: "테츠 카스야 악마의 레시피" },
+  { id: "hoffmann-clever-water-first", name: "제임스 호프만 클레버" },
+  { id: "jis-clever-1-11", name: "정인성 클레버 1:11" },
+] as const;
+
 export const removedDefaultRecipeIds = [
   "signature-cone",
   "deepblue-v60",

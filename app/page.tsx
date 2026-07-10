@@ -36,22 +36,18 @@ import {
   type RecommendationTimerStartDetail,
 } from "@/lib/timer/recommendationTimer";
 
-import { buildDefaultRecipes } from "@/data/defaultRecipeRefresh";
+import { defaultRecipes } from "@/data/defaultRecipes";
+import {
+  repairStoredCustomRecipeStorage,
+  customRecipesStorageKey,
+} from "@/lib/recipes/customRecipeSchema";
+import { recipeTemperaturePresentation } from "@/lib/recipes/recipeTemperature";
+import { writeJsonStorage } from "@/lib/storage/browserJsonStorage";
+import { runSmartAlert } from "@/lib/timer/smartAlert";
+import type { Recipe, WaterAmount } from "@/lib/types/defaultRecipe";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const heroImageSrc = `${basePath}/brewing-hero.png`;
-
-type WaterAmount = number | { min: number; max: number };
-
-type BrewStep = {
-  label: string;
-  start: number;
-  end: number;
-  targetWater: number;
-  displayTargetWater?: WaterAmount;
-  displayStepWater?: WaterAmount;
-  cue: string;
-};
 
 type DraftStep = {
   label: string;
@@ -59,28 +55,6 @@ type DraftStep = {
   targetWater: number;
   cue: string;
 };
-
-type Recipe = {
-  id: string;
-  name: string;
-  origin: string;
-  method: string;
-  profile: string;
-  tags: string[];
-  dose: number;
-  water: number;
-  brewWater?: number;
-  bypassWater?: WaterAmount;
-  finalWater?: WaterAmount;
-  ratio: string;
-  temp: string;
-  grind: string;
-  totalTime: number;
-  notes: string[];
-  steps: BrewStep[];
-};
-
-const customRecipesStorageKey = "coffee-custom-recipes";
 
 const defaultDraftSteps: DraftStep[] = [
   {
@@ -109,543 +83,7 @@ const defaultDraftSteps: DraftStep[] = [
   },
 ];
 
-const legacyRecipes: Recipe[] = [
-  {
-    id: "tetsu-46",
-    name: "테츠 카스야 4:6 기본형",
-    origin: "바리스타 공개 레시피",
-    method: "V60",
-    profile: "균형감, 클린컵, 조절 가능한 단맛과 산미",
-    tags: ["V60", "클래식", "라이트"],
-    dose: 20,
-    water: 300,
-    ratio: "1:15",
-    temp: "92C",
-    grind: "중굵은 분쇄",
-    totalTime: 210,
-    notes: ["전반 40%로 맛의 방향을 잡고 후반 60%로 농도를 맞춤", "물량 변경 시 각 푸어량도 함께 스케일"],
-    steps: [
-      {
-        label: "블루밍",
-        start: 0,
-        end: 45,
-        targetWater: 60,
-        cue: "가루를 충분히 적시고 45초까지 기다리기",
-      },
-      {
-        label: "1차 추출",
-        start: 45,
-        end: 90,
-        targetWater: 120,
-        cue: "천천히 원을 그리며 120g까지 붓기",
-      },
-      {
-        label: "2차 추출",
-        start: 90,
-        end: 135,
-        targetWater: 180,
-        cue: "중앙에서 바깥쪽으로 물줄기를 넓히기",
-      },
-      {
-        label: "3차 추출",
-        start: 135,
-        end: 180,
-        targetWater: 240,
-        cue: "수위를 안정적으로 유지하며 240g까지 붓기",
-      },
-      {
-        label: "4차 추출",
-        start: 180,
-        end: 210,
-        targetWater: 300,
-        cue: "마지막 60g을 채우고 3분 30초에 드리퍼 제거",
-      },
-    ],
-  },
-  {
-    id: "anstar-6888",
-    name: "안스타 6888",
-    origin: "바리스타 공개 레시피",
-    method: "V60",
-    profile: "굵은 분쇄, 향미 표현, 반복하기 쉬운 펄스",
-    tags: ["V60", "국내", "향미"],
-    dose: 20,
-    water: 300,
-    ratio: "1:15",
-    temp: "94C",
-    grind: "굵은 분쇄",
-    totalTime: 150,
-    notes: [
-      "60g 블룸 뒤 80g씩 세 번 나누는 단순한 리듬",
-      "표시 시간은 기준이며, 이전 물이 대부분 빠진 뒤 다음 푸어를 시작합니다.",
-    ],
-    steps: [
-      {
-        label: "블루밍",
-        start: 0,
-        end: 30,
-        targetWater: 60,
-        cue: "커피 가루를 충분히 적시기",
-      },
-      {
-        label: "1차 추출",
-        start: 30,
-        end: 60,
-        targetWater: 140,
-        cue: "굵은 물줄기로 140g까지 붓고 빠짐 확인",
-      },
-      {
-        label: "2차 추출",
-        start: 60,
-        end: 90,
-        targetWater: 220,
-        cue: "동일한 속도로 220g까지 붓기",
-      },
-      {
-        label: "3차 추출",
-        start: 90,
-        end: 120,
-        targetWater: 300,
-        cue: "마지막 80g을 채워 총 300g 맞추기",
-      },
-      {
-        label: "완료",
-        start: 120,
-        end: 150,
-        targetWater: 300,
-        cue: "모든 물이 빠질 때까지 기다리기",
-      },
-    ],
-  },
-  {
-    id: "jis-4666",
-    name: "정인성 4666 오리지널",
-    origin: "바리스타 공개 레시피",
-    method: "V60",
-    profile: "약배전 스페셜티, 선명한 향, 안정적인 분할",
-    tags: ["V60", "국내", "라이트"],
-    dose: 20,
-    water: 320,
-    brewWater: 220,
-    bypassWater: 100,
-    finalWater: 320,
-    ratio: "1:16",
-    temp: "92C",
-    grind: "중간보다 굵은 분쇄",
-    totalTime: 160,
-    notes: ["40g 뜸 이후 60g씩 세 번 추출하는 4666 구조", "약배전 원두의 맛과 향 표현에 초점"],
-    steps: [
-      {
-        label: "뜸들이기",
-        start: 0,
-        end: 40,
-        targetWater: 40,
-        cue: "가루 전체를 부드럽게 적시기",
-      },
-      {
-        label: "1차 추출",
-        start: 40,
-        end: 70,
-        targetWater: 100,
-        cue: "중앙부터 바깥쪽으로 원을 그리며 붓기",
-      },
-      {
-        label: "2차 추출",
-        start: 70,
-        end: 100,
-        targetWater: 160,
-        cue: "1차와 같은 흐름으로 160g까지 붓기",
-      },
-      {
-        label: "3차 추출",
-        start: 100,
-        end: 130,
-        targetWater: 220,
-        cue: "마지막 추출수를 붓고 흐름을 안정화",
-      },
-      {
-        label: "후가수",
-        start: 130,
-        end: 160,
-        targetWater: 220,
-        displayTargetWater: 320,
-        displayStepWater: 100,
-        cue: "추출 후 뜨거운 물 100g을 별도로 더해 농도 조절",
-      },
-    ],
-  },
-  {
-    id: "jis-ver2-hot",
-    name: "정인성 국룰 Ver 2.0 HOT",
-    origin: "바리스타 공개 레시피",
-    method: "V60",
-    profile: "긴 뜸, 안정적인 단맛, 후가수 밸런스",
-    tags: ["V60", "국내", "단맛"],
-    dose: 18,
-    water: 300,
-    brewWater: 220,
-    bypassWater: 80,
-    finalWater: 300,
-    ratio: "1:16",
-    temp: "90℃ 이상",
-    grind: "중간 분쇄",
-    totalTime: 180,
-    notes: ["4666 구조를 바탕으로 뜸 시간을 늘린 버전", "마지막 80g은 추출 후 뜨거운 물로 농도 조절"],
-    steps: [
-      {
-        label: "뜸들이기",
-        start: 0,
-        end: 40,
-        targetWater: 40,
-        cue: "40초간 충분히 뜸을 들여 가스 배출",
-      },
-      {
-        label: "1차 추출",
-        start: 40,
-        end: 70,
-        targetWater: 100,
-        cue: "30초 동안 100g까지 붓기",
-      },
-      {
-        label: "2차 추출",
-        start: 70,
-        end: 100,
-        targetWater: 160,
-        cue: "동일한 속도로 160g까지 붓기",
-      },
-      {
-        label: "3차 추출",
-        start: 100,
-        end: 160,
-        targetWater: 220,
-        cue: "마지막 추출수를 채우고 드로다운",
-      },
-      {
-        label: "희석",
-        start: 160,
-        end: 180,
-        targetWater: 220,
-        displayTargetWater: 300,
-        displayStepWater: 80,
-        cue: "추출 원액에 뜨거운 물 80g을 더해 농도 조절",
-      },
-    ],
-  },
-  {
-    id: "yong-light",
-    name: "용챔 라이트로스트 15g",
-    origin: "바리스타 공개 레시피",
-    method: "Hario Alpha",
-    profile: "꽃향, 과일감, 빠른 굵은 물줄기",
-    tags: ["국내", "라이트", "향미"],
-    dose: 15,
-    water: 230,
-    ratio: "1:15.3",
-    temp: "92~93℃",
-    grind: "라이트로스트용 중간 분쇄",
-    totalTime: 180,
-    notes: [
-      "40초 뜸 뒤 굵은 물줄기로 빠르게 추출",
-      "목표 추출 시간은 2:30-3:00이며, 2:30부터 완료할 수 있습니다.",
-    ],
-    steps: [
-      {
-        label: "뜸들이기",
-        start: 0,
-        end: 40,
-        targetWater: 40,
-        cue: "커피의 약 2.5배 물로 충분히 불리기",
-      },
-      {
-        label: "1차 푸어링",
-        start: 40,
-        end: 75,
-        targetWater: 110,
-        cue: "굵은 물줄기로 빠르게 110g까지 붓기",
-      },
-      {
-        label: "2차 푸어링",
-        start: 75,
-        end: 105,
-        targetWater: 190,
-        cue: "가장 굵은 물줄기로 190g까지 템포 유지",
-      },
-      {
-        label: "3차 푸어링",
-        start: 105,
-        end: 180,
-        targetWater: 230,
-        cue: "가느다란 물줄기로 한 바퀴 후 센터 푸어, 2분 30초~3분 사이 추출 종료",
-      },
-    ],
-  },
-  {
-    id: "switch-devil",
-    name: "테츠 카스야 악마의 레시피",
-    origin: "바리스타 공개 레시피",
-    method: "Hario Switch",
-    profile: "여과와 침출, 온도 전환, 높은 단맛",
-    tags: ["스위치", "침출", "단맛"],
-    dose: 20,
-    water: 280,
-    ratio: "1:14",
-    temp: "약 90℃ -> 약 70℃",
-    grind: "중간보다 약간 고운 분쇄",
-    totalTime: 180,
-    notes: ["초반은 약 90℃ 여과식, 후반은 약 70℃ 침출식으로 전환", "스위치 오픈/클로즈 타이밍을 단계에 표시"],
-    steps: [
-      {
-        label: "뜸들이기",
-        start: 0,
-        end: 30,
-        targetWater: 60,
-        cue: "스위치를 연 상태에서 약 90℃ 물로 60g 붓기",
-      },
-      {
-        label: "1차 여과",
-        start: 30,
-        end: 75,
-        targetWater: 120,
-        cue: "같은 온도의 물로 누적 120g까지 붓기",
-      },
-      {
-        label: "스위치 닫기",
-        start: 75,
-        end: 105,
-        targetWater: 280,
-        cue: "스위치를 닫고 약 70℃ 물로 누적 280g까지 붓기",
-      },
-      {
-        label: "추출 오픈",
-        start: 105,
-        end: 180,
-        targetWater: 280,
-        cue: "1분 45초 지점에 스위치를 열어 여과하고 3분에 추출 종료",
-      },
-    ],
-  },
-  {
-    id: "signature-cone",
-    name: "시그니쳐 로스터스 콘 필터 – 공개본",
-    origin: "공개 레시피 기준",
-    method: "V60",
-    profile: "콘 필터, 3회 스파이럴 푸어, 깔끔한 핫 브루",
-    tags: ["V60", "핫", "클린컵"],
-    dose: 14,
-    water: 210,
-    ratio: "1:15",
-    temp: "93C",
-    grind: "1000-1100um",
-    totalTime: 150,
-    notes: ["30초 뜸 뒤 70g, 50g, 50g 스파이럴 푸어", "2분에서 2분 30초 사이 드리퍼 제거"],
-    steps: [
-      {
-        label: "뜸들이기",
-        start: 0,
-        end: 30,
-        targetWater: 40,
-        cue: "스파이럴 푸어로 전체를 적시기",
-      },
-      {
-        label: "1차 추출",
-        start: 30,
-        end: 60,
-        targetWater: 110,
-        cue: "첫 푸어 70g을 스파이럴로 붓기",
-      },
-      {
-        label: "2차 추출",
-        start: 60,
-        end: 90,
-        targetWater: 160,
-        cue: "두 번째 푸어 50g 추가",
-      },
-      {
-        label: "3차 추출",
-        start: 90,
-        end: 120,
-        targetWater: 210,
-        cue: "마지막 50g을 스파이럴로 마무리",
-      },
-      {
-        label: "완료",
-        start: 120,
-        end: 150,
-        targetWater: 210,
-        cue: "2분~2분 30초 사이 드리퍼 제거",
-      },
-    ],
-  },
-  {
-    id: "deepblue-v60",
-    name: "딥블루레이크 V60 HOT – 15g/240g 버전",
-    origin: "바리스타 공개 레시피",
-    method: "Hario V60",
-    profile: "1:16, 4-5회 분할, 안정적인 홈 브루",
-    tags: ["V60", "핫", "국내"],
-    dose: 15,
-    water: 240,
-    ratio: "1:16",
-    temp: "93C",
-    grind: "850-900um",
-    totalTime: 170,
-    notes: ["50g 단위로 나누어 붓고 마지막은 40g으로 마감", "총 추출 시간은 2분 40초 전후를 목표"],
-    steps: [
-      {
-        label: "뜸들이기",
-        start: 0,
-        end: 30,
-        targetWater: 50,
-        cue: "50g의 물을 골고루 붓고 30초 대기",
-      },
-      {
-        label: "1차 추출",
-        start: 30,
-        end: 60,
-        targetWater: 100,
-        cue: "50g 추가",
-      },
-      {
-        label: "2차 추출",
-        start: 60,
-        end: 90,
-        targetWater: 150,
-        cue: "다시 50g 추가",
-      },
-      {
-        label: "3차 추출",
-        start: 90,
-        end: 120,
-        targetWater: 200,
-        cue: "수위를 보며 200g까지 붓기",
-      },
-      {
-        label: "마무리",
-        start: 120,
-        end: 170,
-        targetWater: 240,
-        cue: "마지막 40g을 붓고 물이 모두 빠질 때까지 기다리기",
-      },
-    ],
-  },
-  {
-    id: "hoffmann-clever-water-first",
-    name: "제임스 호프만 클레버",
-    origin: "James Hoffmann",
-    method: "Clever Dripper",
-    profile: "물 먼저, 빠른 드로다운, 깨끗한 단맛",
-    tags: ["클레버", "침출", "라이트", "클린컵"],
-    dose: 15,
-    water: 250,
-    ratio: "1:16.7",
-    temp: "끓인 직후의 물",
-    grind: "중간보다 약간 고운 분쇄",
-    totalTime: 240,
-    notes: [
-      "물을 먼저 넣고 커피를 나중에 넣어 막힘을 줄이는 방식",
-      "맛이 비거나 약하면 조금 더 곱게, 쓰거나 무거우면 조금 더 굵게 조절",
-    ],
-    steps: [
-      {
-        label: "물 먼저",
-        start: 0,
-        end: 10,
-        targetWater: 250,
-        cue: "린싱한 클레버에 물 250g을 먼저 붓기",
-      },
-      {
-        label: "커피 투입",
-        start: 10,
-        end: 25,
-        targetWater: 250,
-        cue: "분쇄한 커피를 넣고 모든 가루가 젖도록 가볍게 젓기",
-      },
-      {
-        label: "침출",
-        start: 25,
-        end: 145,
-        targetWater: 250,
-        cue: "그대로 두어 2분간 우려내기",
-      },
-      {
-        label: "크러스트 깨기",
-        start: 145,
-        end: 155,
-        targetWater: 250,
-        cue: "숟가락으로 표면을 한 번 저어 가루를 가라앉히기",
-      },
-      {
-        label: "가라앉히기",
-        start: 155,
-        end: 185,
-        targetWater: 250,
-        cue: "30초 기다려 커피층을 안정시키기",
-      },
-      {
-        label: "드로다운",
-        start: 185,
-        end: 240,
-        targetWater: 250,
-        cue: "컵이나 서버 위에 올려 추출액을 내려받기",
-      },
-    ],
-  },
-  {
-    id: "jis-clever-112",
-    name: "정인성 클레버 1:12",
-    origin: "정인성 바리스타",
-    method: "Mr. Clever",
-    profile: "묵직한 바디, 진한 침출, 후가수 밸런스",
-    tags: ["클레버", "침출", "국내", "단맛"],
-    dose: 20,
-    water: 300,
-    brewWater: 240,
-    bypassWater: { min: 60, max: 80 },
-    finalWater: { min: 300, max: 320 },
-    ratio: "1:12 / 약 1:15~1:16",
-    temp: "96℃",
-    grind: "중간보다 살짝 굵은 분쇄",
-    totalTime: 210,
-    notes: [
-      "클레버 안에서는 240g으로 진하게 추출한 뒤 뜨거운 물로 농도 조절",
-      "후가수는 60-80g 범위에서 취향에 맞게 조절",
-    ],
-    steps: [
-      {
-        label: "뜸들이기",
-        start: 0,
-        end: 30,
-        targetWater: 40,
-        cue: "물 40g을 붓고 잘 저어 30초간 뜸들이기",
-      },
-      {
-        label: "본 물 붓기",
-        start: 30,
-        end: 150,
-        targetWater: 240,
-        cue: "물 200g을 추가하고 잘 저은 뒤 뚜껑 닫기",
-      },
-      {
-        label: "드로다운",
-        start: 150,
-        end: 210,
-        targetWater: 240,
-        cue: "서버 위에 올려 약 1분 동안 내려받기",
-      },
-      {
-        label: "농도 조절",
-        start: 210,
-        end: 210,
-        targetWater: 240,
-        displayTargetWater: { min: 300, max: 320 },
-        displayStepWater: { min: 60, max: 80 },
-        cue: "뜨거운 물 60-80g을 더해 마시기 좋은 농도로 맞추기",
-      },
-    ],
-  },
-];
-
-const recipes: Recipe[] = buildDefaultRecipes(legacyRecipes);
+const recipes: readonly Recipe[] = defaultRecipes;
 
 const filterOptions = [
   "전체",
@@ -723,33 +161,7 @@ function getStoredCustomRecipes() {
   }
 
   try {
-    const storedValue = window.localStorage.getItem(customRecipesStorageKey);
-    const parsedValue: unknown = storedValue ? JSON.parse(storedValue) : [];
-
-    if (!Array.isArray(parsedValue)) {
-      return [];
-    }
-
-    return parsedValue.filter((value): value is Recipe => {
-      if (typeof value !== "object" || value === null) {
-        return false;
-      }
-
-      const candidate = value as Partial<Recipe>;
-
-      return (
-        typeof candidate.id === "string" &&
-        candidate.id.startsWith("custom-") &&
-        typeof candidate.name === "string" &&
-        typeof candidate.dose === "number" &&
-        typeof candidate.water === "number" &&
-        typeof candidate.totalTime === "number" &&
-        Array.isArray(candidate.tags) &&
-        Array.isArray(candidate.notes) &&
-        Array.isArray(candidate.steps) &&
-        candidate.steps.length > 0
-      );
-    });
+    return repairStoredCustomRecipeStorage(window.localStorage).recipes;
   } catch {
     return [];
   }
@@ -774,49 +186,6 @@ function formatWaterAmount(amount: WaterAmount, factor = 1) {
   return `${scaleValue(amount.min, factor)}-${scaleValue(amount.max, factor)}g`;
 }
 
-function playStepTone() {
-  const audioWindow = window as typeof window & {
-    webkitAudioContext?: typeof AudioContext;
-  };
-  const AudioContextClass = window.AudioContext ?? audioWindow.webkitAudioContext;
-
-  if (!AudioContextClass) {
-    return;
-  }
-
-  const audioContext = new AudioContextClass();
-  const oscillator = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-
-  oscillator.type = "sine";
-  oscillator.frequency.value = 880;
-  gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.12, audioContext.currentTime + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.18);
-
-  oscillator.connect(gain);
-  gain.connect(audioContext.destination);
-  oscillator.start();
-  oscillator.stop(audioContext.currentTime + 0.2);
-}
-
-function vibrateStepCue() {
-  if (typeof navigator === "undefined") {
-    return;
-  }
-
-  const vibrationNavigator = navigator as Navigator & {
-    vibrate?: (pattern: number | number[]) => boolean;
-  };
-
-  vibrationNavigator.vibrate?.([80, 40, 80]);
-}
-
-function runSmartAlert() {
-  playStepTone();
-  vibrateStepCue();
-}
-
 export default function Home() {
   const [customRecipes, setCustomRecipes] = useState<Recipe[]>([]);
   const [recommendedRecipe, setRecommendedRecipe] = useState<Recipe | null>(null);
@@ -839,6 +208,10 @@ export default function Home() {
   const [draftSteps, setDraftSteps] =
     useState<DraftStep[]>(createDefaultDraftSteps);
   const [storageLoaded, setStorageLoaded] = useState(false);
+  const [storageErrors, setStorageErrors] = useState<{
+    favorites: string | null;
+    customRecipes: string | null;
+  }>({ favorites: null, customRecipes: null });
   const previousElapsedRef = useRef(0);
   const previousStepIndexRef = useRef(0);
   const completionPlayedRef = useRef(false);
@@ -885,6 +258,8 @@ export default function Home() {
       return matchesFilter && searchable.includes(normalizedQuery);
     });
   }, [allRecipes, favoriteIds, filter, query]);
+
+  const storageNotice = storageErrors.favorites ?? storageErrors.customRecipes;
 
   const currentStepIndex = useMemo(() => {
     const index = selectedRecipe.steps.findIndex((step) => elapsed < step.end);
@@ -1047,10 +422,17 @@ export default function Home() {
       return;
     }
 
-    window.localStorage.setItem(
+    const result = writeJsonStorage(
+      window.localStorage,
       "coffee-recipe-favorites",
-      JSON.stringify(favoriteIds),
+      favoriteIds,
     );
+    setStorageErrors((current) => ({
+      ...current,
+      favorites: result.ok
+        ? null
+        : "즐겨찾기를 브라우저에 저장하지 못했습니다. 저장 공간과 브라우저 설정을 확인해 주세요.",
+    }));
   }, [favoriteIds, storageLoaded]);
 
   useEffect(() => {
@@ -1058,10 +440,17 @@ export default function Home() {
       return;
     }
 
-    window.localStorage.setItem(
+    const result = writeJsonStorage(
+      window.localStorage,
       customRecipesStorageKey,
-      JSON.stringify(customRecipes),
+      customRecipes,
     );
+    setStorageErrors((current) => ({
+      ...current,
+      customRecipes: result.ok
+        ? null
+        : "나만의 레시피를 브라우저에 저장하지 못했습니다. 저장 공간과 브라우저 설정을 확인해 주세요.",
+    }));
   }, [customRecipes, storageLoaded]);
 
   useEffect(() => {
@@ -1414,7 +803,7 @@ export default function Home() {
               </div>
               <div>
                 <span className="text-[#607064]">온도</span>
-                <strong className="block text-lg">{selectedRecipe.temp}</strong>
+                <strong className="block text-lg">{recipeTemperaturePresentation(selectedRecipe).display}</strong>
               </div>
             </div>
           </section>
@@ -1453,6 +842,15 @@ export default function Home() {
               ))}
             </div>
           </div>
+
+          {storageNotice ? (
+            <p
+              role="alert"
+              className="rounded-lg border border-[#dca18f] bg-[#fff0eb] px-4 py-3 text-sm text-[#8b3e2f]"
+            >
+              {storageNotice}
+            </p>
+          ) : null}
 
           <div className="grid gap-4 md:grid-cols-2">
             {filteredRecipes.map((recipe) => {
@@ -1511,7 +909,7 @@ export default function Home() {
                     <div className="rounded-md bg-[#f4f6f1] p-3">
                       <Thermometer className="mb-2 h-4 w-4 text-[#2f6f5f]" aria-hidden="true" />
                       <span className="block text-[#607064]">온도</span>
-                      <strong>{recipe.temp}</strong>
+                      <strong>{recipeTemperaturePresentation(recipe).display}</strong>
                     </div>
                   </div>
 

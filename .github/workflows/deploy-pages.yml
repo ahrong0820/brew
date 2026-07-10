@@ -20,7 +20,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -51,10 +51,10 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: Write deployment metadata
+      - name: Write deployment metadata and recipe manifest
         run: |
           mkdir -p public/deployments
-          cat > public/deployment.json <<EOF
+          cat > public/deployment.json <<EOF_META
           {
             "repository": "${GITHUB_REPOSITORY}",
             "sha": "${GITHUB_SHA}",
@@ -62,8 +62,9 @@ jobs:
             "runNumber": "${GITHUB_RUN_NUMBER}",
             "builtAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           }
-          EOF
+          EOF_META
           cp public/deployment.json "public/deployments/${GITHUB_SHA}.json"
+          pnpm run write:recipe-manifest "$GITHUB_SHA"
 
       - name: Build static export
         run: pnpm build:github
@@ -78,6 +79,23 @@ jobs:
           pnpm run validate:recipe-content out/index.html
           touch out/.nojekyll
 
+      - name: Install Playwright Chromium
+        run: |
+          pnpm add --save-dev --lockfile=false playwright@1.55.0
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Run browser E2E
+        run: pnpm run test:e2e
+
+      - name: Upload E2E diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy-e2e-failure-${{ github.run_id }}
+          path: test-results
+          if-no-files-found: ignore
+          retention-days: 3
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
@@ -88,11 +106,16 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     needs: build
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
 
       - name: Publish live verification pending
         env:
@@ -102,7 +125,7 @@ jobs:
           payload="$(jq -n \
             --arg state "pending" \
             --arg target_url "$target_url" \
-            --arg description "Waiting for deployed JSON, HTML SHA, and recipe content verification" \
+            --arg description "Waiting for stable multi-response deployment verification" \
             --arg context "github-pages/live-verification" \
             '{state: $state, target_url: $target_url, description: $description, context: $context}')"
 
@@ -118,74 +141,16 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
 
-      - name: Verify deployed commit
+      - name: Verify stable deployed commit and catalog
         id: live_verification
         if: steps.deployment.outcome == 'success'
         continue-on-error: true
         env:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          LIVE_VERIFY_ATTEMPTS: 24
+          LIVE_VERIFY_INTERVAL_MS: 5000
         run: |
-          immutable_marker_url="${PAGE_URL%/}/deployments/${GITHUB_SHA}.json"
-          latest_marker_url="${PAGE_URL%/}/deployment.json?run=${GITHUB_RUN_ID}"
-          page_url="${PAGE_URL%/}/?deployment=${GITHUB_SHA}&run=${GITHUB_RUN_ID}"
-
-          for attempt in {1..30}; do
-            immutable_metadata="$(curl --fail --silent --show-error --location \
-              -H 'Cache-Control: no-cache' \
-              -H 'Pragma: no-cache' \
-              "$immutable_marker_url" || true)"
-
-            latest_metadata="$(curl --fail --silent --show-error --location \
-              -H 'Cache-Control: no-cache' \
-              -H 'Pragma: no-cache' \
-              "$latest_marker_url" || true)"
-
-            deployed_html="$(curl --fail --silent --show-error --location \
-              -H 'Cache-Control: no-cache' \
-              -H 'Pragma: no-cache' \
-              "$page_url" || true)"
-
-            deployment_meta="$(printf '%s' "$deployed_html" | grep -o '<meta[^>]*name="deployment-sha"[^>]*>' | head -n 1 || true)"
-            immutable_matches=false
-            latest_matches=false
-            html_matches=false
-
-            if printf '%s' "$immutable_metadata" | grep -Fq "\"sha\": \"${GITHUB_SHA}\""; then
-              immutable_matches=true
-            fi
-
-            if printf '%s' "$latest_metadata" | grep -Fq "\"sha\": \"${GITHUB_SHA}\""; then
-              latest_matches=true
-            fi
-
-            if [ -n "$deployment_meta" ] && printf '%s' "$deployment_meta" | grep -Fq "content=\"${GITHUB_SHA}\""; then
-              html_matches=true
-            fi
-
-            if [ "$immutable_matches" = true ] && [ "$latest_matches" = true ] && [ "$html_matches" = true ]; then
-              echo "Verified deployed commit ${GITHUB_SHA}"
-              echo "Immutable marker: ${immutable_marker_url}"
-              echo "HTML marker: ${deployment_meta}"
-              exit 0
-            fi
-
-            sleep 5
-          done
-
-          echo "Expected commit ${GITHUB_SHA} was not observed in all deployment markers."
-          echo "Immutable marker: ${immutable_marker_url}"
-          echo "Latest marker: ${latest_marker_url}"
-          echo "Page: ${page_url}"
-          exit 1
-
-      - name: Verify deployed recipe content
-        id: content_verification
-        if: steps.deployment.outcome == 'success'
-        continue-on-error: true
-        env:
-          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
-        run: |
-          node scripts/validate-recipe-content.mjs "${PAGE_URL%/}/?deployment=${GITHUB_SHA}&run=${GITHUB_RUN_ID}&content=1"
+          node --experimental-strip-types scripts/validate-live-deployment.mjs "$PAGE_URL" "$GITHUB_SHA"
 
       - name: Publish live verification result
         if: always()
@@ -193,16 +158,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
           VERIFY_OUTCOME: ${{ steps.live_verification.outcome }}
-          CONTENT_OUTCOME: ${{ steps.content_verification.outcome }}
         run: |
           target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
-          if [ "$DEPLOY_OUTCOME" = "success" ] && [ "$VERIFY_OUTCOME" = "success" ] && [ "$CONTENT_OUTCOME" = "success" ]; then
+          if [ "$DEPLOY_OUTCOME" = "success" ] && [ "$VERIFY_OUTCOME" = "success" ]; then
             state="success"
-            description="Deployment JSON, live HTML SHA, and recipe content match this commit"
+            description="Stable HTML, assets, deployment markers, and recipe manifest match"
           else
             state="failure"
-            description="Deployment, live SHA, or recipe content verification failed"
+            description="Deployment propagation or catalog integrity verification failed"
           fi
 
           payload="$(jq -n \
@@ -221,7 +185,7 @@ jobs:
             "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}"
 
       - name: Fail job when live verification failed
-        if: always() && (steps.deployment.outcome != 'success' || steps.live_verification.outcome != 'success' || steps.content_verification.outcome != 'success')
+        if: always() && (steps.deployment.outcome != 'success' || steps.live_verification.outcome != 'success')
         run: |
-          echo "GitHub Pages deployment did not pass live verification."
+          echo "GitHub Pages deployment did not pass stable live verification."
           exit 1

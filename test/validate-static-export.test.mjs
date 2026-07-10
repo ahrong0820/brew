@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { buildRecipeManifest } from "../scripts/recipe-manifest.mjs";
 
 import {
   extractDeploymentSha,
@@ -36,6 +37,10 @@ async function createStaticExport({
     writeFile(
       path.join(deploymentsDirectory, `${expectedSha}.json`),
       immutableMetadata,
+    ),
+    writeFile(
+      path.join(outputDirectory, "recipe-manifest.json"),
+      `${JSON.stringify(buildRecipeManifest({ deploymentSha: expectedSha }), null, 2)}\n`,
     ),
   ]);
 

@@ -23,9 +23,12 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "typecheck": "tsc --noEmit --pretty false",
     "test": "node scripts/run-tests.mjs",
-    "validate:static-export": "node scripts/validate-static-export.mjs",
+    "validate:static-export": "node --experimental-strip-types scripts/validate-static-export.mjs",
     "validate:recipe-content": "node scripts/validate-recipe-content.mjs",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "write:recipe-manifest": "node --experimental-strip-types scripts/write-recipe-manifest.mjs",
+    "validate:live-deployment": "node --experimental-strip-types scripts/validate-live-deployment.mjs",
+    "test:e2e": "node e2e/mobile-flow.mjs && node e2e/recommendation-flow.mjs && node e2e/catalog-storage-timer-flow.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

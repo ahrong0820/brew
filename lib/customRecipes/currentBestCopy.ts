@@ -2,6 +2,7 @@ import {
   drinkStyleLabel,
   normalizeDrinkStyle,
 } from "@/lib/brew/profileIdentity";
+import { repairStoredCustomRecipeStorage } from "@/lib/recipes/customRecipeSchema";
 import type {
   Bean,
   BrewSession,
@@ -67,9 +68,7 @@ function readStoredItems(): unknown[] {
   }
 
   try {
-    const raw = window.localStorage.getItem(customRecipesStorageKey);
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    return repairStoredCustomRecipeStorage(window.localStorage).recipes;
   } catch {
     return [];
   }

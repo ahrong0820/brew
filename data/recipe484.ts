@@ -13,10 +13,20 @@ export const recipe484 = {
   bypassWater: 100,
   finalWater: 220,
   ratio: "1:14.7",
-  temp: "공식 최신 설명 미확인",
+  temp: "앱 시작값 92℃",
+  temperature: {
+    status: "app-default",
+    display: "92℃",
+    celsius: 92,
+    note: "공식 최신 온도 설명은 확인되지 않아 저도징 V60용 시작값을 사용합니다.",
+  },
   grind: "드리퍼에 맞춰 조절",
   totalTime: 170,
-  notes: ["30-60-30g 추출 구조", "추출 후 뜨거운 물 100g 추가"],
+  notes: [
+    "30-60-30g 추출 구조",
+    "추출 후 뜨거운 물 100g 추가",
+    "온도 92℃는 공식 확인값이 아닌 앱 시작값",
+  ],
   steps: [
     { label: "뜸들이기", start: 0, end: 40, targetWater: 30, cue: "30g으로 전체 적시기" },
     { label: "1차 추출", start: 40, end: 70, targetWater: 90, cue: "60g 추가" },

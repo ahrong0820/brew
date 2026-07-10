@@ -3,12 +3,15 @@ import {
   customRecipeImportedEvent,
 } from "@/lib/customRecipes/currentBestCopy";
 import {
+  customRecipesStorageKey,
+  repairStoredCustomRecipeStorage,
+} from "@/lib/recipes/customRecipeSchema";
+import { writeJsonStorage } from "@/lib/storage/browserJsonStorage";
+import {
   beanBrewProfileStore,
   beanStore,
 } from "@/lib/storage/coffeeData";
 import type { BrewSession } from "@/lib/types/coffee";
-
-const storageKey = "coffee-custom-recipes";
 
 export function syncSuccessfulRecipe(session: BrewSession) {
   if (typeof window === "undefined") return;
@@ -17,8 +20,7 @@ export function syncSuccessfulRecipe(session: BrewSession) {
   if (!bean || !profile?.personalRecipe) return;
 
   const copied = copyCurrentBestToCustomRecipe(bean, session);
-  const raw = window.localStorage.getItem(storageKey);
-  const items: unknown[] = raw ? JSON.parse(raw) : [];
+  const items = repairStoredCustomRecipeStorage(window.localStorage).recipes;
   const enriched = {
     ...copied,
     name: `${bean.name} · 개인 맞춤`,
@@ -29,14 +31,16 @@ export function syncSuccessfulRecipe(session: BrewSession) {
     personalRecipeVersions: profile.personalRecipe.versions,
   };
   const nextItems = items.map((item) =>
-    typeof item === "object" &&
-    item !== null &&
-    "id" in item &&
-    item.id === copied.id
-      ? enriched
-      : item,
+    item.id === copied.id ? enriched : item,
   );
-  window.localStorage.setItem(storageKey, JSON.stringify(nextItems));
+  const writeResult = writeJsonStorage(
+    window.localStorage,
+    customRecipesStorageKey,
+    nextItems,
+  );
+  if (!writeResult.ok) {
+    throw new Error("성공 레시피를 나만의 레시피 저장소에 반영하지 못했습니다.");
+  }
   window.dispatchEvent(
     new CustomEvent(customRecipeImportedEvent, {
       detail: { recipe: enriched },

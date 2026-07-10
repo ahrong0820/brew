@@ -1,3 +1,4 @@
+import { shouldClearActiveSessionMarker } from "@/lib/storage/activeSessionIntegrity";
 import {
   brewProfileIdentityKey,
   normalizeDrinkStyle,
@@ -72,13 +73,8 @@ function repairActiveSessionMarker(validSessions: BrewSession[]) {
       return false;
     }
 
-    const parsed = JSON.parse(raw) as { sessionId?: unknown };
-    const session =
-      typeof parsed.sessionId === "string"
-        ? validSessions.find((item) => item.id === parsed.sessionId)
-        : undefined;
-
-    if (!session || session.actualTimeSeconds !== undefined) {
+    const parsed: unknown = JSON.parse(raw);
+    if (shouldClearActiveSessionMarker(parsed, validSessions)) {
       window.sessionStorage.removeItem(activeRecommendationSessionStorageKey);
       return true;
     }
