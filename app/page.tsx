@@ -42,6 +42,7 @@ import {
   customRecipesStorageKey,
 } from "@/lib/recipes/customRecipeSchema";
 import { recipeTemperaturePresentation } from "@/lib/recipes/recipeTemperature";
+import { scaleRecipeDose } from "@/lib/recipes/scaleRecipeDose";
 import { writeJsonStorage } from "@/lib/storage/browserJsonStorage";
 import { runSmartAlert } from "@/lib/timer/smartAlert";
 import type { Recipe, WaterAmount } from "@/lib/types/defaultRecipe";
@@ -491,7 +492,10 @@ export default function Home() {
     }
 
     if (!current || current.recipe?.id !== selectedRecipe.id || current.status === "completed") {
-      startBrewSessionClock({ recipe: selectedRecipe }, now);
+      startBrewSessionClock(
+        { recipe: scaleRecipeDose(selectedRecipe, dose) },
+        now,
+      );
     } else if (current.status === "running") {
       pauseBrewSessionClock(now);
     } else {
@@ -511,7 +515,10 @@ export default function Home() {
     }
 
     if (!current || current.recipe?.id !== selectedRecipe.id || current.status === "completed") {
-      startBrewSessionClock({ recipe: selectedRecipe }, now);
+      startBrewSessionClock(
+        { recipe: scaleRecipeDose(selectedRecipe, dose) },
+        now,
+      );
       pauseBrewSessionClock(now);
     }
 
