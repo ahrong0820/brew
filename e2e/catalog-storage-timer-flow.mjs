@@ -146,7 +146,8 @@ async function run() {
     const doseInput = timerPanel.locator('[data-timer-dose-input="true"]');
     await doseInput.fill("15");
     await doseInput.press("Enter");
-    await timerPanel.getByText("225g", { exact: true }).waitFor();
+    const totalWaterCard = timerPanel.getByText("총 물량", { exact: true }).locator("..");
+    await totalWaterCard.getByText("225g", { exact: true }).waitFor();
 
     await timerPanel.getByRole("button", { name: "시작", exact: true }).click();
     await timerPanel.getByRole("button", { name: "일시정지", exact: true }).waitFor();
@@ -170,7 +171,10 @@ async function run() {
       "15",
       "the selected dose must survive a reload",
     );
-    await restoredTimer.getByText("225g", { exact: true }).waitFor();
+    const restoredTotalWaterCard = restoredTimer
+      .getByText("총 물량", { exact: true })
+      .locator("..");
+    await restoredTotalWaterCard.getByText("225g", { exact: true }).waitFor();
     const elapsedText = await restoredTimer.locator("strong.font-mono").first().textContent();
     assert.notEqual(elapsedText?.trim(), "0:00", "running timer must survive a reload");
     await page.getByText("E2E 저장 레시피", { exact: true }).first().waitFor();
