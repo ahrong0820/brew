@@ -5,7 +5,7 @@ export const jisCleverRecipes: readonly BaristaRecipe[] = [
     id: "jis-clever-1-11",
     name: "정인성 Clever 1:11",
     author: "정인성",
-    sourceLabel: "정인성의 커피생활 공식 YouTube 영상 설명",
+    sourceLabel: "정인성의 커피생활 공식 YouTube 영상",
     sourceUrl: "https://youtu.be/JWHanqQ5MsQ",
     sourceStatus: "partial",
     brewerType: "clever",
@@ -28,7 +28,7 @@ export const jisCleverRecipes: readonly BaristaRecipe[] = [
     difficulty: "easy",
     steps: [
       {
-        label: "커피 먼저·초기 적심",
+        label: "커피 먼저·초기 적심·1차 교반",
         startSeconds: 0,
         targetWaterGrams: 40,
         cue: "커피 20g에 물 40g을 붓고 바로 스푼으로 저어 전체를 적시기",
@@ -40,7 +40,7 @@ export const jisCleverRecipes: readonly BaristaRecipe[] = [
         cue: "물 180g을 추가해 총 추출수 220g 맞추기",
       },
       {
-        label: "두 번째 교반",
+        label: "2차 교반",
         startSeconds: 60,
         targetWaterGrams: 220,
         cue: "1:00에 커피층을 스푼으로 한 번 더 저어 주기",

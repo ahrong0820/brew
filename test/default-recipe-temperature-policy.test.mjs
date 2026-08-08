@@ -21,7 +21,6 @@ test("unverified source temperatures are labeled as app defaults", () => {
   const expected = new Map([
     ["anstar-6888", 93],
     ["jis-484-15g-2026", 92],
-    ["jis-clever-1-11", 96],
   ]);
 
   for (const [id, celsius] of expected) {
@@ -32,4 +31,15 @@ test("unverified source temperatures are labeled as app defaults", () => {
     assert.match(recipe.temp, /앱 시작값/);
     assert.ok(recipe.temperature?.note);
   }
+});
+
+test("verified temperature ranges preserve the official wording", () => {
+  const recipe = defaultRecipes.find(
+    (candidate) => candidate.id === "jis-clever-1-11",
+  );
+  assert.ok(recipe);
+  assert.equal(recipe.temperature?.status, "verified");
+  assert.equal(recipe.temperature?.display, "90℃ 이상");
+  assert.equal(recipe.temp, "90℃ 이상");
+  assert.equal(recipe.temperature?.celsius, undefined);
 });
