@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+import { clever111 } from "../data/clever111.ts";
 import { baristaRecipes } from "../data/expandedBaristaRecipes.ts";
 import { recipeSourceRegistry } from "../data/recipeSourceRegistry.ts";
 import {
@@ -75,10 +76,23 @@ test("Jung In-sung Clever recipe keeps only first-party confirmed values", () =>
     totalMinSeconds: 200,
     totalMaxSeconds: 220,
   });
+  assert.match(recipe.steps[0].label, /1차 교반/);
   assert.match(recipe.steps[0].cue, /40g.*바로 스푼/);
+  assert.equal(recipe.steps[2].label, "2차 교반");
   assert.match(recipe.steps[2].cue, /1:00/);
   assert.match(recipe.steps[3].cue, /2:30.*3:20~3:40/);
   assert.match(recipe.steps[4].cue, /80~100g.*300~320g/);
+});
+
+test("default app recipe exposes the official first stir and temperature lower bound", () => {
+  assert.equal(clever111.temp, "90℃ 이상");
+  assert.equal(clever111.temperature?.status, "verified");
+  assert.equal(clever111.temperature?.display, "90℃ 이상");
+  assert.match(clever111.temperature?.note ?? "", /공식 영상.*90℃ 이상/);
+  assert.match(clever111.steps[0].label, /1차 교반/);
+  assert.match(clever111.steps[0].cue, /40g.*즉시 스푼/);
+  assert.equal(clever111.steps[2].label, "2차 교반");
+  assert.ok(clever111.notes.some((note) => /ICED.*100g/.test(note)));
 });
 
 test("source registry keeps the latest Clever video separate from current V60 recipes", () => {
@@ -211,6 +225,7 @@ test("profile preserves partial source procedure and labels app conversion value
     [result.targetTimeMinSeconds, result.targetTimeMaxSeconds],
     [200, 220],
   );
+  assert.match(result.steps[0].label, /1차 교반/);
   assert.match(result.steps[0].cue, /40g.*바로 스푼/);
   assert.match(result.grinder.note, /원본 분쇄 문구와 별개/);
   assert.ok(result.reasons.some((reason) => reason.startsWith("[부분 검증 원본]")));
@@ -234,7 +249,9 @@ test("source audit documents verified, unverified and scaling boundaries", async
     "utf8",
   );
   assert.match(audit, /상태: `partial`/);
-  assert.match(audit, /원본 미확인/);
+  assert.match(audit, /물 온도 \| 90℃ 이상/);
+  assert.match(audit, /초기 적심·1차 교반/);
+  assert.match(audit, /temperatureCelsius/);
   assert.match(audit, /추출수: `D × 11`/);
   assert.match(audit, /HOT 후가수: `D × 4~5`/);
   assert.match(audit, /K-Ultra/);
