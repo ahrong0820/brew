@@ -28,7 +28,7 @@ export const jisCleverRecipes: readonly BaristaRecipe[] = [
     difficulty: "easy",
     steps: [
       {
-        label: "초기 적심·1차 교반",
+        label: "커피 먼저·초기 적심·1차 교반",
         startSeconds: 0,
         targetWaterGrams: 40,
         cue: "커피 20g에 물 40g을 붓고 바로 스푼으로 저어 전체를 적시기",
