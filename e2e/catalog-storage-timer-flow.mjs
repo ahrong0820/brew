@@ -14,6 +14,8 @@ const expectedRecipeNames = [
   "정인성 국룰 Ver 2.0 HOT",
   "정인성 484 15g (2026)",
   "용챔 라이트로스트 15g",
+  "용챔 15g 네오스위치 HOT",
+  "용챔 15g 네오스위치 ICE",
   "테츠 카스야 악마의 레시피",
   "제임스 호프만 클레버",
   "정인성 클레버 1:11",
@@ -111,7 +113,11 @@ async function run() {
 
     const recipeRows = page.locator('[data-recipe-row="true"]');
     await recipeRows.first().waitFor({ state: "visible" });
-    assert.equal(await recipeRows.count(), 10, "9 defaults plus one valid custom recipe must render");
+    assert.equal(
+      await recipeRows.count(),
+      12,
+      "11 defaults plus one valid custom recipe must render",
+    );
 
     for (const recipeName of expectedRecipeNames) {
       await page.getByRole("button", { name: recipeName, exact: false }).first().waitFor();
