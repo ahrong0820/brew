@@ -9,7 +9,7 @@ const sha = "c".repeat(40);
 
 test("recipe manifest contains the exact canonical catalog", () => {
   const manifest = buildRecipeManifest({ deploymentSha: sha });
-  assert.equal(manifest.recipeCount, 9);
+  assert.equal(manifest.recipeCount, 11);
   assert.deepEqual(manifest.recipeIds, [
     "tetsu-46",
     "tetsu-neo-2026",
@@ -17,6 +17,8 @@ test("recipe manifest contains the exact canonical catalog", () => {
     "jis-ver2-hot",
     "jis-484-15g-2026",
     "yong-light",
+    "yong-neo-reverse-switch-hot",
+    "yong-neo-reverse-switch-ice",
     "switch-devil",
     "hoffmann-clever-water-first",
     "jis-clever-1-11",
