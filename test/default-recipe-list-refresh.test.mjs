@@ -27,7 +27,7 @@ test("기본 목록에 최신 레시피와 안스타 통칭이 반영된다", ()
   const byId = (id) => recipes.find((recipe) => recipe.id === id);
 
   assert.equal(byId("anstar-6888")?.name, "안스타 6888");
-  assert.equal(byId("tetsu-neo-2026")?.totalTime, 180);
+  assert.equal(byId("tetsu-neo-2026")?.totalTime, 210);
   assert.equal(byId("jis-ver2-hot")?.totalTime, 170);
   assert.equal(byId("jis-484-15g-2026")?.totalTime, 170);
   assert.equal(byId("jis-clever-1-11")?.name, "정인성 클레버 1:11");
