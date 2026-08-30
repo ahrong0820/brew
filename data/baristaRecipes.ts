@@ -1,5 +1,7 @@
 import type { BaristaRecipe } from "@/lib/types/baristaRecipe";
 
+const tetsuNeoPourStarts = [0, 30, 45, 60, 75, 90, 105, 120, 135, 150] as const;
+
 export const baristaRecipes: readonly BaristaRecipe[] = [
   {
     id: "tetsu-46",
@@ -141,8 +143,8 @@ export const baristaRecipes: readonly BaristaRecipe[] = [
     waterGrams: 300,
     ratio: 15,
     temperatureCelsius: 96,
-    targetTimeMinSeconds: 135,
-    targetTimeMaxSeconds: 180,
+    targetTimeMinSeconds: 180,
+    targetTimeMaxSeconds: 210,
     tasteProfile: {
       sweet: 5,
       bright: 4,
@@ -157,14 +159,16 @@ export const baristaRecipes: readonly BaristaRecipe[] = [
       targetFlow: "fast",
     },
     difficulty: "hard",
-    steps: Array.from({ length: 10 }, (_, index) => ({
-      label: `${index + 1}차 푸어`,
-      startSeconds: index * 15,
+    steps: tetsuNeoPourStarts.map((startSeconds, index) => ({
+      label: index === 0 ? "1차 푸어 · 뜸들이기" : `${index + 1}차 푸어`,
+      startSeconds,
       targetWaterGrams: (index + 1) * 30,
       cue:
-        index === 9
-          ? "2:15에 누적 300g. 드리퍼에 물을 머금지 않게 빠르게 배출하고 최종 드로다운을 기록"
-          : "30g을 붓고 드리퍼 안에 물이 오래 머물지 않도록 빠르게 배출",
+        index === 0
+          ? "30g을 붓고 0:30까지 뜸들이기"
+          : index === tetsuNeoPourStarts.length - 1
+            ? "2:30에 누적 300g. 드리퍼에 물을 머금지 않게 빠르게 배출하고 최종 드로다운을 기록"
+            : "30g을 추가하고 드리퍼 안에 물이 오래 머물지 않도록 빠르게 배출",
     })),
   },
   {
