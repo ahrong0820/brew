@@ -1,13 +1,28 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ListOrdered, RotateCcw, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ArrowDown,
+  ArrowUp,
+  GripVertical,
+  ListOrdered,
+  RotateCcw,
+  X,
+} from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 import { defaultRecipes } from "@/data/defaultRecipes";
 
 const recipeOrderStorageKey = "brew.recipeDisplayOrder.v1";
 const recipeOrderUpdatedEvent = "brew:recipe-display-order-updated";
 const orderSeparator = "|||";
+const longPressDelayMs = 220;
 
 function readStoredRecipeOrder() {
   if (typeof window === "undefined") {
@@ -30,8 +45,12 @@ function writeStoredRecipeOrder(order: string[]) {
     return;
   }
 
-  window.localStorage.setItem(recipeOrderStorageKey, JSON.stringify(order));
-  window.dispatchEvent(new CustomEvent(recipeOrderUpdatedEvent));
+  try {
+    window.localStorage.setItem(recipeOrderStorageKey, JSON.stringify(order));
+    window.dispatchEvent(new CustomEvent(recipeOrderUpdatedEvent));
+  } catch {
+    // Keep the in-memory order usable even when browser storage is unavailable.
+  }
 }
 
 function getMainContentSection() {
@@ -55,13 +74,15 @@ function markRecipeListFromLayout() {
     return null;
   }
 
-  const directDivs = Array.from(contentSection.children).filter(
+  const candidateLists = Array.from(contentSection.children).filter(
     (element) => element.tagName === "DIV",
   ) as HTMLElement[];
   const recipeList =
-    directDivs.find((element) =>
+    candidateLists.find((element) =>
       Array.from(element.children).some(
-        (child) => child instanceof HTMLElement && child.querySelector("h3"),
+        (child) =>
+          child instanceof HTMLButtonElement &&
+          Boolean(child.querySelector("h3")),
       ),
     ) ?? null;
 
@@ -71,7 +92,10 @@ function markRecipeListFromLayout() {
 
   recipeList.dataset.recipeList = "true";
   Array.from(recipeList.children).forEach((element) => {
-    if (element instanceof HTMLElement && element.tagName === "BUTTON") {
+    if (
+      element instanceof HTMLButtonElement &&
+      element.querySelector("h3")
+    ) {
       element.dataset.recipeRow = "true";
     }
   });
@@ -93,8 +117,11 @@ function getRecipeRows() {
     return [];
   }
 
-  return Array.from(
-    recipeList.querySelectorAll<HTMLElement>(':scope > [data-recipe-row="true"]'),
+  return Array.from(recipeList.children).filter(
+    (element): element is HTMLElement =>
+      element instanceof HTMLElement &&
+      element.dataset.recipeRow === "true" &&
+      Boolean(element.querySelector("h3")),
   );
 }
 
@@ -143,47 +170,18 @@ function moveName(order: string[], index: number, direction: -1 | 1) {
   return nextOrder;
 }
 
-function ensureInlineOrderControl() {
-  const contentSection = getMainContentSection();
+function moveNameToTarget(order: string[], draggedName: string, targetName: string) {
+  const fromIndex = order.indexOf(draggedName);
+  const targetIndex = order.indexOf(targetName);
 
-  if (!contentSection) {
-    return;
+  if (fromIndex < 0 || targetIndex < 0 || fromIndex === targetIndex) {
+    return order;
   }
 
-  const existingControl = contentSection.querySelector(
-    '[data-recipe-order-inline-control="true"]',
-  );
-
-  if (existingControl) {
-    return;
-  }
-
-  const firstBlock = Array.from(contentSection.children).find(
-    (element) => element.tagName === "DIV",
-  );
-
-  if (!(firstBlock instanceof HTMLElement)) {
-    return;
-  }
-
-  const control = document.createElement("div");
-  control.dataset.recipeOrderInlineControl = "true";
-  control.className =
-    "flex flex-col gap-2 rounded-lg border border-[#d7ded4] bg-white p-3 shadow-sm shadow-black/5 sm:flex-row sm:items-center sm:justify-between";
-
-  const copy = document.createElement("p");
-  copy.className = "text-sm leading-6 text-[#607064]";
-  copy.textContent = "리버스 스위치를 첫 번째, 네오브루를 두 번째처럼 레시피 표시 순서를 바꿀 수 있습니다.";
-
-  const button = document.createElement("button");
-  button.type = "button";
-  button.dataset.recipeOrderInlineToggle = "true";
-  button.className =
-    "flex h-10 shrink-0 items-center justify-center rounded-md bg-[#2f6f5f] px-4 text-sm font-semibold text-white transition hover:bg-[#255c4f]";
-  button.textContent = "레시피 순서 편집";
-
-  control.append(copy, button);
-  firstBlock.insertAdjacentElement("afterend", control);
+  const nextOrder = [...order];
+  nextOrder.splice(fromIndex, 1);
+  nextOrder.splice(targetIndex, 0, draggedName);
+  return nextOrder;
 }
 
 function applyRecipeOrderToDom() {
@@ -209,10 +207,8 @@ function applyRecipeOrderToDom() {
     }
   }
 
-  Array.from(recipeList.children).forEach((element, index) => {
-    if (element instanceof HTMLElement && element.dataset.recipeRow === "true") {
-      element.dataset.recipeOrderIndex = String(index + 1);
-    }
+  getRecipeRows().forEach((element, index) => {
+    element.dataset.recipeOrderIndex = String(index + 1);
   });
 
   return nextNames;
@@ -221,11 +217,23 @@ function applyRecipeOrderToDom() {
 export default function RecipeOrderDrawer() {
   const [open, setOpen] = useState(false);
   const [recipeNames, setRecipeNames] = useState<string[]>([]);
+  const [draggingName, setDraggingName] = useState<string | null>(null);
+  const [dragOverName, setDragOverName] = useState<string | null>(null);
   const defaultNames = useMemo(() => defaultRecipes.map((recipe) => recipe.name), []);
+  const longPressTimerRef = useRef<number | null>(null);
+  const dragNameRef = useRef<string | null>(null);
+  const pointerIdRef = useRef<number | null>(null);
+  const lastTargetNameRef = useRef<string | null>(null);
 
   const syncRecipeOrder = useCallback(() => {
-    ensureInlineOrderControl();
     setRecipeNames(applyRecipeOrderToDom());
+  }, []);
+
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
   }, []);
 
   useEffect(() => {
@@ -236,25 +244,8 @@ export default function RecipeOrderDrawer() {
       frameId = window.requestAnimationFrame(syncRecipeOrder);
     }
 
-    function handleClick(event: MouseEvent) {
-      if (!(event.target instanceof Element)) {
-        return;
-      }
-
-      const inlineToggle = event.target.closest(
-        '[data-recipe-order-inline-toggle="true"]',
-      );
-
-      if (inlineToggle) {
-        event.preventDefault();
-        syncRecipeOrder();
-        setOpen(true);
-      }
-    }
-
     scheduleSync();
     window.addEventListener(recipeOrderUpdatedEvent, scheduleSync);
-    document.addEventListener("click", handleClick);
 
     const observerTarget = document.querySelector("main");
     const observer = new MutationObserver(scheduleSync);
@@ -267,39 +258,114 @@ export default function RecipeOrderDrawer() {
     }
 
     return () => {
+      clearLongPressTimer();
       window.cancelAnimationFrame(frameId);
       window.removeEventListener(recipeOrderUpdatedEvent, scheduleSync);
-      document.removeEventListener("click", handleClick);
       observer.disconnect();
-      document
-        .querySelectorAll('[data-recipe-order-inline-control="true"]')
-        .forEach((element) => element.remove());
     };
-  }, [syncRecipeOrder]);
+  }, [clearLongPressTimer, syncRecipeOrder]);
 
-  function moveRecipe(index: number, direction: -1 | 1) {
-    const nextOrder = moveName(recipeNames, index, direction);
+  function persistOrder(nextOrder: string[]) {
     setRecipeNames(nextOrder);
     writeStoredRecipeOrder(nextOrder);
     window.requestAnimationFrame(syncRecipeOrder);
   }
 
+  function moveRecipe(index: number, direction: -1 | 1) {
+    const nextOrder = moveName(recipeNames, index, direction);
+    persistOrder(nextOrder);
+  }
+
   function resetOrder() {
     const visibleNames = getRecipeRows().map(getRecipeRowName).filter(Boolean);
     const resetOrderNames = getDefaultResetOrder(visibleNames);
-    setRecipeNames(resetOrderNames);
-    writeStoredRecipeOrder(resetOrderNames);
-    window.requestAnimationFrame(syncRecipeOrder);
+    persistOrder(resetOrderNames);
+  }
+
+  function startLongPress(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    recipeName: string,
+  ) {
+    if (event.pointerType === "mouse" && event.button !== 0) {
+      return;
+    }
+
+    clearLongPressTimer();
+    pointerIdRef.current = event.pointerId;
+    lastTargetNameRef.current = recipeName;
+    const handle = event.currentTarget;
+
+    longPressTimerRef.current = window.setTimeout(() => {
+      dragNameRef.current = recipeName;
+      setDraggingName(recipeName);
+      setDragOverName(recipeName);
+      handle.setPointerCapture?.(event.pointerId);
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+        navigator.vibrate?.(20);
+      }
+    }, longPressDelayMs);
+  }
+
+  function dragPointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
+    const activeName = dragNameRef.current;
+
+    if (!activeName || pointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    event.preventDefault();
+    const hoveredItem = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>('[data-recipe-order-item="true"]');
+    const targetName = hoveredItem?.dataset.recipeOrderName ?? null;
+
+    if (
+      !targetName ||
+      targetName === activeName ||
+      targetName === lastTargetNameRef.current
+    ) {
+      return;
+    }
+
+    lastTargetNameRef.current = targetName;
+    setDragOverName(targetName);
+    setRecipeNames((currentOrder) => {
+      const nextOrder = moveNameToTarget(currentOrder, activeName, targetName);
+      writeStoredRecipeOrder(nextOrder);
+      window.requestAnimationFrame(syncRecipeOrder);
+      return nextOrder;
+    });
+  }
+
+  function finishDrag(event?: ReactPointerEvent<HTMLButtonElement>) {
+    clearLongPressTimer();
+
+    if (
+      event &&
+      pointerIdRef.current === event.pointerId &&
+      event.currentTarget.hasPointerCapture?.(event.pointerId)
+    ) {
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+    }
+
+    dragNameRef.current = null;
+    pointerIdRef.current = null;
+    lastTargetNameRef.current = null;
+    setDraggingName(null);
+    setDragOverName(null);
+  }
+
+  function openDrawer() {
+    syncRecipeOrder();
+    setOpen(true);
   }
 
   return (
     <>
       <button
         type="button"
-        onClick={() => {
-          syncRecipeOrder();
-          setOpen(true);
-        }}
+        data-mobile-coffee-target="recipe-order"
+        onClick={openDrawer}
         className="fixed bottom-[25rem] right-4 z-40 hidden rounded-full border border-[#d7ded4] bg-white px-4 py-3 text-sm font-semibold text-[#2f6f5f] shadow-lg shadow-black/12 transition hover:-translate-y-0.5 hover:bg-[#f4f6f1] lg:flex lg:items-center lg:gap-2"
       >
         <ListOrdered className="h-4 w-4" aria-hidden="true" />
@@ -308,14 +374,12 @@ export default function RecipeOrderDrawer() {
 
       <button
         type="button"
-        onClick={() => {
-          syncRecipeOrder();
-          setOpen(true);
-        }}
+        data-mobile-coffee-target="recipe-order"
+        onClick={openDrawer}
         className="fixed bottom-20 left-4 z-40 flex rounded-full border border-[#d7ded4] bg-white px-4 py-3 text-sm font-semibold text-[#2f6f5f] shadow-lg shadow-black/12 transition hover:bg-[#f4f6f1] lg:hidden"
       >
         <ListOrdered className="mr-2 h-4 w-4" aria-hidden="true" />
-        순서
+        레시피 순서
       </button>
 
       {open ? (
@@ -336,12 +400,15 @@ export default function RecipeOrderDrawer() {
                     레시피 리스트 순서
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-[#607064]">
-                    위/아래 버튼으로 순서를 바꾸면 브라우저에 저장됩니다.
+                    왼쪽 손잡이를 길게 누른 뒤 위·아래로 드래그하세요. 놓는 즉시 순서가 저장됩니다.
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    finishDrag();
+                    setOpen(false);
+                  }}
                   aria-label="레시피 순서 편집 닫기"
                   className="rounded-md border border-[#d7ded4] bg-white p-2 text-[#607064] transition hover:bg-[#f4f6f1]"
                 >
@@ -355,26 +422,60 @@ export default function RecipeOrderDrawer() {
                 <ol className="space-y-2">
                   {recipeNames.map((recipeName, index) => {
                     const isDefaultRecipe = defaultNames.includes(recipeName);
+                    const dragging = draggingName === recipeName;
+                    const dragOver = dragOverName === recipeName && !dragging;
 
                     return (
                       <li
                         key={recipeName}
-                        className="rounded-lg border border-[#d7ded4] bg-white p-3 shadow-sm shadow-black/5"
+                        data-recipe-order-item="true"
+                        data-recipe-order-name={recipeName}
+                        className={`rounded-lg border bg-white p-3 shadow-sm transition ${
+                          dragging
+                            ? "scale-[1.02] border-[#2f6f5f] opacity-80 shadow-lg"
+                            : dragOver
+                              ? "border-[#2f6f5f] ring-2 ring-[#2f6f5f]/20"
+                              : "border-[#d7ded4]"
+                        }`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onPointerDown={(event) => startLongPress(event, recipeName)}
+                            onPointerMove={dragPointerMove}
+                            onPointerUp={finishDrag}
+                            onPointerCancel={finishDrag}
+                            onContextMenu={(event) => event.preventDefault()}
+                            aria-label={`${recipeName} 길게 눌러 순서 이동`}
+                            title="길게 눌러 드래그"
+                            className={`flex h-11 w-11 shrink-0 cursor-grab items-center justify-center rounded-md border transition active:cursor-grabbing ${
+                              dragging
+                                ? "border-[#2f6f5f] bg-[#e6f0ea] text-[#2f6f5f]"
+                                : "border-[#d7ded4] bg-[#f8faf6] text-[#607064] hover:bg-[#eef5ef]"
+                            }`}
+                            style={{ touchAction: "none" }}
+                          >
+                            <GripVertical className="h-5 w-5" aria-hidden="true" />
+                          </button>
+
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-semibold text-[#1d211c]">
                               {index + 1}. {recipeName}
                             </p>
                             <p className="mt-1 text-xs text-[#607064]">
-                              {isDefaultRecipe ? "기본 레시피" : "추천/나만의 레시피"}
+                              {dragging
+                                ? "이동 중 — 원하는 위치에서 놓으세요"
+                                : isDefaultRecipe
+                                  ? "기본 레시피"
+                                  : "추천/나만의 레시피"}
                             </p>
                           </div>
+
                           <div className="flex shrink-0 items-center gap-1">
                             <button
                               type="button"
                               onClick={() => moveRecipe(index, -1)}
-                              disabled={index === 0}
+                              disabled={index === 0 || Boolean(draggingName)}
                               aria-label={`${recipeName} 위로 이동`}
                               className="rounded-md border border-[#d7ded4] p-2 text-[#607064] transition hover:bg-[#eef5ef] disabled:cursor-not-allowed disabled:opacity-35"
                             >
@@ -383,7 +484,9 @@ export default function RecipeOrderDrawer() {
                             <button
                               type="button"
                               onClick={() => moveRecipe(index, 1)}
-                              disabled={index === recipeNames.length - 1}
+                              disabled={
+                                index === recipeNames.length - 1 || Boolean(draggingName)
+                              }
                               aria-label={`${recipeName} 아래로 이동`}
                               className="rounded-md border border-[#d7ded4] p-2 text-[#607064] transition hover:bg-[#eef5ef] disabled:cursor-not-allowed disabled:opacity-35"
                             >
@@ -407,14 +510,18 @@ export default function RecipeOrderDrawer() {
                 <button
                   type="button"
                   onClick={resetOrder}
-                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-md border border-[#d7ded4] bg-white px-4 text-sm font-semibold text-[#607064] transition hover:bg-[#f4f6f1]"
+                  disabled={Boolean(draggingName)}
+                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-md border border-[#d7ded4] bg-white px-4 text-sm font-semibold text-[#607064] transition hover:bg-[#f4f6f1] disabled:opacity-40"
                 >
                   <RotateCcw className="h-4 w-4" aria-hidden="true" />
                   기본 순서
                 </button>
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={() => {
+                    finishDrag();
+                    setOpen(false);
+                  }}
                   className="h-11 flex-1 rounded-md bg-[#2f6f5f] px-4 text-sm font-semibold text-white transition hover:bg-[#255c4f]"
                 >
                   완료
