@@ -184,8 +184,24 @@ test("sweet goal selects THE NEO BREW and keeps personal offsets", () => {
   assert.equal(result.ratio, 15.5);
   assert.equal(result.waterGrams, 280);
   assert.equal(result.temperatureCelsius, 96);
+  assert.equal(result.targetTimeMinSeconds, 180);
+  assert.equal(result.targetTimeMaxSeconds, 210);
   assert.equal(result.steps.length, 10);
-  assert.equal(result.steps.at(-1).targetWaterGrams, 280);
+  assert.deepEqual(
+    result.steps.map((step) => [step.startSeconds, step.targetWaterGrams]),
+    [
+      [0, 28],
+      [30, 56],
+      [45, 84],
+      [60, 112],
+      [75, 140],
+      [90, 168],
+      [105, 196],
+      [120, 224],
+      [135, 252],
+      [150, 280],
+    ],
+  );
 });
 
 test("preferred current Jung Ver 2.0 recipe preserves its audited structure", () => {
