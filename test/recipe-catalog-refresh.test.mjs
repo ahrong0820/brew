@@ -100,29 +100,33 @@ test("2026 Jung In-sung 15g recipe keeps source facts separate from app timing",
   );
 });
 
-test("Tetsu THE NEO BREW encodes ten 30g pours at 15 second intervals", () => {
+test("Tetsu THE NEO BREW blooms 30 seconds, then continues at 15 second intervals", () => {
   const current = recipe("tetsu-neo-2026");
   assert.ok(current);
   assert.equal(current.sourceStatus, "partial");
   assert.equal(current.doseGrams, 20);
   assert.equal(current.waterGrams, 300);
   assert.equal(current.temperatureCelsius, 96);
+  assert.equal(current.targetTimeMinSeconds, 180);
+  assert.equal(current.targetTimeMaxSeconds, 210);
   assert.equal(current.steps.length, 10);
   assert.deepEqual(
     current.steps.map((step) => [step.startSeconds, step.targetWaterGrams]),
     [
       [0, 30],
-      [15, 60],
-      [30, 90],
-      [45, 120],
-      [60, 150],
-      [75, 180],
-      [90, 210],
-      [105, 240],
-      [120, 270],
-      [135, 300],
+      [30, 60],
+      [45, 90],
+      [60, 120],
+      [75, 150],
+      [90, 180],
+      [105, 210],
+      [120, 240],
+      [135, 270],
+      [150, 300],
     ],
   );
+  assert.match(current.steps[0]?.cue ?? "", /0:30까지 뜸/);
+  assert.match(current.steps.at(-1)?.cue ?? "", /2:30에 누적 300g/);
 });
 
 test("default recipe source registry page links do not include stale labels", async () => {
