@@ -23,7 +23,7 @@ export const tetsuDefault = {
   steps: tetsuNeoPourStarts.map((start, index) => ({
     label: index === 0 ? "1차 푸어 · 뜸들이기" : String(index + 1) + "차 푸어",
     start,
-    end: index === tetsuNeoPourStarts.length - 1 ? 210 : tetsuNeoPourStarts[index + 1],
+    end: tetsuNeoPourStarts[index + 1] ?? 210,
     targetWater: (index + 1) * 30,
     cue:
       index === 0
