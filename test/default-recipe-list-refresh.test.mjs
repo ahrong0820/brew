@@ -30,5 +30,9 @@ test("기본 목록에 최신 레시피와 안스타 통칭이 반영된다", ()
   assert.equal(byId("tetsu-neo-2026")?.totalTime, 210);
   assert.equal(byId("jis-ver2-hot")?.totalTime, 170);
   assert.equal(byId("jis-484-15g-2026")?.totalTime, 170);
+  assert.equal(byId("yong-neo-reverse-switch-hot")?.name, "용챔 15g 네오스위치 HOT");
+  assert.equal(byId("yong-neo-reverse-switch-hot")?.totalTime, 240);
+  assert.equal(byId("yong-neo-reverse-switch-ice")?.name, "용챔 15g 네오스위치 ICE");
+  assert.equal(byId("yong-neo-reverse-switch-ice")?.totalTime, 210);
   assert.equal(byId("jis-clever-1-11")?.name, "정인성 클레버 1:11");
 });
