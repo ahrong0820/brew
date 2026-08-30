@@ -1,10 +1,12 @@
 import { jisCleverRecipes } from "./jisCleverRecipes.ts";
 import { verifiedCleverRecipes } from "./verifiedCleverRecipes.ts";
+import { yongNeoSwitchBaristaRecipes } from "./yongNeoSwitchBaristaRecipes.ts";
 import type { BaristaRecipe } from "@/lib/types/baristaRecipe";
 
 export const additionalBaristaRecipes: readonly BaristaRecipe[] = [
   ...verifiedCleverRecipes,
   ...jisCleverRecipes,
+  ...yongNeoSwitchBaristaRecipes,
   {
     id: "clever-balanced-reference",
     name: "클레버 균형형 침출 기본 참조",
