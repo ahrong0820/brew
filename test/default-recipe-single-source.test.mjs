@@ -7,12 +7,13 @@ import {
   removedDefaultRecipeIds,
 } from "../lib/recipes/defaultRecipeCatalog.ts";
 
-test("default recipe UI catalog has one canonical nine-recipe source", () => {
+test("default recipe UI catalog has one canonical source", () => {
   assert.deepEqual(
     defaultRecipes.map(({ id, name }) => ({ id, name })),
     defaultRecipeCatalogEntries.map((entry) => ({ ...entry })),
   );
-  assert.equal(defaultRecipes.length, 9);
+  assert.equal(defaultRecipes.length, defaultRecipeCatalogEntries.length);
+  assert.equal(defaultRecipes.length, 11);
   assert.equal(
     defaultRecipes.some((recipe) => removedDefaultRecipeIds.includes(recipe.id)),
     false,
