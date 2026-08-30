@@ -34,8 +34,56 @@ function writeStoredRecipeOrder(order: string[]) {
   window.dispatchEvent(new CustomEvent(recipeOrderUpdatedEvent));
 }
 
+function getMainContentSection() {
+  const mainGrid = document.querySelector("main > header + div");
+
+  if (!mainGrid) {
+    return null;
+  }
+
+  return (
+    (Array.from(mainGrid.children).find(
+      (element) => element.tagName === "SECTION",
+    ) as HTMLElement | undefined) ?? null
+  );
+}
+
+function markRecipeListFromLayout() {
+  const contentSection = getMainContentSection();
+
+  if (!contentSection) {
+    return null;
+  }
+
+  const directDivs = Array.from(contentSection.children).filter(
+    (element) => element.tagName === "DIV",
+  ) as HTMLElement[];
+  const recipeList =
+    directDivs.find((element) =>
+      Array.from(element.children).some(
+        (child) => child instanceof HTMLElement && child.querySelector("h3"),
+      ),
+    ) ?? null;
+
+  if (!recipeList) {
+    return null;
+  }
+
+  recipeList.dataset.recipeList = "true";
+  Array.from(recipeList.children).forEach((element) => {
+    if (element instanceof HTMLElement && element.tagName === "BUTTON") {
+      element.dataset.recipeRow = "true";
+    }
+  });
+
+  return recipeList;
+}
+
 function getRecipeList() {
-  return document.querySelector('[data-recipe-list="true"]') as HTMLElement | null;
+  return (
+    (document.querySelector('[data-recipe-list="true"]') as HTMLElement | null) ??
+    markRecipeListFromLayout()
+  );
 }
 
 function getRecipeRows() {
@@ -95,6 +143,49 @@ function moveName(order: string[], index: number, direction: -1 | 1) {
   return nextOrder;
 }
 
+function ensureInlineOrderControl() {
+  const contentSection = getMainContentSection();
+
+  if (!contentSection) {
+    return;
+  }
+
+  const existingControl = contentSection.querySelector(
+    '[data-recipe-order-inline-control="true"]',
+  );
+
+  if (existingControl) {
+    return;
+  }
+
+  const firstBlock = Array.from(contentSection.children).find(
+    (element) => element.tagName === "DIV",
+  );
+
+  if (!(firstBlock instanceof HTMLElement)) {
+    return;
+  }
+
+  const control = document.createElement("div");
+  control.dataset.recipeOrderInlineControl = "true";
+  control.className =
+    "flex flex-col gap-2 rounded-lg border border-[#d7ded4] bg-white p-3 shadow-sm shadow-black/5 sm:flex-row sm:items-center sm:justify-between";
+
+  const copy = document.createElement("p");
+  copy.className = "text-sm leading-6 text-[#607064]";
+  copy.textContent = "리버스 스위치를 첫 번째, 네오브루를 두 번째처럼 레시피 표시 순서를 바꿀 수 있습니다.";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.dataset.recipeOrderInlineToggle = "true";
+  button.className =
+    "flex h-10 shrink-0 items-center justify-center rounded-md bg-[#2f6f5f] px-4 text-sm font-semibold text-white transition hover:bg-[#255c4f]";
+  button.textContent = "레시피 순서 편집";
+
+  control.append(copy, button);
+  firstBlock.insertAdjacentElement("afterend", control);
+}
+
 function applyRecipeOrderToDom() {
   const recipeList = getRecipeList();
   const rows = getRecipeRows();
@@ -133,6 +224,7 @@ export default function RecipeOrderDrawer() {
   const defaultNames = useMemo(() => defaultRecipes.map((recipe) => recipe.name), []);
 
   const syncRecipeOrder = useCallback(() => {
+    ensureInlineOrderControl();
     setRecipeNames(applyRecipeOrderToDom());
   }, []);
 
@@ -144,8 +236,25 @@ export default function RecipeOrderDrawer() {
       frameId = window.requestAnimationFrame(syncRecipeOrder);
     }
 
+    function handleClick(event: MouseEvent) {
+      if (!(event.target instanceof Element)) {
+        return;
+      }
+
+      const inlineToggle = event.target.closest(
+        '[data-recipe-order-inline-toggle="true"]',
+      );
+
+      if (inlineToggle) {
+        event.preventDefault();
+        syncRecipeOrder();
+        setOpen(true);
+      }
+    }
+
     scheduleSync();
     window.addEventListener(recipeOrderUpdatedEvent, scheduleSync);
+    document.addEventListener("click", handleClick);
 
     const observerTarget = document.querySelector("main");
     const observer = new MutationObserver(scheduleSync);
@@ -160,7 +269,11 @@ export default function RecipeOrderDrawer() {
     return () => {
       window.cancelAnimationFrame(frameId);
       window.removeEventListener(recipeOrderUpdatedEvent, scheduleSync);
+      document.removeEventListener("click", handleClick);
       observer.disconnect();
+      document
+        .querySelectorAll('[data-recipe-order-inline-control="true"]')
+        .forEach((element) => element.remove());
     };
   }, [syncRecipeOrder]);
 
@@ -199,7 +312,7 @@ export default function RecipeOrderDrawer() {
           syncRecipeOrder();
           setOpen(true);
         }}
-        className="fixed bottom-4 left-4 z-40 flex rounded-full border border-[#d7ded4] bg-white px-4 py-3 text-sm font-semibold text-[#2f6f5f] shadow-lg shadow-black/12 transition hover:bg-[#f4f6f1] lg:hidden"
+        className="fixed bottom-20 left-4 z-40 flex rounded-full border border-[#d7ded4] bg-white px-4 py-3 text-sm font-semibold text-[#2f6f5f] shadow-lg shadow-black/12 transition hover:bg-[#f4f6f1] lg:hidden"
       >
         <ListOrdered className="mr-2 h-4 w-4" aria-hidden="true" />
         순서
