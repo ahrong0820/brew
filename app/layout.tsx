@@ -10,6 +10,7 @@ import MobileRecipeEnhancer from "./MobileRecipeEnhancer";
 import NextBrewAdjustmentDrawer from "./NextBrewAdjustmentDrawer";
 import OriginRegionDrawer from "./OriginRegionDrawer";
 import PersonalRecipeVersionDrawer from "./PersonalRecipeVersionDrawer";
+import RecipeOrderDrawer from "./RecipeOrderDrawer";
 import RecommendationDrawer from "./RecommendationDrawerV2";
 import RecommendationEvidenceStatus from "./RecommendationEvidenceStatus";
 import "./globals.css";
@@ -40,6 +41,7 @@ export default function RootLayout({
         <DefaultRecipeStorageMigrator />
         <MobileOverlayCoordinator />
         <MobileRecipeEnhancer />
+        <RecipeOrderDrawer />
         <GrindMicronDrawer />
         <BrewHistoryDrawer />
         <PersonalRecipeVersionDrawer />
