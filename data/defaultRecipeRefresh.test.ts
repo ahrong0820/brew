@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildDefaultRecipes } from "./defaultRecipeRefresh.ts";
+import { tetsuDefault } from "./tetsuDefault.ts";
 import {
   preferredDefaultRecipeOrder,
   removedDefaultRecipeIds,
@@ -59,5 +60,24 @@ test("buildDefaultRecipes removes stale recipes and inserts required refreshed r
   assert.deepEqual(
     ids.slice(0, preferredIdsPresentInResult.length),
     preferredIdsPresentInResult,
+  );
+});
+
+test("Tetsu THE NEO BREW default timer blooms 30 seconds before 15 second pours", () => {
+  assert.equal(tetsuDefault.totalTime, 210);
+  assert.deepEqual(
+    tetsuDefault.steps.map((step) => [step.start, step.end, step.targetWater]),
+    [
+      [0, 30, 30],
+      [30, 45, 60],
+      [45, 60, 90],
+      [60, 75, 120],
+      [75, 90, 150],
+      [90, 105, 180],
+      [105, 120, 210],
+      [120, 135, 240],
+      [135, 150, 270],
+      [150, 210, 300],
+    ],
   );
 });
