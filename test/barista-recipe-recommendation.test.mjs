@@ -190,15 +190,15 @@ test("sweet goal selects THE NEO BREW and keeps personal offsets", () => {
   assert.deepEqual(
     result.steps.map((step) => [step.startSeconds, step.targetWaterGrams]),
     [
-      [0, 28],
-      [30, 56],
-      [45, 84],
-      [60, 112],
+      [0, 30],
+      [30, 55],
+      [45, 85],
+      [60, 110],
       [75, 140],
-      [90, 168],
-      [105, 196],
-      [120, 224],
-      [135, 252],
+      [90, 170],
+      [105, 195],
+      [120, 225],
+      [135, 250],
       [150, 280],
     ],
   );
