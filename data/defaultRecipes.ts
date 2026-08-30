@@ -3,6 +3,10 @@ import { clever111 } from "./clever111.ts";
 import { jisVer2Default } from "./jisVer2Default.ts";
 import { recipe484 } from "./recipe484.ts";
 import { tetsuDefault } from "./tetsuDefault.ts";
+import {
+  yongNeoReverseSwitchHot,
+  yongNeoReverseSwitchIce,
+} from "./yongNeoSwitchDefault.ts";
 import type { Recipe } from "../lib/types/defaultRecipe.ts";
 
 const tetsu46DefaultRecipe = {
@@ -223,6 +227,8 @@ export const defaultRecipes = [
   jisVer2Default,
   recipe484,
   yongLightDefaultRecipe,
+  yongNeoReverseSwitchHot,
+  yongNeoReverseSwitchIce,
   switchDevilDefaultRecipe,
   hoffmannCleverDefaultRecipe,
   clever111,
