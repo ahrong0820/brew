@@ -51,6 +51,18 @@ export const recipeSourceRegistry: readonly RecipeSourceRecord[] = [
     check: "partial",
   },
   {
+    recipeId: "yong-neo-reverse-switch-hot",
+    label: "용챔 공식 YouTube 네오스위치 HOT 15g 레시피",
+    url: "https://www.youtube.com/watch?v=8JD__5hwN0M",
+    check: "exact",
+  },
+  {
+    recipeId: "yong-neo-reverse-switch-ice",
+    label: "용챔 공식 YouTube 네오스위치 ICE 15g 레시피",
+    url: "https://www.youtube.com/watch?v=h_Y2D7Fppgw",
+    check: "exact",
+  },
+  {
     recipeId: "clever-official-distributor-185",
     label: "Clever Coffee Brewers 공식 유통 제품 페이지",
     url: cleverOfficialRecipeUrl,
