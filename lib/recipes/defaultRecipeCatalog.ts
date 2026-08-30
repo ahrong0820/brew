@@ -1,4 +1,4 @@
-export const defaultRecipeCatalogVersion = "2026-07-10.1" as const;
+export const defaultRecipeCatalogVersion = "2026-08-30.1" as const;
 
 export const defaultRecipeCatalogEntries = [
   { id: "tetsu-46", name: "테츠 카스야 4:6 기본형" },
@@ -7,6 +7,8 @@ export const defaultRecipeCatalogEntries = [
   { id: "jis-ver2-hot", name: "정인성 국룰 Ver 2.0 HOT" },
   { id: "jis-484-15g-2026", name: "정인성 484 15g (2026)" },
   { id: "yong-light", name: "용챔 라이트로스트 15g" },
+  { id: "yong-neo-reverse-switch-hot", name: "용챔 15g 네오스위치 HOT" },
+  { id: "yong-neo-reverse-switch-ice", name: "용챔 15g 네오스위치 ICE" },
   { id: "switch-devil", name: "테츠 카스야 악마의 레시피" },
   { id: "hoffmann-clever-water-first", name: "제임스 호프만 클레버" },
   { id: "jis-clever-1-11", name: "정인성 클레버 1:11" },
@@ -37,6 +39,8 @@ export const preferredDefaultRecipeOrder = [
   "jis-ver2-hot",
   "jis-484-15g-2026",
   "yong-light",
+  "yong-neo-reverse-switch-hot",
+  "yong-neo-reverse-switch-ice",
   "switch-devil",
   "hoffmann-clever-water-first",
   "jis-clever-1-11",
@@ -48,6 +52,8 @@ export const requiredDefaultRecipeNames = [
   "정인성 484 15g (2026)",
   "정인성 클레버 1:11",
   "테츠 카스야 THE NEO BREW 2026",
+  "용챔 15g 네오스위치 HOT",
+  "용챔 15g 네오스위치 ICE",
 ] as const;
 
 const removedDefaultRecipeIdSet = new Set<string>(removedDefaultRecipeIds);
