@@ -6,6 +6,8 @@ export const requiredRecipeTexts = [
   "정인성 484 15g (2026)",
   "정인성 클레버 1:11",
   "테츠 카스야 THE NEO BREW 2026",
+  "용챔 15g 네오스위치 HOT",
+  "용챔 15g 네오스위치 ICE",
 ];
 
 export const removedRecipeTexts = [
