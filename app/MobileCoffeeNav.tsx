@@ -3,6 +3,7 @@
 import {
   Coffee,
   History,
+  ListOrdered,
   MapPinned,
   Ruler,
   ShieldCheck,
@@ -27,6 +28,7 @@ const launcherTargets = [
   { key: "grind", label: "분쇄도 변환" },
   { key: "evidence", label: "근거 현황" },
   { key: "personal-recipes", label: "개인 레시피" },
+  { key: "recipe-order", label: "레시피 순서" },
 ] as const;
 
 type LauncherKey = (typeof launcherTargets)[number]["key"];
@@ -70,8 +72,12 @@ export default function MobileCoffeeNav() {
           continue;
         }
 
+        const explicitTarget = launcherTargets.find(
+          (item) => button.dataset.mobileCoffeeTarget === item.key,
+        );
         const text = normalizedText(button.textContent);
-        const target = launcherTargets.find((item) => text.startsWith(item.label));
+        const target =
+          explicitTarget ?? launcherTargets.find((item) => text.startsWith(item.label));
 
         if (!target) {
           if (button.dataset.mobileCoffeeTarget) {
@@ -217,8 +223,24 @@ export default function MobileCoffeeNav() {
 
             <button
               type="button"
-              onClick={() => openLauncher("grind")}
+              onClick={() => openLauncher("recipe-order")}
               className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-[#d7ded4] bg-white p-4 text-left shadow-sm"
+            >
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#edf3ee] text-[#2f6f5f]">
+                <ListOrdered aria-hidden="true" size={21} />
+              </span>
+              <span>
+                <strong className="block text-sm">레시피 순서</strong>
+                <span className="mt-1 block text-xs leading-5 text-[#687168]">
+                  레시피 리스트의 표시 순서를 원하는 순서로 저장합니다.
+                </span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openLauncher("grind")}
+              className="mt-3 flex w-full items-center gap-3 rounded-2xl border border-[#d7ded4] bg-white p-4 text-left shadow-sm"
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f5f0e7] text-[#6a5a42]">
                 <Ruler aria-hidden="true" size={21} />
