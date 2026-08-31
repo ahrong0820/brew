@@ -119,6 +119,23 @@ async function run() {
     await toolsDialog.getByRole("button", { name: "도구 메뉴 닫기" }).click();
     await toolsDialog.waitFor({ state: "hidden" });
 
+    const customSection = page.locator('[data-custom-editor-open]');
+    await customSection.waitFor({ state: "visible" });
+    assert.equal(
+      await customSection.getAttribute("data-custom-editor-open"),
+      "false",
+      "custom recipe editor must start collapsed from React state",
+    );
+    const customToggle = customSection.getByRole("button", {
+      name: "＋ 나만의 레시피 만들기",
+      exact: true,
+    });
+    await customToggle.click();
+    assert.equal(await customSection.getAttribute("data-custom-editor-open"), "true");
+    await customSection.getByText("레시피 이름", { exact: true }).waitFor({ state: "visible" });
+    await customSection.getByRole("button", { name: "편집기 닫기", exact: true }).click();
+    assert.equal(await customSection.getAttribute("data-custom-editor-open"), "false");
+
     const timerPanel = page.locator('[data-timer-panel="true"]');
     await timerPanel.waitFor({ state: "attached" });
     const doseInput = timerPanel.locator('input[data-timer-dose-input="true"]');
@@ -154,8 +171,20 @@ async function run() {
     const recipeRows = page.locator('[data-recipe-row="true"]');
     await waitForCount(recipeRows, 2);
     await page.getByRole("button", { name: /용챔 라이트로스트 15g/ }).click();
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(150);
     assert.equal(await doseInput.inputValue(), "15", "recipe selection must synchronize dose draft");
+    const timerTop = await timerPanel.evaluate((element) => element.getBoundingClientRect().top);
+    assert.ok(
+      timerTop >= -1 && timerTop < 200,
+      `mobile recipe selection must scroll the timer into view, received top=${timerTop}`,
+    );
+
+    const selectedRecipe = page.getByRole("button", { name: /용챔 라이트로스트 15g/ });
+    assert.equal(
+      await selectedRecipe.getAttribute("aria-current"),
+      "true",
+      "selected recipe state must be rendered directly as aria-current",
+    );
 
     const startButton = timerPanel.getByRole("button", { name: "시작", exact: true });
     await startButton.waitFor({ state: "visible" });
@@ -169,7 +198,7 @@ async function run() {
 
     assert.deepEqual(browserMessages, [], browserMessages.join("\n"));
     console.log(
-      "E2E PASS: React dose editing, recipe synchronization, mobile tools, and timer navigation",
+      "E2E PASS: React mobile recipe state, custom editor, timer scrolling, and timer navigation",
     );
   } catch (error) {
     await page.screenshot({ path: path.join(resultsDir, "e2e-failure.png"), fullPage: true });

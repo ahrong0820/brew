@@ -50,6 +50,8 @@ import type { Recipe, WaterAmount } from "@/lib/types/defaultRecipe";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const heroImageSrc = `${basePath}/brewing-hero.png`;
+const mobileQuery = "(max-width: 1023px)";
+const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
 
 type DraftStep = {
   label: string;
@@ -188,6 +190,23 @@ function formatWaterAmount(amount: WaterAmount, factor = 1) {
   return `${scaleValue(amount.min, factor)}-${scaleValue(amount.max, factor)}g`;
 }
 
+function scrollTimerIntoViewOnMobile() {
+  if (
+    typeof window === "undefined" ||
+    !window.matchMedia(mobileQuery).matches
+  ) {
+    return;
+  }
+
+  const reducedMotion = window.matchMedia(reducedMotionQuery).matches;
+  window.requestAnimationFrame(() => {
+    document.getElementById("brew-timer-panel")?.scrollIntoView({
+      behavior: reducedMotion ? "auto" : "smooth",
+      block: "start",
+    });
+  });
+}
+
 export default function Home() {
   const [customRecipes, setCustomRecipes] = useState<Recipe[]>([]);
   const [recommendedRecipe, setRecommendedRecipe] = useState<Recipe | null>(null);
@@ -201,6 +220,7 @@ export default function Home() {
   const [timerNotice, setTimerNotice] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const [customEditorOpen, setCustomEditorOpen] = useState(false);
   const [draftName, setDraftName] = useState("오전용 V60 레시피");
   const [draftMethod, setDraftMethod] = useState("V60");
   const [draftProfile, setDraftProfile] = useState("직접 만든 추출 흐름");
@@ -565,6 +585,7 @@ export default function Home() {
     setTimerNotice(null);
     completionPlayedRef.current = false;
     previousElapsedRef.current = 0;
+    scrollTimerIntoViewOnMobile();
   }
 
   function toggleFavorite(recipeId: string) {
@@ -666,6 +687,7 @@ export default function Home() {
     setSelectedId(customRecipe.id);
     syncTimerDose(customRecipe.dose);
     setFilter("나만의 레시피");
+    setCustomEditorOpen(false);
     clearBrewSessionClock();
     setTimerNotice(null);
     completionPlayedRef.current = false;
@@ -822,7 +844,10 @@ export default function Home() {
       </header>
 
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_410px] lg:px-8">
-        <section className="order-2 min-w-0 space-y-5 lg:order-1">
+        <section
+          data-main-content="true"
+          className="order-2 min-w-0 space-y-5 lg:order-1"
+        >
           <div className="flex flex-col gap-3 rounded-lg border border-[#d7ded4] bg-white p-3 shadow-sm shadow-black/5">
             <label className="relative flex min-w-0 flex-1 items-center">
               <Search className="absolute left-3 h-4 w-4 text-[#607064]" aria-hidden="true" />
@@ -877,6 +902,7 @@ export default function Home() {
                   type="button"
                   data-recipe-row="true"
                   data-recipe-id={recipe.id}
+                  aria-current={selected ? "true" : undefined}
                   onClick={() => selectRecipe(recipe)}
                   aria-pressed={selected}
                   className={`min-w-0 rounded-lg border bg-white p-5 text-left shadow-sm shadow-black/5 transition hover:-translate-y-0.5 hover:border-[#2f6f5f] hover:shadow-md ${
@@ -953,7 +979,10 @@ export default function Home() {
             </p>
           ) : null}
 
-          <section className="rounded-lg border border-[#d7ded4] bg-white p-5 shadow-sm shadow-black/5">
+          <section
+            data-custom-editor-open={String(customEditorOpen)}
+            className="rounded-lg border border-[#d7ded4] bg-white p-5 shadow-sm shadow-black/5"
+          >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase text-[#607064]">
@@ -965,6 +994,16 @@ export default function Home() {
                 {customRecipes.length}개 저장됨
               </span>
             </div>
+
+            <button
+              type="button"
+              data-custom-editor-toggle="true"
+              aria-expanded={customEditorOpen}
+              onClick={() => setCustomEditorOpen((current) => !current)}
+              className="mobile-custom-toggle"
+            >
+              {customEditorOpen ? "편집기 닫기" : "＋ 나만의 레시피 만들기"}
+            </button>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <label className="block">
@@ -1166,7 +1205,10 @@ export default function Home() {
           </section>
         </section>
 
-        <aside className="order-1 min-w-0 space-y-4 lg:sticky lg:top-6 lg:order-2 lg:self-start">
+        <aside
+          data-timer-panel="true"
+          className="order-1 min-w-0 space-y-4 lg:sticky lg:top-6 lg:order-2 lg:self-start"
+        >
           <section
             id="brew-timer-panel"
             className="rounded-lg border border-[#d7ded4] bg-white p-5 shadow-sm shadow-black/5"

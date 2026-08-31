@@ -6,7 +6,6 @@ import DefaultRecipeStorageMigrator from "./DefaultRecipeStorageMigrator";
 import GrindMicronDrawer from "./GrindMicronDrawer";
 import MobileCoffeeNav from "./MobileCoffeeNav";
 import MobileOverlayCoordinator from "./MobileOverlayCoordinator";
-import MobileRecipeEnhancer from "./MobileRecipeEnhancer";
 import NextBrewAdjustmentDrawer from "./NextBrewAdjustmentDrawer";
 import OriginRegionDrawer from "./OriginRegionDrawer";
 import PersonalRecipeVersionDrawer from "./PersonalRecipeVersionDrawer";
@@ -40,7 +39,6 @@ export default function RootLayout({
       <body>
         <DefaultRecipeStorageMigrator />
         <MobileOverlayCoordinator />
-        <MobileRecipeEnhancer />
         <RecipeOrderDrawer />
         <GrindMicronDrawer />
         <BrewHistoryDrawer />
