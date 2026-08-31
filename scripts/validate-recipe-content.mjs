@@ -1,21 +1,11 @@
 import { readFile } from "node:fs/promises";
+import {
+  removedDefaultRecipeNames,
+  requiredDefaultRecipeNames,
+} from "../lib/recipes/defaultRecipeCatalog.ts";
 
-export const requiredRecipeTexts = [
-  "안스타 6888",
-  "정인성 국룰 Ver 2.0 HOT",
-  "정인성 484 15g (2026)",
-  "정인성 클레버 1:11",
-  "테츠 카스야 THE NEO BREW 2026",
-  "용챔 15g 네오스위치 HOT",
-  "용챔 15g 네오스위치 ICE",
-];
-
-export const removedRecipeTexts = [
-  "시그니쳐 로스터스 콘 필터",
-  "딥블루레이크 V60 HOT",
-  "정인성 4666 오리지널",
-  "정인성 클레버 1:12",
-];
+export const requiredRecipeTexts = requiredDefaultRecipeNames;
+export const removedRecipeTexts = removedDefaultRecipeNames;
 
 function assertRecipeContent(content, sourceLabel) {
   const missing = requiredRecipeTexts.filter((text) => !content.includes(text));

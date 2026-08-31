@@ -4,8 +4,8 @@ import type { Recipe } from "../lib/types/defaultRecipe.ts";
 
 /**
  * Compatibility adapter for older callers that still provide a legacy list.
- * The canonical nine recipes always come from defaultRecipes; only unrelated,
- * non-removed extensions are appended.
+ * The canonical default recipes always come from the registry-backed defaultRecipes;
+ * only unrelated, non-removed extensions are appended.
  */
 export function buildDefaultRecipes<T extends { id: string }>(
   legacyRecipes: readonly T[],

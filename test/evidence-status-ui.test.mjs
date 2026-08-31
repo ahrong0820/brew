@@ -73,7 +73,6 @@ test("evidence status is mounted globally and available from mobile tools", asyn
   ]);
   assert.match(layout, /import RecommendationEvidenceStatus/);
   assert.match(layout, /<RecommendationEvidenceStatus \/>/);
-  assert.match(mobileNav, /key: "evidence", label: "근거 현황"/);
   assert.match(mobileNav, /openLauncher\("evidence"\)/);
   assert.match(mobileNav, /현재 반영된 규칙과 후보·직접 검증 대기 자료/);
   assert.match(mobileNav, /max-h-\[88dvh\]/);

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -20,11 +21,16 @@ test("personal recipe UI shows status, promotion condition and restore action", 
   assert.match(drawer, /restorePersonalRecipeVersion/);
 });
 
-test("mobile overlay coordinator hides floating controls and locks scrolling", async () => {
-  const coordinator = await read("app/MobileOverlayCoordinator.tsx");
-  assert.match(coordinator, /coffeeOverlayOpen/);
-  assert.match(coordinator, /body\.style\.overflow = "hidden"/);
-  assert.match(coordinator, /pointer-events: none/);
+test("central tool state hides launchers and locks scrolling without DOM observation", async () => {
+  const provider = await read("app/CoffeeToolProvider.tsx");
+  assert.match(provider, /body\.style\.overflow = "hidden"/);
+  assert.match(provider, /data-coffee-tool-launcher/);
+  assert.match(provider, /pointer-events: none/);
+  assert.doesNotMatch(provider, /MutationObserver|querySelectorAll|:has\(/);
+  assert.equal(
+    existsSync(new URL("../app/MobileOverlayCoordinator.tsx", import.meta.url)),
+    false,
+  );
 });
 
 test("recommendations expose audited source state", async () => {

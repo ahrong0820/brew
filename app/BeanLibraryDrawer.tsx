@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
+import { useCoffeeToolOpen } from "./CoffeeToolProvider";
 import { createBean, withUpdatedTimestamp } from "@/lib/domain/factories";
 import {
   beanBrewProfileStore,
@@ -218,7 +219,7 @@ const inputClass =
 
 export default function BeanLibraryDrawer() {
   const [beans, setBeans] = useState<Bean[]>([]);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useCoffeeToolOpen("beans");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
@@ -265,7 +266,7 @@ export default function BeanLibraryDrawer() {
 
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [open]);
+  }, [open, setOpen]);
 
   function resetForm() {
     setForm(emptyForm);
@@ -375,6 +376,7 @@ export default function BeanLibraryDrawer() {
     <>
       <button
         type="button"
+        data-coffee-tool-launcher="true"
         onClick={() => setOpen(true)}
         className="fixed bottom-4 right-4 z-40 flex h-12 items-center gap-2 rounded-full border border-[#2f6f5f] bg-[#2f6f5f] px-4 text-sm font-semibold text-white shadow-lg transition hover:bg-[#25594c] focus:outline-none focus:ring-2 focus:ring-[#2f6f5f] focus:ring-offset-2"
         aria-label={`내 원두 열기, 저장된 원두 ${beans.length}개`}

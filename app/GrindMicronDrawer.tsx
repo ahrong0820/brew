@@ -2,6 +2,7 @@
 
 import { Gauge, Info, Ruler, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useCoffeeToolOpen } from "./CoffeeToolProvider";
 import {
   formatGrinderSetting,
   nearbyMicronReferencePoints,
@@ -31,7 +32,7 @@ function unitLabel(profile: GrinderProfile) {
 }
 
 export default function GrindMicronDrawer() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useCoffeeToolOpen("grind");
   const [grinders, setGrinders] = useState<GrinderProfile[]>([]);
   const [grinderId, setGrinderId] = useState("");
   const [targetMicrons, setTargetMicrons] = useState(1000);
@@ -72,7 +73,7 @@ export default function GrindMicronDrawer() {
 
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [open]);
+  }, [open, setOpen]);
 
   const selectedGrinder = useMemo(
     () => grinders.find((profile) => profile.id === grinderId),
@@ -110,6 +111,8 @@ export default function GrindMicronDrawer() {
     <>
       <button
         type="button"
+        data-coffee-tool-launcher="true"
+        data-mobile-coffee-target="grind"
         onClick={() => {
           loadProfiles();
           setOpen(true);

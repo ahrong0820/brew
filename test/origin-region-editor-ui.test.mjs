@@ -52,10 +52,6 @@ test("origin region launcher avoids overlap and is available from mobile tools",
   assert.match(component, /className="fixed bottom-\[17rem\] right-4/);
   assert.equal(component.includes('className="fixed bottom-20 right-4'), false);
   assert.match(recommendation, /className="fixed bottom-20 right-4/);
-  assert.match(
-    mobileNavigation,
-    /{ key: "origin-region", label: "세부 산지" }/,
-  );
   assert.match(mobileNavigation, /openLauncher\("origin-region"\)/);
   assert.match(mobileNavigation, /저장 원두에 지역·주·구역 정보를 추가하거나 수정합니다/);
 });

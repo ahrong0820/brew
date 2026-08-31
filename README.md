@@ -26,9 +26,9 @@
 - pnpm 11.7
 - Tailwind CSS 4
 - Node.js 22.13 이상
-- Playwright 기반 정적 배포 E2E
+- Playwright 1.55 기반 정적 배포 E2E
 
-`vinext` 설정도 유지하지만, GitHub Pages 운영 배포는 `next build`의 static export를 사용합니다.
+주 개발·빌드·GitHub Pages 운영 경로는 Next.js로 통일합니다. `vinext`와 Vite/Cloudflare 설정은 `.openai/hosting.json`을 사용하는 보조 호스팅 경로를 위해 명시적으로 유지합니다.
 
 ## 로컬 실행
 
@@ -38,7 +38,22 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-기본 개발 서버는 vinext를 사용합니다. GitHub Pages와 같은 정적 산출물을 확인하려면 다음 명령을 사용합니다.
+기본 개발 서버는 운영 빌드와 같은 Next.js를 사용합니다. 일반 Next.js production build도 다음과 같이 실행합니다.
+
+```bash
+pnpm build
+pnpm start
+```
+
+Vinext 기반 보조 호스팅 경로를 확인해야 할 때만 별도 스크립트를 사용합니다.
+
+```bash
+pnpm dev:vinext
+pnpm build:vinext
+pnpm start:vinext
+```
+
+GitHub Pages와 같은 정적 산출물을 확인하려면 다음 명령을 사용합니다.
 
 ```bash
 GITHUB_PAGES=true \
@@ -59,20 +74,20 @@ pnpm test
 
 PR CI와 운영 배포 CI는 다음 순서로 실행됩니다.
 
-1. 의존성 고정 설치
+1. lockfile 기반 의존성 고정 설치
 2. ESLint
 3. TypeScript typecheck
 4. Node 테스트 전체 실행
 5. 배포 메타데이터와 레시피 manifest 생성
 6. GitHub Pages static export
 7. static export 구조·SHA·카탈로그 검증
-8. Playwright Chromium E2E
+8. 고정된 Playwright로 Chromium E2E
 9. 운영 배포 후 다중 응답 안정성 검증
 
-Playwright는 CI에서 고정 버전으로 임시 설치됩니다. 로컬 E2E를 실행하려면 다음과 같이 설치합니다.
+Playwright `1.55.0`은 `devDependencies`와 `pnpm-lock.yaml`에 고정되어 있습니다. CI는 실행 중 `package.json`이나 lockfile을 수정하지 않습니다. 로컬 E2E를 처음 실행할 때는 브라우저 바이너리만 설치합니다.
 
 ```bash
-pnpm add --save-dev --lockfile=false playwright@1.55.0
+pnpm install --frozen-lockfile
 pnpm exec playwright install chromium
 pnpm test:e2e
 ```
@@ -89,18 +104,18 @@ lib/timer/              탭 단위 타이머 상태
 lib/types/              공용 도메인 타입
 scripts/                빌드·배포·manifest 검증
 e2e/                    Playwright 브라우저 시나리오
- test/                   Node 테스트
- docs/                   설계와 출처 감사 문서
+test/                   Node 테스트
+docs/                   설계와 출처 감사 문서
 ```
 
-기본 UI 레시피의 단일 진입점은 `data/defaultRecipes.ts`입니다. `app/page.tsx` 안에 별도 레시피 카탈로그를 두지 않습니다.
+기본 UI 레시피의 단일 진입점은 `data/defaultRecipes.ts`이며 실제 기본 레시피 메타데이터는 default recipe registry에서 파생됩니다. `app/page.tsx` 안에 별도 레시피 카탈로그를 두지 않습니다.
 
 ## 레시피 데이터 정책
 
 - 공식 출처로 확인된 값과 앱 시작값을 구분합니다.
 - 출처에서 확인하지 못한 실행 변수는 단순히 “미확인”으로 끝내지 않습니다.
 - 실행 가능한 앱 시작값을 제공할 경우 `temperature.status = "app-default"`와 설명을 함께 저장합니다.
-- 삭제·대체된 기본 레시피 ID는 `lib/recipes/defaultRecipeCatalog.ts`에서 관리합니다.
+- 삭제·대체된 기본 레시피 ID는 catalog migration 규칙에서 관리합니다.
 - 운영 배포의 정확한 레시피 ID, 이름, 개수는 `recipe-manifest.json`으로 검증합니다.
 
 출처 감사 문서는 `docs/source-audits/`에 있습니다.
@@ -148,7 +163,7 @@ e2e/                    Playwright 브라우저 시나리오
 
 - 기능별 브랜치를 사용합니다.
 - `main`에 직접 작업하지 않습니다.
-- UI 레시피를 추가하거나 변경할 때는 `data/defaultRecipes.ts`, 카탈로그 manifest, 출처 레지스트리, 관련 테스트를 함께 갱신합니다.
+- UI 레시피를 추가하거나 변경할 때는 default recipe registry, 카탈로그 manifest, 출처 레지스트리, 관련 테스트를 함께 갱신합니다.
 - Local Storage 형식을 변경하면 마이그레이션과 손상 데이터 테스트를 추가합니다.
 - 타이머·추천·모바일 UI 변경은 Playwright 시나리오를 통과해야 합니다.
 - 공개 레시피의 확인되지 않은 수치를 공식값처럼 표시하지 않습니다.
@@ -157,6 +172,7 @@ e2e/                    Playwright 브라우저 시나리오
 
 ```bash
 pnpm dev
+pnpm build
 pnpm lint
 pnpm typecheck
 pnpm test

@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import BeanLibraryDrawer from "./BeanLibraryDrawer";
 import BrewHistoryDrawer from "./BrewHistoryDrawer";
 import BrewSessionFeedbackTracker from "./BrewSessionFeedbackTracker";
+import { CoffeeToolProvider } from "./CoffeeToolProvider";
 import DefaultRecipeStorageMigrator from "./DefaultRecipeStorageMigrator";
 import GrindMicronDrawer from "./GrindMicronDrawer";
 import MobileCoffeeNav from "./MobileCoffeeNav";
-import MobileOverlayCoordinator from "./MobileOverlayCoordinator";
-import MobileRecipeEnhancer from "./MobileRecipeEnhancer";
 import NextBrewAdjustmentDrawer from "./NextBrewAdjustmentDrawer";
 import OriginRegionDrawer from "./OriginRegionDrawer";
 import PersonalRecipeVersionDrawer from "./PersonalRecipeVersionDrawer";
@@ -38,21 +37,21 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
-        <DefaultRecipeStorageMigrator />
-        <MobileOverlayCoordinator />
-        <MobileRecipeEnhancer />
-        <RecipeOrderDrawer />
-        <GrindMicronDrawer />
-        <BrewHistoryDrawer />
-        <PersonalRecipeVersionDrawer />
-        <RecommendationDrawer />
-        <RecommendationEvidenceStatus />
-        <BeanLibraryDrawer />
-        <OriginRegionDrawer />
-        <BrewSessionFeedbackTracker />
-        <NextBrewAdjustmentDrawer />
-        <MobileCoffeeNav />
-        {children}
+        <CoffeeToolProvider>
+          <DefaultRecipeStorageMigrator />
+          <RecipeOrderDrawer />
+          <GrindMicronDrawer />
+          <BrewHistoryDrawer />
+          <PersonalRecipeVersionDrawer />
+          <RecommendationDrawer />
+          <RecommendationEvidenceStatus />
+          <BeanLibraryDrawer />
+          <OriginRegionDrawer />
+          <BrewSessionFeedbackTracker />
+          <NextBrewAdjustmentDrawer />
+          <MobileCoffeeNav />
+          {children}
+        </CoffeeToolProvider>
       </body>
     </html>
   );
