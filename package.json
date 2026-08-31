@@ -28,7 +28,7 @@
     "db:generate": "drizzle-kit generate",
     "write:recipe-manifest": "node --experimental-strip-types scripts/write-recipe-manifest.mjs",
     "validate:live-deployment": "node --experimental-strip-types scripts/validate-live-deployment.mjs",
-    "test:e2e": "node --experimental-strip-types e2e/mobile-flow.mjs && node --experimental-strip-types e2e/recommendation-flow.mjs && node --experimental-strip-types e2e/catalog-storage-timer-flow.mjs && node --experimental-strip-types e2e/recipe-order-flow.mjs"
+    "test:e2e": "node --experimental-strip-types e2e/catalog-flow.mjs && node --experimental-strip-types e2e/storage-migration-flow.mjs && node --experimental-strip-types e2e/timer-scaling-flow.mjs && node --experimental-strip-types e2e/timer-reload-flow.mjs && node --experimental-strip-types e2e/mobile-navigation-flow.mjs && node --experimental-strip-types e2e/custom-recipe-flow.mjs && node --experimental-strip-types e2e/recommendation-flow.mjs && node --experimental-strip-types e2e/recipe-order-flow.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
