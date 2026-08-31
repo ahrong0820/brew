@@ -250,7 +250,10 @@ runStaticE2E(
 
       let expectedIndex = firstIndex;
       let expectedAlertDelta = 0;
-      const visitedActiveSteps = new Set([firstIndex]);
+      const visitedActiveSteps = new Set();
+      if (firstStep.end > firstStep.start) {
+        visitedActiveSteps.add(firstIndex);
+      }
 
       for (let safety = 0; safety < scaledRecipe.steps.length + 3; safety += 1) {
         const clockBefore = await readClock(page);
@@ -261,7 +264,7 @@ runStaticE2E(
         const nextIndex = currentStepIndexAt(scaledRecipe, nextElapsed);
         const completing = nextElapsed >= scaledRecipe.totalTime;
 
-        if (nextIndex !== expectedIndex && nextIndex > 0) {
+        if (!completing && nextIndex !== expectedIndex && nextIndex > 0) {
           expectedAlertDelta += 1;
         }
         if (completing) {
@@ -288,8 +291,10 @@ runStaticE2E(
         }
 
         expectedIndex = nextIndex;
-        visitedActiveSteps.add(expectedIndex);
         const expectedStep = scaledRecipe.steps[expectedIndex];
+        if (expectedStep.end > expectedStep.start) {
+          visitedActiveSteps.add(expectedIndex);
+        }
         await timerPanel
           .getByRole("heading", { name: expectedStep.label, exact: true })
           .first()
@@ -317,7 +322,21 @@ runStaticE2E(
           `${recipe.name}: ${expectedStep.label}`,
         );
 
-        if (completing) break;
+        if (completing) {
+          await page.waitForTimeout(50);
+          const completionAlerts = await readAlertCounts(page);
+          assert.equal(
+            completionAlerts.tone,
+            alertBefore.tone + expectedAlertDelta,
+            `${recipe.name}: completion must produce exactly one tone alert`,
+          );
+          assert.equal(
+            completionAlerts.vibration,
+            alertBefore.vibration + expectedAlertDelta,
+            `${recipe.name}: completion must produce exactly one vibration alert`,
+          );
+          break;
+        }
       }
 
       const completedClock = await readClock(page);
