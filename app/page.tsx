@@ -42,7 +42,7 @@ export default function Home() {
     ],
     [customRecipes, recommendedRecipe],
   );
-  const { orderedRecipes } = useRecipeOrder(allRecipes, {
+  const { orderedRecipes, moveRecipeToTarget } = useRecipeOrder(allRecipes, {
     ready: storageLoaded,
   });
   const selectedRecipe =
@@ -176,6 +176,7 @@ export default function Home() {
             onQueryChange={setQuery}
             onFilterChange={setFilter}
             onSelectRecipe={timer.selectRecipe}
+            onMoveRecipe={moveRecipeToTarget}
           />
 
           <CustomRecipeEditor

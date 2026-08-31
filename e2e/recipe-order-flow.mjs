@@ -23,6 +23,27 @@ async function recipeRowIds(page) {
   );
 }
 
+async function dragHandleToTarget(page, dragHandle, targetItem, holdMs = 0) {
+  const handleBox = await dragHandle.boundingBox();
+  const targetBox = await targetItem.boundingBox();
+
+  assert.ok(handleBox && targetBox, "drag handle and target must have bounding boxes");
+  await page.mouse.move(
+    handleBox.x + handleBox.width / 2,
+    handleBox.y + handleBox.height / 2,
+  );
+  await page.mouse.down();
+  if (holdMs > 0) {
+    await page.waitForTimeout(holdMs);
+  }
+  await page.mouse.move(
+    targetBox.x + targetBox.width / 2,
+    targetBox.y + targetBox.height / 2,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+}
+
 async function run() {
   if (!existsSync(path.join(outDir, "index.html"))) {
     throw new Error("Static export missing");
@@ -80,33 +101,14 @@ async function run() {
       "migrated recipe order must be persisted as recipe ids",
     );
 
-    await page.getByRole("button", { name: "레시피 순서", exact: true }).first().click();
-    const dialog = page.getByRole("dialog", { name: "레시피 표시 순서 편집" });
-    await dialog.waitFor({ state: "visible" });
-
-    const dragHandle = dialog.getByRole("button", {
-      name: `${secondRecipe.name} 길게 눌러 순서 이동`,
+    const catalogDragHandle = page.getByRole("button", {
+      name: `${secondRecipe.name} 순서 드래그`,
       exact: true,
     });
-    const targetItem = dialog.locator(
-      `[data-recipe-order-id="${firstRecipe.id}"]`,
+    const catalogTarget = page.locator(
+      `[data-recipe-row="true"][data-recipe-id="${firstRecipe.id}"]`,
     );
-    const handleBox = await dragHandle.boundingBox();
-    const targetBox = await targetItem.boundingBox();
-
-    assert.ok(handleBox && targetBox, "drag handle and target must have bounding boxes");
-    await page.mouse.move(
-      handleBox.x + handleBox.width / 2,
-      handleBox.y + handleBox.height / 2,
-    );
-    await page.mouse.down();
-    await page.waitForTimeout(280);
-    await page.mouse.move(
-      targetBox.x + targetBox.width / 2,
-      targetBox.y + targetBox.height / 2,
-      { steps: 8 },
-    );
-    await page.mouse.up();
+    await dragHandleToTarget(page, catalogDragHandle, catalogTarget);
 
     await page.waitForFunction(
       ({ firstId }) =>
@@ -115,10 +117,56 @@ async function run() {
       { firstId: firstRecipe.id },
     );
 
+    const catalogReorderedIds = await recipeRowIds(page);
+    assert.deepEqual(
+      catalogReorderedIds.slice(0, 2),
+      [firstRecipe.id, secondRecipe.id],
+      "dragging the main catalog handle must reorder recipe cards immediately",
+    );
+
+    const storedAfterCatalogDrag = await page.evaluate(
+      (storageKey) => JSON.parse(localStorage.getItem(storageKey) || "[]"),
+      recipeOrderStorageKey,
+    );
+    assert.deepEqual(
+      storedAfterCatalogDrag.slice(0, 2),
+      [firstRecipe.id, secondRecipe.id],
+      "main catalog drag must persist through the shared recipe order store",
+    );
+
+    await page.getByRole("button", { name: "레시피 순서", exact: true }).first().click();
+    const dialog = page.getByRole("dialog", { name: "레시피 표시 순서 편집" });
+    await dialog.waitFor({ state: "visible" });
+
+    const drawerIds = await dialog.locator('[data-recipe-order-item="true"]').evaluateAll(
+      (rows) => rows.map((row) => row.dataset.recipeOrderId).filter(Boolean),
+    );
+    assert.deepEqual(
+      drawerIds.slice(0, 2),
+      [firstRecipe.id, secondRecipe.id],
+      "drawer must reflect order changes made directly in the main catalog",
+    );
+
+    const drawerDragHandle = dialog.getByRole("button", {
+      name: `${firstRecipe.name} 길게 눌러 순서 이동`,
+      exact: true,
+    });
+    const drawerTarget = dialog.locator(
+      `[data-recipe-order-id="${secondRecipe.id}"]`,
+    );
+    await dragHandleToTarget(page, drawerDragHandle, drawerTarget, 280);
+
+    await page.waitForFunction(
+      ({ secondId }) =>
+        document.querySelector('[data-recipe-list="true"] [data-recipe-row="true"]')
+          ?.getAttribute("data-recipe-id") === secondId,
+      { secondId: secondRecipe.id },
+    );
+
     const reorderedIds = await recipeRowIds(page);
     assert.deepEqual(
       reorderedIds.slice(0, 2),
-      [firstRecipe.id, secondRecipe.id],
+      [secondRecipe.id, firstRecipe.id],
       "dragging in the drawer must reorder the React-rendered recipe cards",
     );
 
@@ -166,7 +214,7 @@ async function run() {
     assert.deepEqual(browserMessages, [], browserMessages.join("\n"));
 
     console.log(
-      "E2E PASS: recipe order name migration, long-press drag, filters, and reload persistence",
+      "E2E PASS: main catalog drag, drawer drag, order migration, filters, and reload persistence",
     );
   } catch (error) {
     await page.screenshot({
