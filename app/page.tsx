@@ -5,20 +5,17 @@ import {
   ChevronLeft,
   Check,
   Coffee,
-  Droplets,
   Heart,
   Pause,
   Play,
   Plus,
   RotateCcw,
-  Scale,
-  Search,
   SkipForward,
-  Thermometer,
   Timer,
   Trash2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import RecipeCatalog from "./RecipeCatalog";
 import {
   clearBrewSessionClock,
   getBrewSessionElapsedSeconds,
@@ -41,12 +38,18 @@ import {
   repairStoredCustomRecipeStorage,
   customRecipesStorageKey,
 } from "@/lib/recipes/customRecipeSchema";
+import { filterRecipes } from "@/lib/recipes/filterRecipes";
+import {
+  formatRecipeTime as formatTime,
+  formatRecipeWaterAmount as formatWaterAmount,
+  scaleRecipeValue as scaleValue,
+} from "@/lib/recipes/recipePresentation";
 import { recipeTemperaturePresentation } from "@/lib/recipes/recipeTemperature";
 import { scaleRecipeDose } from "@/lib/recipes/scaleRecipeDose";
 import { useRecipeOrder } from "@/lib/recipes/useRecipeOrder";
 import { writeJsonStorage } from "@/lib/storage/browserJsonStorage";
 import { runSmartAlert } from "@/lib/timer/smartAlert";
-import type { Recipe, WaterAmount } from "@/lib/types/defaultRecipe";
+import type { Recipe } from "@/lib/types/defaultRecipe";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const heroImageSrc = `${basePath}/brewing-hero.png`;
@@ -88,17 +91,6 @@ const defaultDraftSteps: DraftStep[] = [
 ];
 
 const recipes: readonly Recipe[] = defaultRecipes;
-
-const filterOptions = [
-  "전체",
-  "즐겨찾기",
-  "나만의 레시피",
-  "V60",
-  "클레버",
-  "스위치",
-  "라이트",
-  "단맛",
-];
 
 function getStoredFavorites() {
   if (typeof window === "undefined") {
@@ -169,25 +161,6 @@ function getStoredCustomRecipes() {
   } catch {
     return [];
   }
-}
-
-function formatTime(seconds: number) {
-  const safeSeconds = Math.max(0, Math.round(seconds));
-  const minutes = Math.floor(safeSeconds / 60);
-  const remainder = safeSeconds % 60;
-  return `${minutes}:${remainder.toString().padStart(2, "0")}`;
-}
-
-function scaleValue(value: number, factor: number) {
-  return Math.round(value * factor);
-}
-
-function formatWaterAmount(amount: WaterAmount, factor = 1) {
-  if (typeof amount === "number") {
-    return `${scaleValue(amount, factor)}g`;
-  }
-
-  return `${scaleValue(amount.min, factor)}-${scaleValue(amount.max, factor)}g`;
 }
 
 function scrollTimerIntoViewOnMobile() {
@@ -262,27 +235,15 @@ export default function Home() {
   const elapsed = getBrewSessionElapsedSeconds(timerClock, clockNow);
   const running = timerClock?.status === "running";
 
-  const filteredRecipes = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return orderedRecipes.filter((recipe) => {
-      const matchesFilter =
-        filter === "전체" ||
-        (filter === "즐겨찾기" && favoriteIds.includes(recipe.id)) ||
-        recipe.tags.some((tag) => tag.toLowerCase() === filter.toLowerCase());
-      const searchable = [
-        recipe.name,
-        recipe.origin,
-        recipe.method,
-        recipe.profile,
-        ...recipe.tags,
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return matchesFilter && searchable.includes(normalizedQuery);
-    });
-  }, [favoriteIds, filter, orderedRecipes, query]);
+  const filteredRecipes = useMemo(
+    () =>
+      filterRecipes(orderedRecipes, {
+        query,
+        filter,
+        favoriteIds,
+      }),
+    [favoriteIds, filter, orderedRecipes, query],
+  );
 
   const storageNotice = storageErrors.favorites ?? storageErrors.customRecipes;
 
@@ -848,136 +809,17 @@ export default function Home() {
           data-main-content="true"
           className="order-2 min-w-0 space-y-5 lg:order-1"
         >
-          <div className="flex flex-col gap-3 rounded-lg border border-[#d7ded4] bg-white p-3 shadow-sm shadow-black/5">
-            <label className="relative flex min-w-0 flex-1 items-center">
-              <Search className="absolute left-3 h-4 w-4 text-[#607064]" aria-hidden="true" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                aria-label="레시피 검색"
-                placeholder="원두, 도구, 향미 검색"
-                className="h-11 w-full rounded-md border border-[#d7ded4] bg-[#f8faf6] py-2 pl-10 pr-3 text-sm outline-none transition focus:border-[#2f6f5f] focus:bg-white focus:ring-2 focus:ring-[#2f6f5f]/20"
-              />
-            </label>
-
-            <div className="flex min-w-0 gap-1 overflow-x-auto rounded-md bg-[#edf1ea] p-1">
-              {filterOptions.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setFilter(option)}
-                  aria-pressed={filter === option}
-                  className={`h-9 shrink-0 rounded-md px-3 text-sm font-medium transition ${
-                    filter === option
-                      ? "bg-[#2f6f5f] text-white shadow-sm"
-                      : "text-[#48534b] hover:bg-white"
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {storageNotice ? (
-            <p
-              role="alert"
-              className="rounded-lg border border-[#dca18f] bg-[#fff0eb] px-4 py-3 text-sm text-[#8b3e2f]"
-            >
-              {storageNotice}
-            </p>
-          ) : null}
-
-          <div
-            data-recipe-list="true"
-            className="grid gap-4 md:grid-cols-2"
-          >
-            {filteredRecipes.map((recipe) => {
-              const selected = recipe.id === selectedRecipe.id;
-              const favorite = favoriteIds.includes(recipe.id);
-
-              return (
-                <button
-                  key={recipe.id}
-                  type="button"
-                  data-recipe-row="true"
-                  data-recipe-id={recipe.id}
-                  aria-current={selected ? "true" : undefined}
-                  onClick={() => selectRecipe(recipe)}
-                  aria-pressed={selected}
-                  className={`min-w-0 rounded-lg border bg-white p-5 text-left shadow-sm shadow-black/5 transition hover:-translate-y-0.5 hover:border-[#2f6f5f] hover:shadow-md ${
-                    selected
-                      ? "border-[#2f6f5f] ring-2 ring-[#2f6f5f]/18"
-                      : "border-[#d7ded4]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase text-[#607064]">
-                        {recipe.method}
-                      </p>
-                      <h3 className="mt-2 text-xl font-semibold">{recipe.name}</h3>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {favorite ? (
-                        <Heart
-                          className="h-4 w-4 fill-[#c95b3d] text-[#c95b3d]"
-                          aria-label="즐겨찾기"
-                        />
-                      ) : null}
-                      <span className="rounded-md bg-[#eef3ec] px-2.5 py-1 font-mono text-sm text-[#2f6f5f]">
-                        {formatTime(recipe.totalTime)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="mt-3 text-sm leading-6 text-[#526055]">
-                    {recipe.profile}
-                  </p>
-
-                  <div className="mt-5 grid grid-cols-3 gap-2 text-sm">
-                    <div className="rounded-md bg-[#f4f6f1] p-3">
-                      <Scale className="mb-2 h-4 w-4 text-[#2f6f5f]" aria-hidden="true" />
-                      <span className="block text-[#607064]">원두</span>
-                      <strong>{recipe.dose}g</strong>
-                    </div>
-                    <div className="rounded-md bg-[#f4f6f1] p-3">
-                      <Droplets className="mb-2 h-4 w-4 text-[#2f6f5f]" aria-hidden="true" />
-                      <span className="block text-[#607064]">물</span>
-                      <strong>
-                        {formatWaterAmount(recipe.finalWater ?? recipe.water)}
-                      </strong>
-                    </div>
-                    <div className="rounded-md bg-[#f4f6f1] p-3">
-                      <Thermometer className="mb-2 h-4 w-4 text-[#2f6f5f]" aria-hidden="true" />
-                      <span className="block text-[#607064]">온도</span>
-                      <strong>{recipeTemperaturePresentation(recipe).display}</strong>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {recipe.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-md border border-[#d7ded4] px-2.5 py-1 text-xs font-medium text-[#526055]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {filteredRecipes.length === 0 ? (
-            <p
-              role="status"
-              className="rounded-lg border border-dashed border-[#bfc9bd] bg-white px-5 py-8 text-center text-sm text-[#607064]"
-            >
-              검색 조건에 맞는 레시피가 없습니다.
-            </p>
-          ) : null}
+          <RecipeCatalog
+            query={query}
+            filter={filter}
+            recipes={filteredRecipes}
+            selectedRecipeId={selectedRecipe.id}
+            favoriteIds={favoriteIds}
+            storageNotice={storageNotice}
+            onQueryChange={setQuery}
+            onFilterChange={setFilter}
+            onSelectRecipe={selectRecipe}
+          />
 
           <section
             data-custom-editor-open={String(customEditorOpen)}
