@@ -40,6 +40,17 @@ export default function PersonalRecipeVersionDrawer() {
 
   useEffect(() => {
     if (!open) return;
+
+    const timer = window.setTimeout(() => {
+      loadVersions();
+      setMessage(null);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);
     }
