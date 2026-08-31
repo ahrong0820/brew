@@ -210,6 +210,7 @@ export default function RecipeCatalog({
               key={recipe.id}
               data-recipe-row="true"
               data-recipe-id={recipe.id}
+              data-recipe-selected={selected ? "true" : "false"}
               className={`group relative min-w-0 rounded-lg border bg-white shadow-sm shadow-black/5 transition ${
                 dragging
                   ? "scale-[1.01] border-[#2f6f5f] opacity-75 shadow-lg"
@@ -222,17 +223,27 @@ export default function RecipeCatalog({
             >
               <button
                 type="button"
+                data-recipe-select="true"
                 aria-current={selected ? "true" : undefined}
                 onClick={() => onSelectRecipe(recipe)}
                 aria-pressed={selected}
                 className="block w-full rounded-lg p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#2f6f5f]/35"
               >
-                <div className="flex items-start justify-between gap-3 pr-10">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase text-[#607064]">
+                <div
+                  data-recipe-header="true"
+                  className="flex items-start justify-between gap-3 pr-10"
+                >
+                  <div data-recipe-heading="true" className="min-w-0">
+                    <p
+                      data-recipe-method="true"
+                      className="text-xs font-semibold uppercase text-[#607064]"
+                    >
                       {recipe.method}
                     </p>
-                    <h3 className="mt-1.5 text-lg font-semibold leading-6">
+                    <h3
+                      data-recipe-name="true"
+                      className="mt-1.5 text-lg font-semibold leading-6"
+                    >
                       {recipe.name}
                     </h3>
                   </div>
@@ -252,11 +263,17 @@ export default function RecipeCatalog({
                   </div>
                 </div>
 
-                <p className="mt-2 text-sm leading-5 text-[#526055]">
+                <p
+                  data-recipe-profile="true"
+                  className="mt-2 text-sm leading-5 text-[#526055]"
+                >
                   {recipe.profile}
                 </p>
 
-                <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                <div
+                  data-recipe-metrics="true"
+                  className="mt-4 grid grid-cols-3 gap-2 text-sm"
+                >
                   <div className="rounded-md bg-[#f4f6f1] p-2.5">
                     <Scale
                       className="mb-1 h-4 w-4 text-[#2f6f5f]"
@@ -285,7 +302,10 @@ export default function RecipeCatalog({
                   </div>
                 </div>
 
-                <div className="mt-3 flex flex-wrap gap-1.5">
+                <div
+                  data-recipe-tags="true"
+                  className="mt-3 flex flex-wrap gap-1.5"
+                >
                   {recipe.tags.map((tag) => (
                     <span
                       key={tag}

@@ -85,7 +85,6 @@ button:disabled {
   [data-recipe-row="true"] {
     width: 100%;
     min-width: 0;
-    padding: 0.75rem !important;
     border-width: 0 0 1px !important;
     border-color: #e3e8df !important;
     border-radius: 0 !important;
@@ -93,7 +92,7 @@ button:disabled {
     transform: none !important;
   }
 
-  [data-recipe-row="true"][aria-current="true"] {
+  [data-recipe-row="true"][data-recipe-selected="true"] {
     background: #eef5ef !important;
     box-shadow: inset 4px 0 0 #2f6f5f !important;
   }
@@ -102,24 +101,32 @@ button:disabled {
     border-bottom-width: 0 !important;
   }
 
-  [data-recipe-row="true"] > p,
-  [data-recipe-row="true"] > div:nth-of-type(2),
-  [data-recipe-row="true"] > div:nth-of-type(3) {
+  [data-recipe-select="true"] {
+    width: 100%;
+    min-width: 0;
+    padding: 0.75rem 3.5rem 0.75rem 0.75rem !important;
+    border-radius: 0 !important;
+  }
+
+  [data-recipe-profile="true"],
+  [data-recipe-metrics="true"],
+  [data-recipe-tags="true"] {
     display: none !important;
   }
 
-  [data-recipe-row="true"] > div:first-child {
+  [data-recipe-header="true"] {
     width: 100%;
     align-items: center !important;
     gap: 0.75rem !important;
+    padding-right: 0 !important;
   }
 
-  [data-recipe-row="true"] > div:first-child > div:first-child {
+  [data-recipe-heading="true"] {
     min-width: 0;
     flex: 1 1 auto;
   }
 
-  [data-recipe-row="true"] > div:first-child > div:first-child > p {
+  [data-recipe-method="true"] {
     overflow: hidden;
     font-size: 0.6875rem !important;
     line-height: 1rem;
@@ -127,7 +134,7 @@ button:disabled {
     white-space: nowrap;
   }
 
-  [data-recipe-row="true"] h3 {
+  [data-recipe-name="true"] {
     overflow: hidden;
     margin-top: 0.125rem !important;
     font-size: 0.9375rem !important;
@@ -136,13 +143,19 @@ button:disabled {
     white-space: nowrap;
   }
 
-  [data-recipe-row="true"] > div:first-child > div:last-child {
+  [data-recipe-meta="true"] {
     gap: 0.5rem !important;
   }
 
-  [data-recipe-row="true"] > div:first-child > div:last-child > span {
+  [data-recipe-meta="true"] > span {
     padding: 0.25rem 0.5rem !important;
     font-size: 0.75rem !important;
+  }
+
+  [data-recipe-drag-handle="true"] {
+    top: 50% !important;
+    right: 0.75rem !important;
+    transform: translateY(-50%) !important;
   }
 }
 
