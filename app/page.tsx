@@ -43,6 +43,7 @@ import {
 } from "@/lib/recipes/customRecipeSchema";
 import { recipeTemperaturePresentation } from "@/lib/recipes/recipeTemperature";
 import { scaleRecipeDose } from "@/lib/recipes/scaleRecipeDose";
+import { useRecipeOrder } from "@/lib/recipes/useRecipeOrder";
 import { writeJsonStorage } from "@/lib/storage/browserJsonStorage";
 import { runSmartAlert } from "@/lib/timer/smartAlert";
 import type { Recipe, WaterAmount } from "@/lib/types/defaultRecipe";
@@ -224,9 +225,12 @@ export default function Home() {
     ],
     [customRecipes, recommendedRecipe],
   );
+  const { orderedRecipes } = useRecipeOrder(allRecipes, {
+    ready: storageLoaded,
+  });
 
   const selectedRecipe =
-    allRecipes.find((recipe) => recipe.id === selectedId) ?? allRecipes[0];
+    orderedRecipes.find((recipe) => recipe.id === selectedId) ?? orderedRecipes[0];
 
   const scaleFactor = dose / selectedRecipe.dose;
   const scaledWater = scaleValue(selectedRecipe.water, scaleFactor);
@@ -241,7 +245,7 @@ export default function Home() {
   const filteredRecipes = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return allRecipes.filter((recipe) => {
+    return orderedRecipes.filter((recipe) => {
       const matchesFilter =
         filter === "전체" ||
         (filter === "즐겨찾기" && favoriteIds.includes(recipe.id)) ||
@@ -258,7 +262,7 @@ export default function Home() {
 
       return matchesFilter && searchable.includes(normalizedQuery);
     });
-  }, [allRecipes, favoriteIds, filter, query]);
+  }, [favoriteIds, filter, orderedRecipes, query]);
 
   const storageNotice = storageErrors.favorites ?? storageErrors.customRecipes;
 
@@ -859,7 +863,10 @@ export default function Home() {
             </p>
           ) : null}
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div
+            data-recipe-list="true"
+            className="grid gap-4 md:grid-cols-2"
+          >
             {filteredRecipes.map((recipe) => {
               const selected = recipe.id === selectedRecipe.id;
               const favorite = favoriteIds.includes(recipe.id);
@@ -868,6 +875,8 @@ export default function Home() {
                 <button
                   key={recipe.id}
                   type="button"
+                  data-recipe-row="true"
+                  data-recipe-id={recipe.id}
                   onClick={() => selectRecipe(recipe)}
                   aria-pressed={selected}
                   className={`min-w-0 rounded-lg border bg-white p-5 text-left shadow-sm shadow-black/5 transition hover:-translate-y-0.5 hover:border-[#2f6f5f] hover:shadow-md ${
