@@ -161,17 +161,57 @@ runStaticE2E(
         `${recipe.name}: selecting recipe must restore its default dose`,
       );
 
-      const targetDose = chooseTargetDose(recipe.dose);
-      assert.notEqual(targetDose, recipe.dose, `${recipe.name}: test dose must change`);
-      const scaledRecipe = scaleRecipeDose(recipe, targetDose);
+      const fixedDose = recipe.dosePolicy?.type === "fixed";
+      let scaledRecipe;
 
-      await doseInput.fill(String(targetDose));
-      await doseInput.press("Enter");
-      assert.equal(
-        await doseInput.inputValue(),
-        String(targetDose),
-        `${recipe.name}: edited dose must persist before start`,
-      );
+      if (fixedDose) {
+        assert.equal(
+          await doseInput.getAttribute("data-timer-dose-fixed"),
+          "true",
+          `${recipe.name}: fixed recipe must expose fixed dose state`,
+        );
+        assert.notEqual(
+          await doseInput.getAttribute("readonly"),
+          null,
+          `${recipe.name}: fixed recipe dose input must be read only`,
+        );
+        const attemptedDose = Math.max(8, recipe.dose - 5);
+        scaledRecipe = scaleRecipeDose(recipe, attemptedDose);
+        assert.deepEqual(
+          normalized(scaledRecipe),
+          normalized(recipe),
+          `${recipe.name}: fixed recipe must reject dose scaling`,
+        );
+        assert.ok(
+          ((await timerPanel
+            .locator('[data-timer-dose-policy-note="true"]')
+            .textContent()) || "").includes("50g 고정"),
+          `${recipe.name}: fixed dose guidance must be visible`,
+        );
+      } else {
+        assert.equal(
+          await doseInput.getAttribute("data-timer-dose-fixed"),
+          "false",
+          `${recipe.name}: scalable recipe must expose editable dose state`,
+        );
+        assert.equal(
+          await doseInput.getAttribute("readonly"),
+          null,
+          `${recipe.name}: scalable recipe dose input must remain editable`,
+        );
+
+        const targetDose = chooseTargetDose(recipe.dose);
+        assert.notEqual(targetDose, recipe.dose, `${recipe.name}: test dose must change`);
+        scaledRecipe = scaleRecipeDose(recipe, targetDose);
+
+        await doseInput.fill(String(targetDose));
+        await doseInput.press("Enter");
+        assert.equal(
+          await doseInput.inputValue(),
+          String(targetDose),
+          `${recipe.name}: edited dose must persist before start`,
+        );
+      }
 
       if (
         scaledRecipe.brewWater !== undefined &&
