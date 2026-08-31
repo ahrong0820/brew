@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { defaultRecipeCatalogEntries } from "../lib/recipes/defaultRecipeCatalog.ts";
 import {
   assertRecipeManifest,
   buildRecipeManifest,
@@ -7,22 +8,17 @@ import {
 
 const sha = "c".repeat(40);
 
-test("recipe manifest contains the exact canonical catalog", () => {
+test("recipe manifest contains the exact canonical registry catalog", () => {
   const manifest = buildRecipeManifest({ deploymentSha: sha });
-  assert.equal(manifest.recipeCount, 11);
-  assert.deepEqual(manifest.recipeIds, [
-    "tetsu-46",
-    "tetsu-neo-2026",
-    "anstar-6888",
-    "jis-ver2-hot",
-    "jis-484-15g-2026",
-    "yong-light",
-    "yong-neo-reverse-switch-hot",
-    "yong-neo-reverse-switch-ice",
-    "switch-devil",
-    "hoffmann-clever-water-first",
-    "jis-clever-1-11",
-  ]);
+  assert.equal(manifest.recipeCount, defaultRecipeCatalogEntries.length);
+  assert.deepEqual(
+    manifest.recipeIds,
+    defaultRecipeCatalogEntries.map(({ id }) => id),
+  );
+  assert.deepEqual(
+    manifest.recipes,
+    defaultRecipeCatalogEntries.map((entry) => ({ ...entry })),
+  );
   assert.equal(assertRecipeManifest(manifest, sha), manifest);
 });
 

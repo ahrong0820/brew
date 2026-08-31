@@ -4,18 +4,20 @@ import test from "node:test";
 
 import { baristaRecipes } from "../data/expandedBaristaRecipes.ts";
 import { recipeSourceRegistry } from "../data/recipeSourceRegistry.ts";
+import {
+  defaultRecipeIdAliases,
+  removedDefaultRecipeIds,
+} from "../lib/recipes/defaultRecipeCatalog.ts";
 
 const recipe = (id) => baristaRecipes.find((candidate) => candidate.id === id);
 
-const removedRecipeIds = [
-  "signature-cone",
-  "deepblue-v60",
-  "jis-4666",
-  "anstar-multiserve-20g-2024",
+const removedOrSupersededRecipeIds = [
+  ...removedDefaultRecipeIds,
+  ...Object.keys(defaultRecipeIdAliases),
 ];
 
 test("removed and superseded public recipes are absent from catalog and registry", () => {
-  for (const recipeId of removedRecipeIds) {
+  for (const recipeId of removedOrSupersededRecipeIds) {
     assert.equal(recipe(recipeId), undefined);
     assert.equal(
       recipeSourceRegistry.some((record) => record.recipeId === recipeId),

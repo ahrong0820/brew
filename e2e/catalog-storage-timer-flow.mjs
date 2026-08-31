@@ -3,29 +3,26 @@ import { existsSync } from "node:fs";
 import * as fs from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "playwright";
+import {
+  defaultRecipeCatalogEntries,
+  defaultRecipeIdAliases,
+  removedDefaultRecipeIds,
+  removedDefaultRecipeNames,
+} from "../lib/recipes/defaultRecipeCatalog.ts";
 import { startStaticExportServer } from "./helpers/static-export-server.mjs";
 
 const outDir = path.resolve("out");
 const resultsDir = path.resolve("test-results");
-const expectedRecipeNames = [
-  "테츠 카스야 4:6 기본형",
-  "테츠 카스야 THE NEO BREW 2026",
-  "안스타 6888",
-  "정인성 국룰 Ver 2.0 HOT",
-  "정인성 484 15g (2026)",
-  "용챔 라이트로스트 15g",
-  "용챔 15g 네오스위치 HOT",
-  "용챔 15g 네오스위치 ICE",
-  "테츠 카스야 악마의 레시피",
-  "제임스 호프만 클레버",
-  "정인성 클레버 1:11",
-];
-const removedRecipeNames = [
-  "시그니쳐 로스터스 콘 필터",
-  "딥블루레이크 V60 HOT",
-  "정인성 4666 오리지널",
-  "정인성 클레버 1:12",
-];
+const expectedRecipeNames = defaultRecipeCatalogEntries.map(({ name }) => name);
+const removedRecipeNames = removedDefaultRecipeNames;
+const aliasFixture = Object.entries(defaultRecipeIdAliases)[0];
+const removedProfileRecipeId = removedDefaultRecipeIds.at(-1);
+
+if (!aliasFixture || !removedProfileRecipeId) {
+  throw new Error("Default recipe migration fixtures are missing from the registry");
+}
+
+const [aliasSourceRecipeId, aliasTargetRecipeId] = aliasFixture;
 
 function validCustomRecipe() {
   return {
@@ -77,46 +74,53 @@ async function run() {
 
   try {
     await page.goto(server.url, { waitUntil: "networkidle" });
-    await page.evaluate((customRecipe) => {
-      localStorage.clear();
-      sessionStorage.clear();
-      localStorage.setItem("coffee-recipe-favorites", "{malformed-json");
-      localStorage.setItem(
-        "coffee-custom-recipes",
-        JSON.stringify([
-          customRecipe,
-          {
-            id: "custom-broken",
-            name: "손상 레시피",
-            dose: 0,
-            water: -1,
-            totalTime: -20,
-            tags: [],
-            notes: [],
-            steps: [{}],
-          },
-        ]),
-      );
-      localStorage.setItem(
-        "brew.beanBrewProfiles.v1",
-        JSON.stringify({
-          version: 1,
-          updatedAt: "2026-07-10T00:00:00.000Z",
-          items: [
-            { id: "profile-alias", sourceRecipeId: "anstar-multiserve-20g-2024" },
-            { id: "profile-stale", sourceRecipeId: "jis-clever-112" },
-          ],
-        }),
-      );
-    }, validCustomRecipe());
+    await page.evaluate(
+      ({ customRecipe, aliasSourceRecipeId, removedProfileRecipeId }) => {
+        localStorage.clear();
+        sessionStorage.clear();
+        localStorage.setItem("coffee-recipe-favorites", "{malformed-json");
+        localStorage.setItem(
+          "coffee-custom-recipes",
+          JSON.stringify([
+            customRecipe,
+            {
+              id: "custom-broken",
+              name: "손상 레시피",
+              dose: 0,
+              water: -1,
+              totalTime: -20,
+              tags: [],
+              notes: [],
+              steps: [{}],
+            },
+          ]),
+        );
+        localStorage.setItem(
+          "brew.beanBrewProfiles.v1",
+          JSON.stringify({
+            version: 1,
+            updatedAt: "2026-07-10T00:00:00.000Z",
+            items: [
+              { id: "profile-alias", sourceRecipeId: aliasSourceRecipeId },
+              { id: "profile-stale", sourceRecipeId: removedProfileRecipeId },
+            ],
+          }),
+        );
+      },
+      {
+        customRecipe: validCustomRecipe(),
+        aliasSourceRecipeId,
+        removedProfileRecipeId,
+      },
+    );
     await page.reload({ waitUntil: "networkidle" });
 
     const recipeRows = page.locator('[data-recipe-row="true"]');
     await recipeRows.first().waitFor({ state: "visible" });
     assert.equal(
       await recipeRows.count(),
-      12,
-      "11 defaults plus one valid custom recipe must render",
+      expectedRecipeNames.length + 1,
+      "all registry defaults plus one valid custom recipe must render",
     );
 
     for (const recipeName of expectedRecipeNames) {
@@ -139,7 +143,7 @@ async function run() {
     assert.deepEqual(JSON.parse(storageState.favorites || "[]"), []);
     assert.deepEqual(storageState.custom.map((recipe) => recipe.id), ["custom-7"]);
     assert.ok(storageState.quarantine.length >= 1, "invalid custom recipe must be quarantined");
-    assert.equal(storageState.profiles.items[0].sourceRecipeId, "anstar-6888");
+    assert.equal(storageState.profiles.items[0].sourceRecipeId, aliasTargetRecipeId);
     assert.equal("sourceRecipeId" in storageState.profiles.items[1], false);
 
     await page

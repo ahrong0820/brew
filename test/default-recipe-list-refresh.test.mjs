@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildDefaultRecipes } from "../data/defaultRecipeRefresh.ts";
+import { removedDefaultRecipeIds } from "../lib/recipes/defaultRecipeCatalog.ts";
 
 const legacyRecipes = [
   { id: "tetsu-46", name: "4:6" },
@@ -17,7 +18,7 @@ const legacyRecipes = [
 test("기본 목록에서 삭제·대체 대상이 제외된다", () => {
   const ids = buildDefaultRecipes(legacyRecipes).map((recipe) => recipe.id);
 
-  for (const id of ["signature-cone", "deepblue-v60", "jis-4666", "jis-clever-112"]) {
+  for (const id of removedDefaultRecipeIds) {
     assert.equal(ids.includes(id), false);
   }
 });
