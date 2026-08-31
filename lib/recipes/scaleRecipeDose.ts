@@ -16,6 +16,10 @@ function scaleWaterAmount(amount: WaterAmount, factor: number): WaterAmount {
 }
 
 export function scaleRecipeDose(recipe: Recipe, nextDose: number): Recipe {
+  if (recipe.dosePolicy?.type === "fixed") {
+    return recipe;
+  }
+
   if (!Number.isFinite(nextDose) || nextDose <= 0 || nextDose === recipe.dose) {
     return recipe;
   }
