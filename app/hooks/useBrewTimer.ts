@@ -9,6 +9,7 @@ import {
 import { scaleRecipeDose } from "@/lib/recipes/scaleRecipeDose";
 import {
   clearBrewSessionClock,
+  completeBrewSessionClock,
   getBrewSessionElapsedSeconds,
   pauseBrewSessionClock,
   readBrewSessionClock,
@@ -119,10 +120,15 @@ export function useBrewTimer({
     currentStep.displayTargetWater ?? currentStep.targetWater,
     scaleFactor,
   );
-  const stepWater = formatRecipeWaterAmount(
-    currentStep.displayStepWater ?? currentStep.targetWater - previousTarget,
+  const scaledCurrentTarget = scaleRecipeValue(
+    currentStep.targetWater,
     scaleFactor,
   );
+  const scaledPreviousTarget = scaleRecipeValue(previousTarget, scaleFactor);
+  const stepWater =
+    currentStep.displayStepWater !== undefined
+      ? formatRecipeWaterAmount(currentStep.displayStepWater, scaleFactor)
+      : formatRecipeWaterAmount(scaledCurrentTarget - scaledPreviousTarget);
   const progress = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
   const remaining = Math.max(0, totalTime - elapsed);
 
@@ -163,6 +169,7 @@ export function useBrewTimer({
     ) {
       completionPlayedRef.current = true;
       if (alertsEnabled) runSmartAlert();
+      completeBrewSessionClock();
     }
 
     previousElapsedRef.current = elapsed;
@@ -199,6 +206,7 @@ export function useBrewTimer({
 
     if (
       alertsEnabled &&
+      elapsed < totalTime &&
       currentStepIndex !== previousStepIndexRef.current &&
       currentStepIndex > 0
     ) {
@@ -206,7 +214,7 @@ export function useBrewTimer({
     }
 
     previousStepIndexRef.current = currentStepIndex;
-  }, [alertsEnabled, currentStepIndex, running]);
+  }, [alertsEnabled, currentStepIndex, elapsed, running, totalTime]);
 
   const updateDoseInput = useCallback((nextValue: string) => {
     setDoseInput(nextValue);
