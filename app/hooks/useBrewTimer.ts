@@ -206,6 +206,7 @@ export function useBrewTimer({
 
     if (
       alertsEnabled &&
+      elapsed < totalTime &&
       currentStepIndex !== previousStepIndexRef.current &&
       currentStepIndex > 0
     ) {
@@ -213,7 +214,7 @@ export function useBrewTimer({
     }
 
     previousStepIndexRef.current = currentStepIndex;
-  }, [alertsEnabled, currentStepIndex, running]);
+  }, [alertsEnabled, currentStepIndex, elapsed, running, totalTime]);
 
   const updateDoseInput = useCallback((nextValue: string) => {
     setDoseInput(nextValue);
