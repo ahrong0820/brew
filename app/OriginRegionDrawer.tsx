@@ -2,6 +2,7 @@
 
 import { MapPinned, Save, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useCoffeeToolOpen } from "./CoffeeToolProvider";
 import {
   formatOriginRegionInput,
   parseOriginRegionInput,
@@ -19,7 +20,7 @@ const inputClass =
 export default function OriginRegionDrawer() {
   const [beans, setBeans] = useState<Bean[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useCoffeeToolOpen("origin-region");
   const [message, setMessage] = useState<string | null>(null);
 
   function reloadBeans() {
@@ -56,7 +57,7 @@ export default function OriginRegionDrawer() {
 
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [open]);
+  }, [open, setOpen]);
 
   function openDrawer() {
     reloadBeans();
@@ -91,6 +92,8 @@ export default function OriginRegionDrawer() {
     <>
       <button
         type="button"
+        data-coffee-tool-launcher="true"
+        data-mobile-coffee-target="origin-region"
         onClick={openDrawer}
         className="fixed bottom-[17rem] right-4 z-40 flex h-11 items-center gap-2 rounded-full border border-[#7b897c] bg-white px-4 text-sm font-semibold text-[#334138] shadow-lg transition hover:bg-[#f4f6f1] focus:outline-none focus:ring-2 focus:ring-[#2f6f5f] focus:ring-offset-2"
         aria-label="세부 산지 관리 열기"

@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useCoffeeToolOpen } from "./CoffeeToolProvider";
 import { prepareRecommendationBrew } from "@/lib/recommendation/brewLaunch";
 import { createRecommendation } from "@/lib/recommendation/engine";
 import {
@@ -81,7 +82,7 @@ function reasonText(reason: string) {
 }
 
 export default function RecommendationDrawerV2() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useCoffeeToolOpen("recommendation");
   const [beans, setBeans] = useState<Bean[]>([]);
   const [grinders, setGrinders] = useState<GrinderProfile[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
@@ -159,7 +160,7 @@ export default function RecommendationDrawerV2() {
     };
     document.addEventListener("keydown", close);
     return () => document.removeEventListener("keydown", close);
-  }, [open]);
+  }, [open, setOpen]);
 
   function updatePreference<K extends keyof UserPreferences>(
     key: K,
@@ -253,6 +254,8 @@ export default function RecommendationDrawerV2() {
     <>
       <button
         type="button"
+        data-coffee-tool-launcher="true"
+        data-mobile-coffee-target="recommendation"
         onClick={() => {
           loadData();
           setRecommendation(null);

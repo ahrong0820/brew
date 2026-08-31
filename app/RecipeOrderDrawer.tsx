@@ -18,11 +18,12 @@ import {
 
 import { defaultRecipes } from "@/data/defaultRecipes";
 import { useRecipeOrder } from "@/lib/recipes/useRecipeOrder";
+import { useCoffeeToolOpen } from "./CoffeeToolProvider";
 
 const longPressDelayMs = 220;
 
 export default function RecipeOrderDrawer() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useCoffeeToolOpen("recipe-order");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
@@ -125,6 +126,7 @@ export default function RecipeOrderDrawer() {
     <>
       <button
         type="button"
+        data-coffee-tool-launcher="true"
         data-mobile-coffee-target="recipe-order"
         onClick={() => setOpen(true)}
         className="fixed bottom-[25rem] right-4 z-40 hidden rounded-full border border-[#d7ded4] bg-white px-4 py-3 text-sm font-semibold text-[#2f6f5f] shadow-lg shadow-black/12 transition hover:-translate-y-0.5 hover:bg-[#f4f6f1] lg:flex lg:items-center lg:gap-2"
@@ -135,6 +137,7 @@ export default function RecipeOrderDrawer() {
 
       <button
         type="button"
+        data-coffee-tool-launcher="true"
         data-mobile-coffee-target="recipe-order"
         onClick={() => setOpen(true)}
         className="fixed bottom-20 left-4 z-40 flex rounded-full border border-[#d7ded4] bg-white px-4 py-3 text-sm font-semibold text-[#2f6f5f] shadow-lg shadow-black/12 transition hover:bg-[#f4f6f1] lg:hidden"

@@ -2,6 +2,7 @@
 
 import { CheckCircle2, History, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useCoffeeToolOpen } from "./CoffeeToolProvider";
 import {
   listBrewProfileHistorySummaries,
   type BrewProfileHistorySummary,
@@ -18,7 +19,7 @@ function formatDate(value: string) {
 }
 
 export default function PersonalRecipeVersionDrawer() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useCoffeeToolOpen("personal-recipes");
   const [summaries, setSummaries] = useState<BrewProfileHistorySummary[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [restoringKey, setRestoringKey] = useState<string | null>(null);
@@ -44,7 +45,7 @@ export default function PersonalRecipeVersionDrawer() {
     }
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [open]);
+  }, [open, setOpen]);
 
   function restore(profileId: string, version: number) {
     const key = `${profileId}:${version}`;
@@ -69,6 +70,8 @@ export default function PersonalRecipeVersionDrawer() {
     <>
       <button
         type="button"
+        data-coffee-tool-launcher="true"
+        data-mobile-coffee-target="personal-recipes"
         onClick={() => {
           loadVersions();
           setMessage(null);

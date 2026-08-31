@@ -8,7 +8,8 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useCoffeeToolOpen } from "./CoffeeToolProvider";
 import { evidenceRegistry, evidenceRegistryVersion } from "@/lib/evidence/registry";
 import { assessCandidateReadiness } from "@/lib/recommendation/candidateReadiness";
 import { candidateRuleRegistry } from "@/lib/recommendation/candidateRuleRegistry";
@@ -54,7 +55,7 @@ function candidateTitle(parameter: string) {
 }
 
 export default function RecommendationEvidenceStatus() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useCoffeeToolOpen("evidence");
 
   useEffect(() => {
     if (!open) {
@@ -69,7 +70,7 @@ export default function RecommendationEvidenceStatus() {
 
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [open]);
+  }, [open, setOpen]);
 
   const activeRules = recommendationRuleRegistry.rules.filter(
     (rule) => rule.status === "active",
@@ -117,6 +118,7 @@ export default function RecommendationEvidenceStatus() {
     <>
       <button
         type="button"
+        data-coffee-tool-launcher="true"
         onClick={() => setOpen(true)}
         data-mobile-coffee-target="evidence"
         className="fixed bottom-4 left-4 z-40 hidden h-12 items-center gap-2 rounded-full border border-[#5b4f69] bg-[#f5f3f8] px-4 text-sm font-semibold text-[#5b4f69] shadow-lg transition hover:bg-[#ece8f1] focus:outline-none focus:ring-2 focus:ring-[#5b4f69] focus:ring-offset-2 sm:flex"

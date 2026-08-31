@@ -23,10 +23,13 @@ test("timer dose input uses React draft and committed numeric state", () => {
   );
 });
 
-test("mobile tools do not hide their own buttons and include personal recipes", () => {
+test("mobile tools open centralized React tool state without DOM launcher discovery", () => {
   assert.match(mobileNav, /data-mobile-coffee-nav="true"/);
-  assert.match(mobileNav, /button\.closest\(mobileNavRootSelector\)/);
-  assert.match(mobileNav, /key: "personal-recipes", label: "개인 레시피"/);
+  assert.match(mobileNav, /useCoffeeTools\(\)/);
+  assert.match(mobileNav, /openTool\(key\)/);
   assert.match(mobileNav, /openLauncher\("personal-recipes"\)/);
   assert.match(mobileNav, /subscribeToBrewSessionClock\(syncActiveSession\)/);
+  assert.doesNotMatch(mobileNav, /querySelectorAll<HTMLButtonElement>/);
+  assert.doesNotMatch(mobileNav, /MutationObserver/);
+  assert.doesNotMatch(mobileNav, /normalizedText|textContent|\.click\(\)/);
 });

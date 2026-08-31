@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import BrewSessionManagerDialog from "./BrewSessionManagerDialog";
+import { useCoffeeToolOpen } from "./CoffeeToolProvider";
 import { brewSessionDiscardedEvent } from "@/lib/brew/activeBrewDiscard";
 import { drinkStyleLabel } from "@/lib/brew/profileIdentity";
 import { brewFeedbackSavedEvent } from "@/lib/brew/sessionFeedback";
@@ -85,7 +86,7 @@ type CopyStatus = {
 };
 
 export default function BrewHistoryDrawer() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useCoffeeToolOpen("history");
   const [summaries, setSummaries] = useState<BrewProfileHistorySummary[]>([]);
   const [copyStatus, setCopyStatus] = useState<CopyStatus | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -100,6 +101,16 @@ export default function BrewHistoryDrawer() {
     const timer = window.setTimeout(loadHistory, 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    loadHistory();
+    setCopyStatus(null);
+    setActionMessage(null);
+  }, [open]);
 
   useEffect(() => {
     function refreshHistory() {
@@ -129,7 +140,7 @@ export default function BrewHistoryDrawer() {
 
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [open, selectedSession]);
+  }, [open, selectedSession, setOpen]);
 
   function copyBest(summary: BrewProfileHistorySummary) {
     if (!summary.currentBest) {
@@ -189,6 +200,7 @@ export default function BrewHistoryDrawer() {
     <>
       <button
         type="button"
+        data-coffee-tool-launcher="true"
         onClick={() => {
           loadHistory();
           setCopyStatus(null);

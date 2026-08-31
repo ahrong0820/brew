@@ -13,89 +13,25 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+  useCoffeeTools,
+  type CoffeeTool,
+} from "./CoffeeToolProvider";
+import {
   readBrewSessionClock,
   subscribeToBrewSessionClock,
   type BrewSessionClock,
 } from "@/lib/timer/brewSessionClock";
 
-const mobileNavRootSelector = '[data-mobile-coffee-nav="true"]';
-
-const launcherTargets = [
-  { key: "recommendation", label: "맞춤 추천" },
-  { key: "beans", label: "내 원두" },
-  { key: "origin-region", label: "세부 산지" },
-  { key: "history", label: "추출 기록" },
-  { key: "grind", label: "분쇄도 변환" },
-  { key: "evidence", label: "근거 현황" },
-  { key: "personal-recipes", label: "개인 레시피" },
-  { key: "recipe-order", label: "레시피 순서" },
-] as const;
-
-type LauncherKey = (typeof launcherTargets)[number]["key"];
-
-function normalizedText(value: string | null) {
-  return (value ?? "").replace(/\s+/g, " ").trim();
-}
-
 function isActiveClock(clock: BrewSessionClock | null) {
   return Boolean(clock && clock.status !== "completed");
-}
-
-function isMobileNavButton(button: HTMLButtonElement) {
-  return Boolean(button.closest(mobileNavRootSelector));
-}
-
-function findLaunchers(key: LauncherKey) {
-  return Array.from(
-    document.querySelectorAll<HTMLButtonElement>(
-      `button[data-mobile-coffee-target="${key}"]`,
-    ),
-  ).filter((button) => !isMobileNavButton(button));
-}
-
-function findLauncher(key: LauncherKey) {
-  return findLaunchers(key)[0] ?? null;
 }
 
 export default function MobileCoffeeNav() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [activeBrew, setActiveBrew] = useState(false);
+  const { openTool } = useCoffeeTools();
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 639px)");
-
-    function syncLegacyLaunchers() {
-      const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("button"));
-
-      for (const button of buttons) {
-        if (isMobileNavButton(button)) {
-          continue;
-        }
-
-        const explicitTarget = launcherTargets.find(
-          (item) => button.dataset.mobileCoffeeTarget === item.key,
-        );
-        const text = normalizedText(button.textContent);
-        const target =
-          explicitTarget ?? launcherTargets.find((item) => text.startsWith(item.label));
-
-        if (!target) {
-          if (button.dataset.mobileCoffeeTarget) {
-            button.style.removeProperty("display");
-            button.removeAttribute("data-mobile-coffee-target");
-          }
-          continue;
-        }
-
-        button.dataset.mobileCoffeeTarget = target.key;
-        if (media.matches) {
-          button.style.setProperty("display", "none", "important");
-        } else {
-          button.style.removeProperty("display");
-        }
-      }
-    }
-
     function syncActiveSession(clock = readBrewSessionClock()) {
       const nextActive = isActiveClock(clock);
       setActiveBrew(nextActive);
@@ -104,36 +40,13 @@ export default function MobileCoffeeNav() {
       }
     }
 
-    const observer = new MutationObserver(syncLegacyLaunchers);
-    observer.observe(document.body, { childList: true, subtree: true });
-    media.addEventListener("change", syncLegacyLaunchers);
-
-    syncLegacyLaunchers();
     syncActiveSession();
-    const unsubscribe = subscribeToBrewSessionClock(syncActiveSession);
-
-    return () => {
-      observer.disconnect();
-      media.removeEventListener("change", syncLegacyLaunchers);
-      unsubscribe();
-
-      for (const target of launcherTargets) {
-        for (const button of findLaunchers(target.key)) {
-          button.style.removeProperty("display");
-          button.removeAttribute("data-mobile-coffee-target");
-        }
-      }
-    };
+    return subscribeToBrewSessionClock(syncActiveSession);
   }, []);
 
-  function openLauncher(key: LauncherKey) {
-    const button = findLauncher(key);
-    if (!button) {
-      return;
-    }
-
+  function openLauncher(key: CoffeeTool) {
     setToolsOpen(false);
-    button.click();
+    openTool(key);
   }
 
   if (activeBrew) {
@@ -308,6 +221,10 @@ export default function MobileCoffeeNav() {
         @media (max-width: 639px) {
           body {
             padding-bottom: calc(4.8rem + env(safe-area-inset-bottom));
+          }
+
+          [data-coffee-tool-launcher="true"] {
+            display: none !important;
           }
         }
       `}</style>

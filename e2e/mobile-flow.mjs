@@ -110,14 +110,30 @@ async function run() {
       await mobileNav.getByRole("button", { name: label, exact: true }).waitFor();
     }
 
+    await mobileNav.getByRole("button", { name: "원두", exact: true }).click();
+    const beanDialog = page.getByRole("dialog", { name: "내 원두" });
+    await beanDialog.waitFor({ state: "visible" });
+    await beanDialog.getByRole("button", { name: "내 원두 닫기" }).click();
+    await beanDialog.waitFor({ state: "hidden" });
+
     await mobileNav.getByRole("button", { name: "도구", exact: true }).click();
     const toolsDialog = page.getByRole("dialog", { name: "도구" });
     await toolsDialog.waitFor({ state: "visible" });
     for (const label of ["분쇄도 변환", "세부 산지", "개인 레시피 버전", "근거 현황"]) {
       await toolsDialog.getByText(label, { exact: true }).waitFor();
     }
-    await toolsDialog.getByRole("button", { name: "도구 메뉴 닫기" }).click();
+    await toolsDialog
+      .getByRole("button")
+      .filter({ hasText: "분쇄도 변환" })
+      .click();
     await toolsDialog.waitFor({ state: "hidden" });
+
+    const grindDialog = page.getByRole("dialog", {
+      name: "대표 입도 → 그라인더 설정",
+    });
+    await grindDialog.waitFor({ state: "visible" });
+    await grindDialog.getByRole("button", { name: "분쇄도 변환 닫기" }).click();
+    await grindDialog.waitFor({ state: "hidden" });
 
     const customSection = page.locator('[data-custom-editor-open]');
     await customSection.waitFor({ state: "visible" });
@@ -198,7 +214,7 @@ async function run() {
 
     assert.deepEqual(browserMessages, [], browserMessages.join("\n"));
     console.log(
-      "E2E PASS: React mobile recipe state, custom editor, timer scrolling, and timer navigation",
+      "E2E PASS: centralized mobile tools, React recipe state, custom editor, timer scrolling, and timer navigation",
     );
   } catch (error) {
     await page.screenshot({ path: path.join(resultsDir, "e2e-failure.png"), fullPage: true });
