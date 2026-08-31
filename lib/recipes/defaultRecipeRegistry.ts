@@ -6,6 +6,7 @@ import {
   tetsu46DefaultRecipe,
   yongLightDefaultRecipe,
 } from "../../data/defaultRecipeDefinitions.ts";
+import { jisV60FourServingHot } from "../../data/jisV60FourServingHot.ts";
 import { jisVer2Default } from "../../data/jisVer2Default.ts";
 import { recipe484 } from "../../data/recipe484.ts";
 import { tetsuDefault } from "../../data/tetsuDefault.ts";
@@ -15,7 +16,7 @@ import {
 } from "../../data/yongNeoSwitchDefault.ts";
 import type { Recipe } from "../types/defaultRecipe.ts";
 
-export const defaultRecipeCatalogVersion = "2026-08-30.1" as const;
+export const defaultRecipeCatalogVersion = "2026-08-31.1" as const;
 
 export type DefaultRecipeRegistryEntry = Readonly<{
   recipe: Recipe;
@@ -37,6 +38,7 @@ export const defaultRecipeRegistry: readonly DefaultRecipeRegistryEntry[] = [
     aliases: ["anstar-multiserve-20g-2024"],
   },
   { recipe: jisVer2Default, requiredForDeploy: true },
+  { recipe: jisV60FourServingHot, requiredForDeploy: true },
   { recipe: recipe484, requiredForDeploy: true },
   { recipe: yongLightDefaultRecipe },
   { recipe: yongNeoReverseSwitchHot, requiredForDeploy: true },

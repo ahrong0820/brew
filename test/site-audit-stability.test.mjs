@@ -9,6 +9,8 @@ const readTimerHook = () =>
   readFile(new URL("../app/hooks/useBrewTimer.ts", import.meta.url), "utf8");
 const readTimerPanel = () =>
   readFile(new URL("../app/BrewTimerPanel.tsx", import.meta.url), "utf8");
+const readDosePolicy = () =>
+  readFile(new URL("../lib/recipes/recipeDosePolicy.ts", import.meta.url), "utf8");
 const readCustomEditor = () =>
   readFile(new URL("../app/CustomRecipeEditor.tsx", import.meta.url), "utf8");
 
@@ -30,14 +32,20 @@ test("active custom recipes cannot be deleted", async () => {
 });
 
 test("dose, filters and toggles expose bounded and accessible state", async () => {
-  const [timerHook, timerPanel, catalog] = await Promise.all([
+  const [timerHook, timerPanel, dosePolicy, catalog] = await Promise.all([
     readTimerHook(),
     readTimerPanel(),
+    readDosePolicy(),
     readCatalog(),
   ]);
   assert.match(timerHook, /const \[doseInput, setDoseInput\] = useState/);
-  assert.match(timerHook, /nextDose >= 8 && nextDose <= 40/);
-  assert.match(timerHook, /syncTimerDose\(clampDose\(Number\(doseInput\)\)\)/);
+  assert.match(timerHook, /getRecipeDoseConstraints\(selectedRecipe\)/);
+  assert.match(timerHook, /syncTimerDose\(clampRecipeDose\(selectedRecipe, Number\(doseInput\)\)\)/);
+  assert.match(dosePolicy, /defaultRecipeDoseMin = 8/);
+  assert.match(dosePolicy, /defaultRecipeDoseMax = 40/);
+  assert.match(dosePolicy, /policy\?\.type === "fixed"/);
+  assert.match(timerPanel, /readOnly=\{timer\.doseFixed\}/);
+  assert.match(timerPanel, /aria-readonly=\{timer\.doseFixed\}/);
   assert.match(timerPanel, /onBlur=\{timer\.commitDoseInput\}/);
   assert.match(catalog, /aria-label="레시피 검색"/);
   assert.match(catalog, /aria-pressed=\{filter === option\}/);

@@ -10,6 +10,10 @@ const timerPanel = await readFile(
   new URL("../app/BrewTimerPanel.tsx", import.meta.url),
   "utf8",
 );
+const dosePolicy = await readFile(
+  new URL("../lib/recipes/recipeDosePolicy.ts", import.meta.url),
+  "utf8",
+);
 const mobileNav = await readFile(
   new URL("../app/MobileCoffeeNav.tsx", import.meta.url),
   "utf8",
@@ -20,7 +24,11 @@ test("timer dose input uses React draft and committed numeric state", () => {
   assert.match(timerPanel, /value=\{timer\.doseInput\}/);
   assert.match(timerPanel, /data-timer-dose-input="true"/);
   assert.match(timerHook, /nextValue === ""/);
-  assert.match(timerHook, /nextDose >= 8 && nextDose <= 40/);
+  assert.match(timerHook, /nextDose >= constraints\.min/);
+  assert.match(timerHook, /nextDose <= constraints\.max/);
+  assert.match(dosePolicy, /defaultRecipeDoseMin = 8/);
+  assert.match(dosePolicy, /defaultRecipeDoseMax = 40/);
+  assert.match(timerPanel, /readOnly=\{timer\.doseFixed\}/);
   assert.match(timerPanel, /onBlur=\{timer\.commitDoseInput\}/);
   assert.match(timerPanel, /event\.key === "Enter"/);
   assert.match(timerHook, /syncTimerDose\(recipe\.dose\)/);

@@ -19,6 +19,18 @@ export type RecipeTemperature =
 
 export type WaterAmount = number | { min: number; max: number };
 
+export type RecipeDosePolicy =
+  | {
+      type: "fixed";
+      note?: string;
+    }
+  | {
+      type: "scalable";
+      min?: number;
+      max?: number;
+      note?: string;
+    };
+
 export interface BrewStep {
   label: string;
   start: number;
@@ -37,6 +49,7 @@ export interface Recipe {
   profile: string;
   tags: string[];
   dose: number;
+  dosePolicy?: RecipeDosePolicy;
   water: number;
   brewWater?: number;
   bypassWater?: WaterAmount;
