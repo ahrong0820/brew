@@ -7,12 +7,13 @@ const read = (file) => readFile(path.resolve(process.cwd(), file), "utf8");
 const prWorkflow = await read(".github/workflows/validate-pr.yml");
 const deployWorkflow = await read(".github/workflows/deploy-pages.yml");
 const packageJson = JSON.parse(await read("package.json"));
-const timerScenario = await read("e2e/mobile-flow.mjs");
+const mobileNavigationScenario = await read("e2e/mobile-navigation-flow.mjs");
+const timerScalingScenario = await read("e2e/timer-scaling-flow.mjs");
+const timerReloadScenario = await read("e2e/timer-reload-flow.mjs");
+const catalogScenario = await read("e2e/catalog-flow.mjs");
+const storageScenario = await read("e2e/storage-migration-flow.mjs");
 const recommendationScenario = await read("e2e/recommendation-flow.mjs");
-const integrityScenario = await read("e2e/catalog-storage-timer-flow.mjs");
-const recommendationJourney = await read(
-  "e2e/helpers/recommendation-journey.mjs",
-);
+const recommendationJourney = await read("e2e/helpers/recommendation-journey.mjs");
 
 test("PR validation exposes independent checks and passes the static export to browser E2E", () => {
   const staticJobIndex = prWorkflow.indexOf("static-build:");
@@ -39,9 +40,18 @@ test("PR validation exposes independent checks and passes the static export to b
   assert.match(prWorkflow, /pr-static-export-\$\{\{ github\.run_id \}\}/);
   assert.match(prWorkflow, /playwright install --with-deps chromium/);
   assert.match(prWorkflow, /pnpm run test:e2e/);
-  assert.match(packageJson.scripts["test:e2e"], /mobile-flow\.mjs/);
-  assert.match(packageJson.scripts["test:e2e"], /recommendation-flow\.mjs/);
-  assert.match(packageJson.scripts["test:e2e"], /catalog-storage-timer-flow\.mjs/);
+  for (const scenario of [
+    "catalog-flow.mjs",
+    "storage-migration-flow.mjs",
+    "timer-scaling-flow.mjs",
+    "timer-reload-flow.mjs",
+    "mobile-navigation-flow.mjs",
+    "custom-recipe-flow.mjs",
+    "recommendation-flow.mjs",
+    "recipe-order-flow.mjs",
+  ]) {
+    assert.match(packageJson.scripts["test:e2e"], new RegExp(scenario.replaceAll(".", "\\.")));
+  }
   assert.match(prWorkflow, /e2e-failure-\$\{\{ github\.run_id \}\}/);
 });
 
@@ -66,15 +76,23 @@ test("production deployment also blocks on browser E2E", () => {
   assert.match(deployWorkflow, /pnpm run test:e2e/);
 });
 
-test("timer mobile E2E covers the current regression-prone flows", () => {
-  assert.match(timerScenario, /data-mobile-coffee-nav/);
-  assert.match(timerScenario, /개인 레시피 버전/);
-  assert.match(timerScenario, /blank dose must remain editable/);
-  assert.match(timerScenario, /valid dose must update immediately/);
-  assert.match(timerScenario, /low dose must clamp on blur/);
-  assert.match(timerScenario, /high dose must clamp on blur/);
-  assert.match(timerScenario, /recipe selection must synchronize dose draft/);
-  assert.match(timerScenario, /mobile navigation must stay hidden while paused/);
+test("mobile navigation E2E stays focused on tool routing and active brew visibility", () => {
+  assert.match(mobileNavigationScenario, /data-mobile-coffee-nav/);
+  assert.match(mobileNavigationScenario, /개인 레시피 버전/);
+  assert.match(mobileNavigationScenario, /navigation stays hidden while brew is paused/);
+  assert.doesNotMatch(mobileNavigationScenario, /custom-editor-open/);
+  assert.doesNotMatch(mobileNavigationScenario, /low dose clamps/);
+});
+
+test("timer E2E separates scaling/input from reload persistence", () => {
+  assert.match(timerScalingScenario, /blank dose stays editable/);
+  assert.match(timerScalingScenario, /low dose clamps on commit/);
+  assert.match(timerScalingScenario, /high dose clamps on commit/);
+  assert.match(timerScalingScenario, /activeClock\.recipe\.water/);
+  assert.doesNotMatch(timerScalingScenario, /page\.reload/);
+
+  assert.match(timerReloadScenario, /page\.reload/);
+  assert.match(timerReloadScenario, /running timer must survive reload/);
 });
 
 test("recommendation E2E covers persistence, source selection and personal versions", () => {
@@ -87,9 +105,13 @@ test("recommendation E2E covers persistence, source selection and personal versi
   assert.match(recommendationJourney, /restoreFirstPersonalRecipeVersion/);
 });
 
-test("catalog integrity E2E covers storage corruption and timer reload", () => {
-  assert.match(integrityScenario, /expectedRecipeNames/);
-  assert.match(integrityScenario, /malformed-json/);
-  assert.match(integrityScenario, /custom-recipes-quarantine\.v1/);
-  assert.match(integrityScenario, /running timer must survive a reload/);
+test("catalog and storage migration E2E have independent registry-derived expectations", () => {
+  assert.match(catalogScenario, /defaultRecipeCatalogEntries/);
+  assert.match(catalogScenario, /removedDefaultRecipeNames/);
+  assert.doesNotMatch(catalogScenario, /malformed-json/);
+
+  assert.match(storageScenario, /malformed-json/);
+  assert.match(storageScenario, /custom-recipes-quarantine\.v1/);
+  assert.match(storageScenario, /defaultRecipeIdAliases/);
+  assert.doesNotMatch(storageScenario, /running timer must survive/);
 });
