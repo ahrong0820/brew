@@ -184,12 +184,8 @@ export default function RecipeCatalog({
           ))}
         </div>
 
-        <p
-          id="recipe-catalog-drag-hint"
-          className="flex items-center gap-2 px-1 text-xs leading-5 text-[#607064]"
-        >
-          <GripVertical className="h-4 w-4 shrink-0" aria-hidden="true" />
-          카드 오른쪽 위 손잡이를 드래그해 표시 순서를 바로 바꿀 수 있습니다.
+        <p id="recipe-catalog-drag-hint" className="sr-only">
+          카드 오른쪽 위 손잡이를 드래그하거나 방향키를 눌러 표시 순서를 바꿀 수 있습니다.
         </p>
       </div>
 
@@ -229,66 +225,71 @@ export default function RecipeCatalog({
                 aria-current={selected ? "true" : undefined}
                 onClick={() => onSelectRecipe(recipe)}
                 aria-pressed={selected}
-                className="block w-full rounded-lg p-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#2f6f5f]/35"
+                className="block w-full rounded-lg p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#2f6f5f]/35"
               >
-                <div className="flex items-start justify-between gap-4 pr-12">
-                  <div>
+                <div className="flex items-start justify-between gap-3 pr-10">
+                  <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase text-[#607064]">
                       {recipe.method}
                     </p>
-                    <h3 className="mt-2 text-xl font-semibold">{recipe.name}</h3>
+                    <h3 className="mt-1.5 text-lg font-semibold leading-6">
+                      {recipe.name}
+                    </h3>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div
+                    data-recipe-meta="true"
+                    className="flex shrink-0 items-center gap-1.5"
+                  >
                     {favorite ? (
                       <Heart
                         className="h-4 w-4 fill-[#c95b3d] text-[#c95b3d]"
                         aria-label="즐겨찾기"
                       />
                     ) : null}
-                    <span className="rounded-md bg-[#eef3ec] px-2.5 py-1 font-mono text-sm text-[#2f6f5f]">
+                    <span className="rounded-md bg-[#eef3ec] px-2 py-0.5 font-mono text-xs text-[#2f6f5f]">
                       {formatRecipeTime(recipe.totalTime)}
                     </span>
                   </div>
                 </div>
 
-                <p className="mt-3 text-sm leading-6 text-[#526055]">
+                <p className="mt-2 text-sm leading-5 text-[#526055]">
                   {recipe.profile}
                 </p>
 
-                <div className="mt-5 grid grid-cols-3 gap-2 text-sm">
-                  <div className="rounded-md bg-[#f4f6f1] p-3">
+                <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                  <div className="rounded-md bg-[#f4f6f1] p-2.5">
                     <Scale
-                      className="mb-2 h-4 w-4 text-[#2f6f5f]"
+                      className="mb-1 h-4 w-4 text-[#2f6f5f]"
                       aria-hidden="true"
                     />
-                    <span className="block text-[#607064]">원두</span>
+                    <span className="block text-xs text-[#607064]">원두</span>
                     <strong>{recipe.dose}g</strong>
                   </div>
-                  <div className="rounded-md bg-[#f4f6f1] p-3">
+                  <div className="rounded-md bg-[#f4f6f1] p-2.5">
                     <Droplets
-                      className="mb-2 h-4 w-4 text-[#2f6f5f]"
+                      className="mb-1 h-4 w-4 text-[#2f6f5f]"
                       aria-hidden="true"
                     />
-                    <span className="block text-[#607064]">물</span>
+                    <span className="block text-xs text-[#607064]">물</span>
                     <strong>
                       {formatRecipeWaterAmount(recipe.finalWater ?? recipe.water)}
                     </strong>
                   </div>
-                  <div className="rounded-md bg-[#f4f6f1] p-3">
+                  <div className="rounded-md bg-[#f4f6f1] p-2.5">
                     <Thermometer
-                      className="mb-2 h-4 w-4 text-[#2f6f5f]"
+                      className="mb-1 h-4 w-4 text-[#2f6f5f]"
                       aria-hidden="true"
                     />
-                    <span className="block text-[#607064]">온도</span>
+                    <span className="block text-xs text-[#607064]">온도</span>
                     <strong>{recipeTemperaturePresentation(recipe).display}</strong>
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap gap-1.5">
                   {recipe.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-md border border-[#d7ded4] px-2.5 py-1 text-xs font-medium text-[#526055]"
+                      className="rounded-md border border-[#d7ded4] px-2 py-0.5 text-xs font-medium text-[#526055]"
                     >
                       {tag}
                     </span>
@@ -309,14 +310,14 @@ export default function RecipeCatalog({
                 aria-label={`${recipe.name} 순서 드래그`}
                 aria-describedby="recipe-catalog-drag-hint"
                 title="드래그하거나 방향키로 순서 이동"
-                className={`absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-md border shadow-sm transition disabled:cursor-not-allowed disabled:opacity-35 ${
+                className={`absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-md border shadow-sm transition disabled:cursor-not-allowed disabled:opacity-35 ${
                   dragging
                     ? "cursor-grabbing border-[#2f6f5f] bg-[#e6f0ea] text-[#2f6f5f]"
                     : "cursor-grab border-[#d7ded4] bg-white/95 text-[#607064] hover:bg-[#eef5ef] active:cursor-grabbing"
                 }`}
                 style={{ touchAction: "none" }}
               >
-                <GripVertical className="h-5 w-5" aria-hidden="true" />
+                <GripVertical className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           );
