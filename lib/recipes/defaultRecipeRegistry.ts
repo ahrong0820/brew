@@ -71,8 +71,8 @@ export const requiredDefaultRecipeNames = defaultRecipeRegistry
   .map(({ recipe }) => recipe.name);
 
 export const defaultRecipeIdAliases = Object.fromEntries(
-  defaultRecipeRegistry.flatMap((entry) =>
-    (entry.aliases ?? []).map((alias) => [alias, recipe.id] as const),
+  defaultRecipeRegistry.flatMap(({ recipe, aliases = [] }) =>
+    aliases.map((alias) => [alias, recipe.id] as const),
   ),
 ) as Readonly<Record<string, string>>;
 
