@@ -28,6 +28,8 @@ export const recipeFilterOptions = [
   "즐겨찾기",
   "나만의 레시피",
   "V60",
+  "NEO",
+  "NEO 스위치",
   "클레버",
   "스위치",
   "라이트",
