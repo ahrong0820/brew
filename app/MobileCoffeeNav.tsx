@@ -29,7 +29,7 @@ function isActiveClock(clock: BrewSessionClock | null) {
 export default function MobileCoffeeNav() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [activeBrew, setActiveBrew] = useState(false);
-  const { openTool } = useCoffeeTools();
+  const { activeTool, openTool } = useCoffeeTools();
 
   useEffect(() => {
     function syncActiveSession(clock = readBrewSessionClock()) {
@@ -49,7 +49,7 @@ export default function MobileCoffeeNav() {
     openTool(key);
   }
 
-  if (activeBrew) {
+  if (activeBrew || activeTool) {
     return null;
   }
 

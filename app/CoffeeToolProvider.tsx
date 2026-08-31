@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -37,9 +38,31 @@ export function CoffeeToolProvider({ children }: { children: ReactNode }) {
     [activeTool, closeTool, openTool],
   );
 
+  useEffect(() => {
+    if (!activeTool) {
+      return;
+    }
+
+    const body = document.body;
+    const previousOverflow = body.style.overflow;
+    body.style.overflow = "hidden";
+
+    return () => {
+      body.style.overflow = previousOverflow;
+    };
+  }, [activeTool]);
+
   return (
     <CoffeeToolContext.Provider value={value}>
       {children}
+      {activeTool ? (
+        <style>{`
+          [data-coffee-tool-launcher="true"] {
+            visibility: hidden !important;
+            pointer-events: none !important;
+          }
+        `}</style>
+      ) : null}
     </CoffeeToolContext.Provider>
   );
 }

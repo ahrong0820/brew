@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -7,6 +8,10 @@ const provider = await readFile(
   "utf8",
 );
 const layout = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
+const mobileNav = await readFile(
+  new URL("../app/MobileCoffeeNav.tsx", import.meta.url),
+  "utf8",
+);
 
 const toolFiles = [
   ["recommendation", "RecommendationDrawerV2.tsx"],
@@ -36,4 +41,18 @@ test("coffee tools share one activeTool owner", async () => {
     );
     assert.match(source, /data-coffee-tool-launcher="true"/);
   }
+});
+
+test("active tool state owns overlay locking without DOM observation", () => {
+  assert.match(provider, /body\.style\.overflow = "hidden"/);
+  assert.match(provider, /previousOverflow/);
+  assert.match(provider, /\[data-coffee-tool-launcher="true"\]/);
+  assert.doesNotMatch(provider, /MutationObserver|querySelector|:has\(/);
+  assert.doesNotMatch(layout, /MobileOverlayCoordinator/);
+  assert.equal(
+    existsSync(new URL("../app/MobileOverlayCoordinator.tsx", import.meta.url)),
+    false,
+  );
+  assert.match(mobileNav, /const \{ activeTool, openTool \} = useCoffeeTools\(\)/);
+  assert.match(mobileNav, /if \(activeBrew \|\| activeTool\)/);
 });
