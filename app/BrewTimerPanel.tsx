@@ -164,11 +164,14 @@ export default function BrewTimerPanel({
             <div className="mt-2 flex items-center gap-2">
               <input
                 type="number"
-                min="8"
-                max="40"
+                min={timer.doseMin}
+                max={timer.doseMax}
                 step="1"
                 value={timer.doseInput}
+                readOnly={timer.doseFixed}
+                aria-readonly={timer.doseFixed}
                 data-timer-dose-input="true"
+                data-timer-dose-fixed={timer.doseFixed ? "true" : "false"}
                 onChange={(event) => timer.updateDoseInput(event.target.value)}
                 onBlur={timer.commitDoseInput}
                 onKeyDown={(event) => {
@@ -178,10 +181,22 @@ export default function BrewTimerPanel({
                     event.currentTarget.blur();
                   }
                 }}
-                className="h-10 w-full rounded-md border border-[#d7ded4] bg-white px-3 text-lg font-semibold outline-none focus:border-[#2f6f5f] focus:ring-2 focus:ring-[#2f6f5f]/20"
+                className={`h-10 w-full rounded-md border border-[#d7ded4] px-3 text-lg font-semibold outline-none focus:border-[#2f6f5f] focus:ring-2 focus:ring-[#2f6f5f]/20 ${
+                  timer.doseFixed
+                    ? "cursor-not-allowed bg-[#edf1ea] text-[#526055]"
+                    : "bg-white"
+                }`}
               />
               <span className="text-sm font-semibold text-[#607064]">g</span>
             </div>
+            {timer.dosePolicyNote ? (
+              <span
+                data-timer-dose-policy-note="true"
+                className="mt-2 block text-xs leading-5 text-[#607064]"
+              >
+                {timer.dosePolicyNote}
+              </span>
+            ) : null}
           </label>
 
           {selectedRecipe.brewWater &&
