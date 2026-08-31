@@ -107,9 +107,13 @@ export default function BrewHistoryDrawer() {
       return;
     }
 
-    loadHistory();
-    setCopyStatus(null);
-    setActionMessage(null);
+    const timer = window.setTimeout(() => {
+      loadHistory();
+      setCopyStatus(null);
+      setActionMessage(null);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [open]);
 
   useEffect(() => {
