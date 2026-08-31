@@ -3,10 +3,6 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
-const enhancer = await readFile(
-  new URL("../app/MobileRecipeEnhancer.tsx", import.meta.url),
-  "utf8",
-);
 const mobileNav = await readFile(
   new URL("../app/MobileCoffeeNav.tsx", import.meta.url),
   "utf8",
@@ -22,7 +18,7 @@ test("timer dose input uses React draft and committed numeric state", () => {
   assert.match(page, /event\.key === "Enter"/);
   assert.match(page, /syncTimerDose\(recipe\.dose\)/);
   assert.doesNotMatch(
-    enhancer,
+    page,
     /setNativeInputValue|handleTimerDoseInput|doseDraftInterval|timerDoseSelector/,
   );
 });
