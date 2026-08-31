@@ -9,6 +9,7 @@ import {
 import { scaleRecipeDose } from "@/lib/recipes/scaleRecipeDose";
 import {
   clearBrewSessionClock,
+  completeBrewSessionClock,
   getBrewSessionElapsedSeconds,
   pauseBrewSessionClock,
   readBrewSessionClock,
@@ -163,6 +164,7 @@ export function useBrewTimer({
     ) {
       completionPlayedRef.current = true;
       if (alertsEnabled) runSmartAlert();
+      completeBrewSessionClock();
     }
 
     previousElapsedRef.current = elapsed;
