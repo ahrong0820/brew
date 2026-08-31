@@ -2,11 +2,20 @@
 
 import {
   Droplets,
+  GripVertical,
   Heart,
   Scale,
   Search,
   Thermometer,
 } from "lucide-react";
+import {
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+
+import { getAdjacentRecipeId } from "@/lib/recipes/recipeOrderNavigation";
 import { recipeTemperaturePresentation } from "@/lib/recipes/recipeTemperature";
 import {
   formatRecipeTime,
@@ -35,6 +44,7 @@ type RecipeCatalogProps = {
   onQueryChange: (query: string) => void;
   onFilterChange: (filter: string) => void;
   onSelectRecipe: (recipe: Recipe) => void;
+  onMoveRecipe: (recipeId: string, targetId: string) => void;
 };
 
 export default function RecipeCatalog({
@@ -47,7 +57,98 @@ export default function RecipeCatalog({
   onQueryChange,
   onFilterChange,
   onSelectRecipe,
+  onMoveRecipe,
 }: RecipeCatalogProps) {
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const dragIdRef = useRef<string | null>(null);
+  const pointerIdRef = useRef<number | null>(null);
+  const lastTargetIdRef = useRef<string | null>(null);
+
+  function startDrag(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    recipeId: string,
+  ) {
+    if (event.pointerType === "mouse" && event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    dragIdRef.current = recipeId;
+    pointerIdRef.current = event.pointerId;
+    lastTargetIdRef.current = recipeId;
+    setDraggingId(recipeId);
+    setDragOverId(recipeId);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+
+  function dragPointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
+    const activeId = dragIdRef.current;
+
+    if (!activeId || pointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    event.preventDefault();
+    const hoveredRow = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>('[data-recipe-row="true"]');
+    const targetId = hoveredRow?.dataset.recipeId ?? null;
+
+    if (
+      !targetId ||
+      targetId === activeId ||
+      targetId === lastTargetIdRef.current
+    ) {
+      return;
+    }
+
+    lastTargetIdRef.current = targetId;
+    setDragOverId(targetId);
+    onMoveRecipe(activeId, targetId);
+  }
+
+  function finishDrag(event?: ReactPointerEvent<HTMLButtonElement>) {
+    if (
+      event &&
+      pointerIdRef.current === event.pointerId &&
+      event.currentTarget.hasPointerCapture?.(event.pointerId)
+    ) {
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+    }
+
+    dragIdRef.current = null;
+    pointerIdRef.current = null;
+    lastTargetIdRef.current = null;
+    setDraggingId(null);
+    setDragOverId(null);
+  }
+
+  function moveWithKeyboard(
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    recipeId: string,
+  ) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
+      return;
+    }
+
+    const direction = event.key === "ArrowUp" ? -1 : 1;
+    const targetId = getAdjacentRecipeId(
+      recipes.map((recipe) => recipe.id),
+      recipeId,
+      direction,
+    );
+
+    if (!targetId) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onMoveRecipe(recipeId, targetId);
+  }
+
   return (
     <>
       <div className="flex flex-col gap-3 rounded-lg border border-[#d7ded4] bg-white p-3 shadow-sm shadow-black/5">
@@ -82,6 +183,14 @@ export default function RecipeCatalog({
             </button>
           ))}
         </div>
+
+        <p
+          id="recipe-catalog-drag-hint"
+          className="flex items-center gap-2 px-1 text-xs leading-5 text-[#607064]"
+        >
+          <GripVertical className="h-4 w-4 shrink-0" aria-hidden="true" />
+          카드 오른쪽 위 손잡이를 드래그해 표시 순서를 바로 바꿀 수 있습니다.
+        </p>
       </div>
 
       {storageNotice ? (
@@ -97,86 +206,119 @@ export default function RecipeCatalog({
         {recipes.map((recipe) => {
           const selected = recipe.id === selectedRecipeId;
           const favorite = favoriteIds.includes(recipe.id);
+          const dragging = draggingId === recipe.id;
+          const dragOver = dragOverId === recipe.id && !dragging;
 
           return (
-            <button
+            <div
               key={recipe.id}
-              type="button"
               data-recipe-row="true"
               data-recipe-id={recipe.id}
-              aria-current={selected ? "true" : undefined}
-              onClick={() => onSelectRecipe(recipe)}
-              aria-pressed={selected}
-              className={`min-w-0 rounded-lg border bg-white p-5 text-left shadow-sm shadow-black/5 transition hover:-translate-y-0.5 hover:border-[#2f6f5f] hover:shadow-md ${
-                selected
-                  ? "border-[#2f6f5f] ring-2 ring-[#2f6f5f]/18"
-                  : "border-[#d7ded4]"
+              className={`group relative min-w-0 rounded-lg border bg-white shadow-sm shadow-black/5 transition ${
+                dragging
+                  ? "scale-[1.01] border-[#2f6f5f] opacity-75 shadow-lg"
+                  : dragOver
+                    ? "border-[#2f6f5f] ring-2 ring-[#2f6f5f]/20"
+                    : selected
+                      ? "border-[#2f6f5f] ring-2 ring-[#2f6f5f]/18"
+                      : "border-[#d7ded4] hover:-translate-y-0.5 hover:border-[#2f6f5f] hover:shadow-md"
               }`}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase text-[#607064]">
-                    {recipe.method}
-                  </p>
-                  <h3 className="mt-2 text-xl font-semibold">{recipe.name}</h3>
+              <button
+                type="button"
+                aria-current={selected ? "true" : undefined}
+                onClick={() => onSelectRecipe(recipe)}
+                aria-pressed={selected}
+                className="block w-full rounded-lg p-5 text-left outline-none focus-visible:ring-2 focus-visible:ring-[#2f6f5f]/35"
+              >
+                <div className="flex items-start justify-between gap-4 pr-12">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-[#607064]">
+                      {recipe.method}
+                    </p>
+                    <h3 className="mt-2 text-xl font-semibold">{recipe.name}</h3>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {favorite ? (
+                      <Heart
+                        className="h-4 w-4 fill-[#c95b3d] text-[#c95b3d]"
+                        aria-label="즐겨찾기"
+                      />
+                    ) : null}
+                    <span className="rounded-md bg-[#eef3ec] px-2.5 py-1 font-mono text-sm text-[#2f6f5f]">
+                      {formatRecipeTime(recipe.totalTime)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {favorite ? (
-                    <Heart
-                      className="h-4 w-4 fill-[#c95b3d] text-[#c95b3d]"
-                      aria-label="즐겨찾기"
+
+                <p className="mt-3 text-sm leading-6 text-[#526055]">
+                  {recipe.profile}
+                </p>
+
+                <div className="mt-5 grid grid-cols-3 gap-2 text-sm">
+                  <div className="rounded-md bg-[#f4f6f1] p-3">
+                    <Scale
+                      className="mb-2 h-4 w-4 text-[#2f6f5f]"
+                      aria-hidden="true"
                     />
-                  ) : null}
-                  <span className="rounded-md bg-[#eef3ec] px-2.5 py-1 font-mono text-sm text-[#2f6f5f]">
-                    {formatRecipeTime(recipe.totalTime)}
-                  </span>
+                    <span className="block text-[#607064]">원두</span>
+                    <strong>{recipe.dose}g</strong>
+                  </div>
+                  <div className="rounded-md bg-[#f4f6f1] p-3">
+                    <Droplets
+                      className="mb-2 h-4 w-4 text-[#2f6f5f]"
+                      aria-hidden="true"
+                    />
+                    <span className="block text-[#607064]">물</span>
+                    <strong>
+                      {formatRecipeWaterAmount(recipe.finalWater ?? recipe.water)}
+                    </strong>
+                  </div>
+                  <div className="rounded-md bg-[#f4f6f1] p-3">
+                    <Thermometer
+                      className="mb-2 h-4 w-4 text-[#2f6f5f]"
+                      aria-hidden="true"
+                    />
+                    <span className="block text-[#607064]">온도</span>
+                    <strong>{recipeTemperaturePresentation(recipe).display}</strong>
+                  </div>
                 </div>
-              </div>
 
-              <p className="mt-3 text-sm leading-6 text-[#526055]">
-                {recipe.profile}
-              </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {recipe.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-md border border-[#d7ded4] px-2.5 py-1 text-xs font-medium text-[#526055]"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </button>
 
-              <div className="mt-5 grid grid-cols-3 gap-2 text-sm">
-                <div className="rounded-md bg-[#f4f6f1] p-3">
-                  <Scale
-                    className="mb-2 h-4 w-4 text-[#2f6f5f]"
-                    aria-hidden="true"
-                  />
-                  <span className="block text-[#607064]">원두</span>
-                  <strong>{recipe.dose}g</strong>
-                </div>
-                <div className="rounded-md bg-[#f4f6f1] p-3">
-                  <Droplets
-                    className="mb-2 h-4 w-4 text-[#2f6f5f]"
-                    aria-hidden="true"
-                  />
-                  <span className="block text-[#607064]">물</span>
-                  <strong>
-                    {formatRecipeWaterAmount(recipe.finalWater ?? recipe.water)}
-                  </strong>
-                </div>
-                <div className="rounded-md bg-[#f4f6f1] p-3">
-                  <Thermometer
-                    className="mb-2 h-4 w-4 text-[#2f6f5f]"
-                    aria-hidden="true"
-                  />
-                  <span className="block text-[#607064]">온도</span>
-                  <strong>{recipeTemperaturePresentation(recipe).display}</strong>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {recipe.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-md border border-[#d7ded4] px-2.5 py-1 text-xs font-medium text-[#526055]"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </button>
+              <button
+                type="button"
+                data-recipe-drag-handle="true"
+                onPointerDown={(event) => startDrag(event, recipe.id)}
+                onPointerMove={dragPointerMove}
+                onPointerUp={finishDrag}
+                onPointerCancel={finishDrag}
+                onKeyDown={(event) => moveWithKeyboard(event, recipe.id)}
+                onContextMenu={(event) => event.preventDefault()}
+                disabled={recipes.length < 2}
+                aria-label={`${recipe.name} 순서 드래그`}
+                aria-describedby="recipe-catalog-drag-hint"
+                title="드래그하거나 방향키로 순서 이동"
+                className={`absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-md border shadow-sm transition disabled:cursor-not-allowed disabled:opacity-35 ${
+                  dragging
+                    ? "cursor-grabbing border-[#2f6f5f] bg-[#e6f0ea] text-[#2f6f5f]"
+                    : "cursor-grab border-[#d7ded4] bg-white/95 text-[#607064] hover:bg-[#eef5ef] active:cursor-grabbing"
+                }`}
+                style={{ touchAction: "none" }}
+              >
+                <GripVertical className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
           );
         })}
       </div>
