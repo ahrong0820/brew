@@ -4,11 +4,11 @@ const tetsuNeoPourStarts = [0, 30, 45, 60, 75, 90, 105, 120, 135, 150] as const;
 
 export const tetsuDefault = {
   id: "tetsu-neo-2026",
-  name: "테츠 카스야 THE NEO BREW 2026",
+  name: "테츠 카스야 NEO 10푸어 레시피",
   origin: "Tetsu Kasuya",
-  method: "V60",
+  method: "HARIO NEO",
   profile: "극굵은 분쇄, 30초 블룸 후 15초 간격 10회 푸어, 높은 단맛과 점성",
-  tags: ["V60", "라이트", "단맛"],
+  tags: ["NEO", "라이트", "단맛"],
   dose: 20,
   water: 300,
   ratio: "1:15",
