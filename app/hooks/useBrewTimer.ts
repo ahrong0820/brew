@@ -120,10 +120,15 @@ export function useBrewTimer({
     currentStep.displayTargetWater ?? currentStep.targetWater,
     scaleFactor,
   );
-  const stepWater = formatRecipeWaterAmount(
-    currentStep.displayStepWater ?? currentStep.targetWater - previousTarget,
+  const scaledCurrentTarget = scaleRecipeValue(
+    currentStep.targetWater,
     scaleFactor,
   );
+  const scaledPreviousTarget = scaleRecipeValue(previousTarget, scaleFactor);
+  const stepWater =
+    currentStep.displayStepWater !== undefined
+      ? formatRecipeWaterAmount(currentStep.displayStepWater, scaleFactor)
+      : formatRecipeWaterAmount(scaledCurrentTarget - scaledPreviousTarget);
   const progress = Math.min(100, Math.max(0, (elapsed / totalTime) * 100));
   const remaining = Math.max(0, totalTime - elapsed);
 
