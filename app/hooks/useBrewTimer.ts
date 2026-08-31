@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  clampRecipeDose,
+  getRecipeDoseConstraints,
+} from "@/lib/recipes/recipeDosePolicy";
+import {
   formatRecipeWaterAmount,
   scaleRecipeValue,
 } from "@/lib/recipes/recipePresentation";
@@ -29,11 +33,6 @@ import type { Recipe } from "@/lib/types/defaultRecipe";
 
 const mobileQuery = "(max-width: 1023px)";
 const reducedMotionQuery = "(prefers-reduced-motion: reduce)";
-
-function clampDose(value: number) {
-  if (!Number.isFinite(value)) return 8;
-  return Math.min(40, Math.max(8, Math.round(value)));
-}
 
 function isDifferentTrackedRecipe(
   clock: BrewSessionClock | null,
@@ -86,6 +85,7 @@ export function useBrewTimer({
     setDoseInput(String(nextDose));
   }, []);
 
+  const doseConstraints = getRecipeDoseConstraints(selectedRecipe);
   const scaleFactor = dose / selectedRecipe.dose;
   const scaledWater = scaleRecipeValue(selectedRecipe.water, scaleFactor);
   const scaledFinalWater = formatRecipeWaterAmount(
@@ -216,19 +216,33 @@ export function useBrewTimer({
     previousStepIndexRef.current = currentStepIndex;
   }, [alertsEnabled, currentStepIndex, elapsed, running, totalTime]);
 
-  const updateDoseInput = useCallback((nextValue: string) => {
-    setDoseInput(nextValue);
-    if (nextValue === "") return;
+  const updateDoseInput = useCallback(
+    (nextValue: string) => {
+      const constraints = getRecipeDoseConstraints(selectedRecipe);
 
-    const nextDose = Number(nextValue);
-    if (Number.isFinite(nextDose) && nextDose >= 8 && nextDose <= 40) {
-      setDose(nextDose);
-    }
-  }, []);
+      if (constraints.fixed) {
+        syncTimerDose(selectedRecipe.dose);
+        return;
+      }
+
+      setDoseInput(nextValue);
+      if (nextValue === "") return;
+
+      const nextDose = Number(nextValue);
+      if (
+        Number.isFinite(nextDose) &&
+        nextDose >= constraints.min &&
+        nextDose <= constraints.max
+      ) {
+        setDose(nextDose);
+      }
+    },
+    [selectedRecipe, syncTimerDose],
+  );
 
   const commitDoseInput = useCallback(() => {
-    syncTimerDose(clampDose(Number(doseInput)));
-  }, [doseInput, syncTimerDose]);
+    syncTimerDose(clampRecipeDose(selectedRecipe, Number(doseInput)));
+  }, [doseInput, selectedRecipe, syncTimerDose]);
 
   const toggleTimer = useCallback(() => {
     const now = Date.now();
@@ -351,6 +365,10 @@ export function useBrewTimer({
   return {
     dose,
     doseInput,
+    doseMin: doseConstraints.min,
+    doseMax: doseConstraints.max,
+    doseFixed: doseConstraints.fixed,
+    dosePolicyNote: doseConstraints.note,
     timerNotice,
     alertsEnabled,
     scaleFactor,
