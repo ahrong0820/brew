@@ -62,12 +62,16 @@ export function useRecipeLibraryStorage() {
       favoritesStorageKey,
       favoriteIds,
     );
-    setStorageErrors((current) => ({
-      ...current,
-      favorites: result.ok
-        ? null
-        : "즐겨찾기를 브라우저에 저장하지 못했습니다. 저장 공간과 브라우저 설정을 확인해 주세요.",
-    }));
+    const timeoutId = window.setTimeout(() => {
+      setStorageErrors((current) => ({
+        ...current,
+        favorites: result.ok
+          ? null
+          : "즐겨찾기를 브라우저에 저장하지 못했습니다. 저장 공간과 브라우저 설정을 확인해 주세요.",
+      }));
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [favoriteIds, storageLoaded]);
 
   useEffect(() => {
@@ -78,12 +82,16 @@ export function useRecipeLibraryStorage() {
       customRecipesStorageKey,
       customRecipes,
     );
-    setStorageErrors((current) => ({
-      ...current,
-      customRecipes: result.ok
-        ? null
-        : "나만의 레시피를 브라우저에 저장하지 못했습니다. 저장 공간과 브라우저 설정을 확인해 주세요.",
-    }));
+    const timeoutId = window.setTimeout(() => {
+      setStorageErrors((current) => ({
+        ...current,
+        customRecipes: result.ok
+          ? null
+          : "나만의 레시피를 브라우저에 저장하지 못했습니다. 저장 공간과 브라우저 설정을 확인해 주세요.",
+      }));
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [customRecipes, storageLoaded]);
 
   const toggleFavorite = useCallback((recipeId: string) => {
