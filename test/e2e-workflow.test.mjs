@@ -14,22 +14,43 @@ const recommendationJourney = await read(
   "e2e/helpers/recommendation-journey.mjs",
 );
 
-test("PR validation builds and validates the static export before all browser E2E flows", () => {
-  const buildIndex = prWorkflow.indexOf("Build GitHub Pages");
+test("PR validation exposes independent checks and passes the static export to browser E2E", () => {
+  const staticJobIndex = prWorkflow.indexOf("static-build:");
+  const buildIndex = prWorkflow.indexOf("Build GitHub Pages static export");
   const exportIndex = prWorkflow.indexOf("Validate static export");
+  const uploadIndex = prWorkflow.indexOf("Upload static export for browser E2E");
+  const browserJobIndex = prWorkflow.indexOf("browser-e2e:");
+  const downloadIndex = prWorkflow.indexOf("Download static export");
   const installIndex = prWorkflow.indexOf("Install Playwright Chromium");
-  const e2eIndex = prWorkflow.indexOf("Run mobile browser E2E");
+  const e2eIndex = prWorkflow.indexOf("Run browser E2E");
 
-  assert.ok(buildIndex >= 0);
+  assert.match(prWorkflow, /\n  lint:\n/);
+  assert.match(prWorkflow, /\n  typecheck:\n/);
+  assert.match(prWorkflow, /\n  unit-tests:\n/);
+  assert.ok(staticJobIndex >= 0);
+  assert.ok(buildIndex > staticJobIndex);
   assert.ok(exportIndex > buildIndex);
-  assert.ok(installIndex > exportIndex);
+  assert.ok(uploadIndex > exportIndex);
+  assert.ok(browserJobIndex > uploadIndex);
+  assert.match(prWorkflow.slice(browserJobIndex), /needs: static-build/);
+  assert.ok(downloadIndex > browserJobIndex);
+  assert.ok(installIndex > downloadIndex);
   assert.ok(e2eIndex > installIndex);
+  assert.match(prWorkflow, /pr-static-export-\$\{\{ github\.run_id \}\}/);
   assert.match(prWorkflow, /playwright install --with-deps chromium/);
   assert.match(prWorkflow, /pnpm run test:e2e/);
   assert.match(packageJson.scripts["test:e2e"], /mobile-flow\.mjs/);
   assert.match(packageJson.scripts["test:e2e"], /recommendation-flow\.mjs/);
   assert.match(packageJson.scripts["test:e2e"], /catalog-storage-timer-flow\.mjs/);
   assert.match(prWorkflow, /e2e-failure-\$\{\{ github\.run_id \}\}/);
+});
+
+test("PR events cannot trigger Pages deployment", () => {
+  assert.match(deployWorkflow, /push:\n    branches: \["main"\]/);
+  assert.match(deployWorkflow, /workflow_dispatch:/);
+  assert.match(deployWorkflow, /github\.ref == 'refs\/heads\/main'/);
+  assert.doesNotMatch(deployWorkflow, /pull_request_target:/);
+  assert.doesNotMatch(deployWorkflow, /issue_comment:/);
 });
 
 test("production deployment also blocks on browser E2E", () => {
