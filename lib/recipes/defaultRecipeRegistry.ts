@@ -16,7 +16,7 @@ import {
 } from "../../data/yongNeoSwitchDefault.ts";
 import type { Recipe } from "../types/defaultRecipe.ts";
 
-export const defaultRecipeCatalogVersion = "2026-08-31.1" as const;
+export const defaultRecipeCatalogVersion = "2026-09-01.1" as const;
 
 export type DefaultRecipeRegistryEntry = Readonly<{
   recipe: Recipe;
@@ -72,7 +72,7 @@ export const requiredDefaultRecipeNames = defaultRecipeRegistry
 
 export const defaultRecipeIdAliases = Object.fromEntries(
   defaultRecipeRegistry.flatMap((entry) =>
-    (entry.aliases ?? []).map((alias) => [alias, entry.recipe.id] as const),
+    (entry.aliases ?? []).map((alias) => [alias, recipe.id] as const),
   ),
 ) as Readonly<Record<string, string>>;
 
