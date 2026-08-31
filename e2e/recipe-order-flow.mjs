@@ -44,6 +44,57 @@ async function dragHandleToTarget(page, dragHandle, targetItem, holdMs = 0) {
   await page.mouse.up();
 }
 
+async function assertCatalogControlsDoNotOverlap(page, recipeId, viewportLabel) {
+  const row = page.locator(
+    `[data-recipe-row="true"][data-recipe-id="${recipeId}"]`,
+  );
+  await row.waitFor({ state: "visible" });
+
+  const layout = await row.evaluate((element) => {
+    const meta = element.querySelector('[data-recipe-meta="true"]');
+    const handle = element.querySelector('[data-recipe-drag-handle="true"]');
+    if (!(meta instanceof HTMLElement) || !(handle instanceof HTMLElement)) {
+      return null;
+    }
+
+    const metaRect = meta.getBoundingClientRect();
+    const handleRect = handle.getBoundingClientRect();
+    return {
+      meta: {
+        left: metaRect.left,
+        right: metaRect.right,
+        top: metaRect.top,
+        bottom: metaRect.bottom,
+      },
+      handle: {
+        left: handleRect.left,
+        right: handleRect.right,
+        top: handleRect.top,
+        bottom: handleRect.bottom,
+        width: handleRect.width,
+        height: handleRect.height,
+      },
+    };
+  });
+
+  assert.ok(layout, `${viewportLabel}: recipe meta and drag handle must exist`);
+  const overlaps = !(
+    layout.meta.right <= layout.handle.left ||
+    layout.handle.right <= layout.meta.left ||
+    layout.meta.bottom <= layout.handle.top ||
+    layout.handle.bottom <= layout.meta.top
+  );
+  assert.equal(
+    overlaps,
+    false,
+    `${viewportLabel}: favorite/time metadata must not overlap the drag handle`,
+  );
+  assert.ok(
+    layout.handle.width <= 32.5 && layout.handle.height <= 32.5,
+    `${viewportLabel}: catalog drag handle must remain compact`,
+  );
+}
+
 async function run() {
   if (!existsSync(path.join(outDir, "index.html"))) {
     throw new Error("Static export missing");
@@ -197,6 +248,19 @@ async function run() {
       "favorites filter must preserve the global recipe order",
     );
 
+    await assertCatalogControlsDoNotOverlap(
+      page,
+      reorderedIds[0],
+      "desktop favorite layout",
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await assertCatalogControlsDoNotOverlap(
+      page,
+      reorderedIds[0],
+      "mobile favorite layout",
+    );
+    await page.setViewportSize({ width: 1280, height: 900 });
+
     await page.reload({ waitUntil: "networkidle" });
     await page.locator('[data-recipe-row="true"]').first().waitFor({ state: "visible" });
     const restoredIds = await recipeRowIds(page);
@@ -214,7 +278,7 @@ async function run() {
     assert.deepEqual(browserMessages, [], browserMessages.join("\n"));
 
     console.log(
-      "E2E PASS: main catalog drag, drawer drag, order migration, filters, and reload persistence",
+      "E2E PASS: main catalog drag, compact favorite layout, drawer drag, filters, and reload persistence",
     );
   } catch (error) {
     await page.screenshot({
