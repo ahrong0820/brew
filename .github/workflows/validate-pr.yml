@@ -9,9 +9,10 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  lint:
+    name: lint
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -33,12 +34,58 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run lint
-        run: |
-          set -o pipefail
-          pnpm lint 2>&1 | tee lint.log
+        run: pnpm lint
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          show-progress: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.7.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Run type check
         run: pnpm typecheck
+
+  unit-tests:
+    name: unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          show-progress: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.7.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Run automated tests
         run: pnpm test
@@ -47,12 +94,34 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: validation-failure-${{ github.run_id }}
-          path: |
-            lint.log
-            test-failure.log
+          name: unit-test-failure-${{ github.run_id }}
+          path: test-failure.log
           if-no-files-found: ignore
           retention-days: 3
+
+  static-build:
+    name: static build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          show-progress: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.7.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Write deployment metadata and recipe manifest
         run: |
@@ -69,7 +138,7 @@ jobs:
           cp public/deployment.json "public/deployments/${GITHUB_SHA}.json"
           pnpm run write:recipe-manifest "$GITHUB_SHA"
 
-      - name: Build GitHub Pages
+      - name: Build GitHub Pages static export
         run: pnpm build:github
         env:
           GITHUB_PAGES: "true"
@@ -81,14 +150,52 @@ jobs:
           pnpm run validate:static-export out "$GITHUB_SHA"
           pnpm run validate:recipe-content out/index.html
 
+      - name: Upload static export for browser E2E
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-static-export-${{ github.run_id }}
+          path: out
+          if-no-files-found: error
+          retention-days: 1
+
+  browser-e2e:
+    name: browser E2E
+    needs: static-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          show-progress: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.9
+        with:
+          version: 11.7.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download static export
+        uses: actions/download-artifact@v4
+        with:
+          name: pr-static-export-${{ github.run_id }}
+          path: out
+
       - name: Install Playwright Chromium
         run: |
           pnpm add --save-dev --lockfile=false playwright@1.55.0
           pnpm exec playwright install --with-deps chromium
 
-      - name: Run mobile browser E2E
-        run: |
-          pnpm run test:e2e
+      - name: Run browser E2E
+        run: pnpm run test:e2e
 
       - name: Upload E2E diagnostics
         if: failure()
