@@ -20,7 +20,7 @@ jobs:
           show-progress: false
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v6.0.9
+        uses: pnpm/action-setup@v6.0.10
         with:
           version: 11.7.0
 
@@ -47,7 +47,7 @@ jobs:
           show-progress: false
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v6.0.9
+        uses: pnpm/action-setup@v6.0.10
         with:
           version: 11.7.0
 
@@ -74,7 +74,7 @@ jobs:
           show-progress: false
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v6.0.9
+        uses: pnpm/action-setup@v6.0.10
         with:
           version: 11.7.0
 
@@ -92,7 +92,7 @@ jobs:
 
       - name: Upload failed test diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: unit-test-failure-${{ github.run_id }}
           path: test-failure.log
@@ -110,7 +110,7 @@ jobs:
           show-progress: false
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v6.0.9
+        uses: pnpm/action-setup@v6.0.10
         with:
           version: 11.7.0
 
@@ -151,7 +151,7 @@ jobs:
           pnpm run validate:recipe-content out/index.html
 
       - name: Upload static export for browser E2E
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pr-static-export-${{ github.run_id }}
           path: out
@@ -170,7 +170,7 @@ jobs:
           show-progress: false
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v6.0.9
+        uses: pnpm/action-setup@v6.0.10
         with:
           version: 11.7.0
 
@@ -184,22 +184,20 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Download static export
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pr-static-export-${{ github.run_id }}
           path: out
 
       - name: Install Playwright Chromium
-        run: |
-          pnpm add --save-dev --lockfile=false playwright@1.55.0
-          pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run browser E2E
         run: pnpm run test:e2e
 
       - name: Upload E2E diagnostics
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-failure-${{ github.run_id }}
           path: test-results
